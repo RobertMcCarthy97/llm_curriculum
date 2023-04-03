@@ -129,3 +129,6 @@ MNIST
 .DS_Store
 
 wandb/
+
+logs/
+logs/*
