@@ -1,6 +1,6 @@
 import numpy as np
 
-from tasks import MoveCubeToTargetTask, PickUpCubeTask
+from tasks import MoveCubeToTargetTask, PickUpCubeTask, GraspCubeTask
 from sentence_transformers import SentenceTransformer
 
 class StatsTracker():
@@ -38,14 +38,20 @@ class StatsTracker():
     
 
 class AgentConductor():
-    def __init__(self, env, manual_decompose_p=None, dense_rew_lowest=False, single_task_names=None, high_level_task_names=None):
+    def __init__(self, env, manual_decompose_p=None, dense_rew_lowest=False, single_task_names=None, high_level_task_names=None, contained_sequence=False):
         self.env = env
         self.manual_decompose_p = manual_decompose_p
         self.dense_rew_lowest = dense_rew_lowest
+        
         self.single_task_names = single_task_names
+        
         self.high_level_task_names = high_level_task_names
         if self.single_task_names is not None:
             assert self.manual_decompose_p == 1
+            
+        self.contained_sequence = contained_sequence
+        if self.contained_sequence:
+            assert self.single_task_names is not None and len(self.single_task_names) == 1
         
         # tasks
         self.high_level_task_list = self.init_possible_tasks(env)
@@ -74,6 +80,9 @@ class AgentConductor():
             high_level_tasks += [MoveCubeToTargetTask(use_dense_reward_lowest_level=self.dense_rew_lowest)]
         if 'pick_up_cube' in self.high_level_task_names:
             high_level_tasks += [PickUpCubeTask(use_dense_reward_lowest_level=self.dense_rew_lowest)]
+        if 'grasp_cube' in self.high_level_task_names:
+            assert False, "Resets not working properly!"
+            high_level_tasks += [GraspCubeTask(use_dense_reward_lowest_level=self.dense_rew_lowest)]
         assert len(high_level_tasks) > 0
         return high_level_tasks
     
@@ -120,9 +129,11 @@ class AgentConductor():
         prev_active_task = self.active_task
         # reset tasks (i.e. set complete=False)
         self.reset_tasks()
-        # if doing single task per episode, sample from self.single_task_names
+        # if doing single task per episode (or sequenced), sample from self.single_task_names
         if self.single_task_names is not None:
             self.active_single_task_name = np.random.choice(self.single_task_names)
+        else:
+            self.active_single_task_name = None
         # choose random high-level task from list
         self.chosen_high_level_task = np.random.choice(self.high_level_task_list)
         # choose active task
@@ -144,6 +155,7 @@ class AgentConductor():
         return self.active_task
     
     def decompose_task(self, task):
+        # Never decompose single task or contained sequence
         if task.name == self.active_single_task_name:
             return task
         if not task.complete:
@@ -167,19 +179,29 @@ class AgentConductor():
     
     def step_task_recursive(self, task):
         if task.name == self.active_single_task_name:
+            # contained sequence logic
+            if self.contained_sequence:
+                if task.complete and task.check_next_task_exists():
+                    # jump to next task in sequence
+                    self.active_single_task_name = task.next_task.name
+                    return task.next_task
+            # single task logic
             return task
+        # normal logic
         if task.complete:
             if task.parent_task is None:
                 assert task.check_next_task_exists() is False, "Can't have next task if no parent task."
                 # If no parent, already at highest-level so stick with same
                 return task
             else:
-                if task.check_next_task_exists() is False:
-                    # If completed sequence and parent exists - replan from start! (don't stay on same level)
-                    return self.decompose_task(self.chosen_high_level_task)
-                else:
-                    # If current complete and next exists -> go to next
-                    return self.step_task_recursive(task.get_next_task())
+                # If completed task and parent exists - replan from start! (don't stay on same level)
+                return self.decompose_task(self.chosen_high_level_task)
+                # if task.check_next_task_exists() is False:
+                #     # If completed sequence and parent exists - replan from start! (don't stay on same level)
+                #     return self.decompose_task(self.chosen_high_level_task)
+                # else:
+                #     # If current complete and next exists -> go to next
+                #     return self.step_task_recursive(task.get_next_task())
         else:
             # If task not complete, then keep trying!
             return task

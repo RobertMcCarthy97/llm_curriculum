@@ -135,6 +135,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         
     
     def step(self, action):
+        # TODO: fix reward? currently r = f(s_t+1, g_t)
         # prev active task
         prev_active_task = self.agent_conductor.get_active_task()
         # step env
@@ -230,11 +231,11 @@ def get_user_action():
         action = np.array([0, 0, 0, 0])
     return action * 0.5
 
-def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None):
+def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None, contained_sequence=False):
     
     env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
     env = AddTargetToObsWrapper(env)
-    agent_conductor = AgentConductor(env, manual_decompose_p=manual_decompose_p, dense_rew_lowest=dense_rew_lowest, single_task_names=single_task_names, high_level_task_names=high_level_task_names)
+    agent_conductor = AgentConductor(env, manual_decompose_p=manual_decompose_p, dense_rew_lowest=dense_rew_lowest, single_task_names=single_task_names, high_level_task_names=high_level_task_names, contained_sequence=contained_sequence)
     env = CurriculumEnvWrapper(env, agent_conductor, use_language_goals=use_language_goals)
     env = OldGymAPIWrapper(env, max_ep_len)
     return env
@@ -246,8 +247,15 @@ def make_env_baseline(name="FetchPickAndPlace-v2", render_mode=None, max_ep_len=
 
 if __name__ == "__main__":
     
-    env = make_env(manual_decompose_p=1, dense_rew_lowest=False, use_language_goals=False, render_mode="human",
-                   single_task_names=["pick_up_cube"])
+    env = make_env(
+        manual_decompose_p=1,
+        dense_rew_lowest=False,
+        use_language_goals=False,
+        render_mode="human",
+        single_task_names=["move_gripper_to_cube"],
+        high_level_task_names=["move_cube_to_target"],
+        contained_sequence=True,
+    )
 
     for _ in range(5):
         
@@ -260,6 +268,7 @@ if __name__ == "__main__":
             # action = get_user_action()
             action = env.get_oracle_action(obs['observation'])
             # print(action)
+            input()
             
             # step
             # obs, reward, terminated, truncated, info = env.step(action)
