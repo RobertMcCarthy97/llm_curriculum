@@ -10,15 +10,17 @@ class FetchPickPlaceStateParser():
         self.right_gripper_i = 9
         self.left_gripper_i = 10
         self.target_i = 25
+        self.gripper_vel_i = 20
         
         self.cube_width = 0.025
         self.table_height = 0.425
         
-        self.cube_height_offset = np.array([0, 0, 0.06])
+        self.cube_height_offset = np.array([0, 0, 0.05])
         self.gripper_closed_cube_thresh = 0.05 # distance between grippers when grasping cube
         self.cube_lifted_thresh = (self.table_height + 2.5*self.cube_width)
         self.cube_between_gripper_dist_thresh = self.cube_width
-        self.gripper_open_thresh = 1.5 * self.cube_width
+        self.gripper_open_thresh = 1.8 * self.cube_width
+        self.gripper_stationary_thresh = 0.001
         
         self.cube_target_dist_threshold = 0.05
         self.gripper_target_dist_threshold = 0.05
@@ -42,6 +44,11 @@ class FetchPickPlaceStateParser():
     def get_distance_grippers(self, state):
         return state[self.right_gripper_i] + state[self.left_gripper_i]
     
+    def get_gripper_vel(self, state):
+        cartesian_vel = state[self.gripper_vel_i:self.gripper_vel_i+3]
+        abs_vel = np.linalg.norm(cartesian_vel)
+        return abs_vel
+    
     def check_gripper_open(self, state):
         thresh = self.gripper_open_thresh
         distance_between_grippers = self.get_distance_grippers(state)
@@ -56,6 +63,28 @@ class FetchPickPlaceStateParser():
         success = dist_gripper_cube < thresh
         reward = np.clip(-self.scale_cube_between*dist_gripper_cube, -1, 0)
         return success, reward
+    
+    def check_cube_between_grippers_easy(self, state):
+        # TODO: proper thresholds, check works....
+        # check gripper open
+        open_success, open_rew = self.check_gripper_open(state)
+        # print("gripper_open_success: ", open_success)
+        # x dist
+        x_dist = np.abs(self.get_gripper_pos(state)[0] - self.get_cube_pos(state)[0])
+        # print("x_dist: ", x_dist)
+        x_pass = x_dist < 0.03
+        # y dist
+        y_dist = np.abs(self.get_gripper_pos(state)[1] - self.get_cube_pos(state)[1])
+        # print("y_dist: ", y_dist)
+        y_pass = y_dist < 0.025
+        # z_dist
+        z_dist = np.abs(self.get_gripper_pos(state)[2] - self.get_cube_pos(state)[2])
+        # print("z_dist: ", z_dist)
+        z_pass = z_dist < 0.03
+        # overall
+        success = open_success and x_pass and y_pass and z_pass
+        return success, None
+        
     
     def check_grippers_closed_cube_width(self, state):
         thresh = self.gripper_closed_cube_thresh
@@ -124,6 +153,20 @@ class FetchPickPlaceStateParser():
         reward = np.clip(-dist, -1.0, 0.0)
         return success, reward
     
+    def check_gripper_stationary(self, state):
+        gripper_vel = self.get_gripper_vel(state)
+        stationary = gripper_vel < self.gripper_stationary_thresh
+        success = stationary
+        reward = -1 + stationary
+        return success, reward
+    
+    def check_gripper_open_stationary(self, state):
+        open_success, open_rew = self.check_gripper_open(state)
+        stationary_success, stationary_rew = self.check_gripper_stationary(state)
+        success = open_success and stationary_success
+        reward = np.clip(open_rew + stationary_rew, -1, 0)
+        return success, reward
+    
     def distance(self, pos1, pos2):
         return np.linalg.norm(pos1 - pos2)
 
@@ -135,7 +178,7 @@ valid_tasks = ['move_cube_to_target',
                     'move_gripper_to_cube',
                     "grasp_cube",
                         "open_gripper",
-                        "cube_between_fingers",
+                        "cube_between_grippers",
                         "close_gripper_cube",
                     "lift_cube",
                 "place_cube_at_target",
@@ -333,7 +376,7 @@ class GraspCubeTask(Task):
     def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
         self.name = "grasp_cube"
         self.str_description = "Grasp cube"
-        self.subtask_cls_seq = [] # TODO: ["open_gripper", "cube_between_fingers", "close_gripper_cube"]
+        self.subtask_cls_seq = [OpenGripperTask, CubeBetweenGripperTask, CloseGripperCubeTask]
         
         super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
         
@@ -345,26 +388,27 @@ class GraspCubeTask(Task):
             reward = self.binary_reward(success)
         return success, reward
     
-    def get_oracle_action(self, state):
-        '''
-        Assumes the gripper is above the cube
-        '''
-        # check if grasped
-        grasped, _ = self.state_parser.check_grasped(state)
-        if not grasped:
-            # Open gripper
-            is_gripper_open, _ = self.state_parser.check_gripper_open(state)
-            if not is_gripper_open:
-                return np.array([0, 0, 0]), True
-            # Put gripper around cube
-            cube_between_grippers, _ = self.state_parser.check_cube_between_grippers(state)
-            if not cube_between_grippers:
-                target_pos = self.state_parser.get_cube_pos(state)
-                gripper_pos = self.state_parser.get_gripper_pos(state)
-                direction = target_pos - gripper_pos
-                return direction, True
-        # Close gripper
-        return np.array([0, 0, 0]), False
+    # def get_oracle_action(self, state):
+    #     '''
+    #     Assumes the gripper is above the cube
+    #     '''
+    #     # TODO: offload this to the lower level oracles...!!
+    #     # check if grasped
+    #     grasped, _ = self.state_parser.check_grasped(state)
+    #     if not grasped:
+    #         # Open gripper
+    #         is_gripper_open, _ = self.state_parser.check_gripper_open(state)
+    #         if not is_gripper_open:
+    #             return np.array([0, 0, 0]), True
+    #         # Put gripper around cube
+    #         cube_between_grippers, _ = self.state_parser.check_cube_between_grippers(state)
+    #         if not cube_between_grippers:
+    #             target_pos = self.state_parser.get_cube_pos(state)
+    #             gripper_pos = self.state_parser.get_gripper_pos(state)
+    #             direction = target_pos - gripper_pos
+    #             return direction, True
+    #     # Close gripper
+    #     return np.array([0, 0, 0]), False
  
 class LiftCubeTask(Task):
     def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
@@ -428,11 +472,88 @@ class MoveGripperToTargetGraspTask(Task):
         return direction, gripper_open
 
 # TODO: add these
-# class OpenGripperTask(Task):
-# class CubeBetweenFingersTask(Task):
-# class CloseGripperCubeTask(Task):
 # class MoveGripperDirection(Task):
 # class MoveGripperDirectionGrasp(Task):
+
+class OpenGripperTask(Task):
+    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+        self.name = "open_gripper"
+        self.str_description = "Open gripper"
+        self.subtask_cls_seq = []
+        
+        super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
+        
+    def check_success_reward(self, current_state):
+        success, dense_reward = self.state_parser.check_gripper_open_stationary(current_state)
+        # reward
+        if self.use_dense_reward_lowest_level:
+            reward = dense_reward
+        else:
+            reward = self.binary_reward(success)
+        return success, reward
+    
+    def get_oracle_action(self, state):
+        return np.array([0, 0, 0]), True
+    
+
+class CubeBetweenGripperTask(Task):
+    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+        self.name = "cube_between_grippers"
+        self.str_description = "Cube between grippers"
+        self.subtask_cls_seq = []
+        
+        super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
+        
+    def check_success_reward(self, current_state):
+        success, dense_reward = self.state_parser.check_cube_between_grippers_easy(current_state)
+        # reward
+        if self.use_dense_reward_lowest_level:
+            reward = dense_reward
+        else:
+            reward = self.binary_reward(success)
+        return success, reward
+    
+    def get_oracle_action(self, state):
+        cube_between_gripper, _ = self.state_parser.check_cube_between_grippers_easy(state)
+        if not cube_between_gripper:
+            # Put gripper around cube (assumes gripper above cube and open)
+            target_pos = self.state_parser.get_cube_pos(state)
+            gripper_pos = self.state_parser.get_gripper_pos(state)
+            direction = target_pos - gripper_pos
+        else:
+            # Do nothing
+            direction = np.array([0, 0, 0])
+        return direction, True
+
+
+class CloseGripperCubeTask(Task):
+    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+        self.name = "close_gripper_cube"
+        self.str_description = "Close gripper around cube"
+        self.subtask_cls_seq = []
+        
+        super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
+        
+    def check_success_reward(self, current_state):
+        success, dense_reward = self.state_parser.check_grasped(current_state)
+        # reward
+        if self.use_dense_reward_lowest_level:
+            reward = dense_reward
+        else:
+            reward = self.binary_reward(success)
+        return success, reward
+    
+    def get_oracle_action(self, state):
+        # Put gripper around cube
+        cube_between_grippers, _ = self.state_parser.check_cube_between_grippers(state)
+        if not cube_between_grippers:
+            target_pos = self.state_parser.get_cube_pos(state)
+            gripper_pos = self.state_parser.get_gripper_pos(state)
+            direction = target_pos - gripper_pos
+            return direction, True
+        # Close gripper
+        return np.array([0, 0, 0]), False
+    
 
 
 # TaskDict = {
