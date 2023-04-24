@@ -44,7 +44,8 @@ class VideoRecorderCallback(BaseCallback):
             # Call draw Method to add 2D graphics in an image
             I1 = ImageDraw.Draw(img)
             # Add Text to an image
-            I1.text((28, 36), f"Active task: {info['active_task_name']}", fill=(255, 0, 0))
+            if 'active_task_name' in info:
+                I1.text((28, 36), f"Active task: {info['active_task_name']}", fill=(255, 0, 0))
             I1.text((28, 50), f"Success: {info['is_success']}", fill=(255, 0, 0))
             # Convert the PIL image back to an RGB array
             rgb_array_with_text = np.array(img).astype(np.uint8)
@@ -102,6 +103,8 @@ class SuccessCallback(BaseCallback):
                 for time_key in stats[stat_key].keys():
                     for task_key in stats[stat_key][time_key].keys():
                         self.logger.record(f"custom_rollout_{stat_key}_{time_key}/{task_key}", stats[stat_key][time_key][task_key])
+            # record tiemstep
+            self.logger.record("time/custom_timestep", self.num_timesteps)
             # dump and reset
             self.logger.dump(self.num_timesteps)
             env.agent_conductor.reset_epoch_stats()
