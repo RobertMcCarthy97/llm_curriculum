@@ -103,7 +103,7 @@ class SuccessCallback(BaseCallback):
                 for time_key in stats[stat_key].keys():
                     for task_key in stats[stat_key][time_key].keys():
                         self.logger.record(f"custom_rollout_{stat_key}_{time_key}/{task_key}", stats[stat_key][time_key][task_key])
-            # record tiemstep
+            # record timestep
             self.logger.record("time/custom_timestep", self.num_timesteps)
             # dump and reset
             self.logger.dump(self.num_timesteps)

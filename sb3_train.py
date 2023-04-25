@@ -26,24 +26,25 @@ if __name__ == "__main__":
         'dense_rew_lowest': False,
         'use_language_goals': False,
         'render_mode': 'rgb_array',
-        'use_oracle_at_warmup': True,
+        'use_oracle_at_warmup': False,
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['move_gripper_to_cube'],
-        'high_level_task_names': ['pick_up_cube'],
+        'single_task_names': ['cube_between_grippers'],
+        'high_level_task_names': ['move_cube_to_target'],
+        'contained_sequence': True,
         # algo
         'algo': TD3, # DDPG/TD3/SAC
         'policy_type': 'MultiInputPolicy',
-        'learning_starts': 5e3,
-        'replay_buffer_class': None, # LLMBasicReplayBuffer
+        'learning_starts': 1e3,
+        'replay_buffer_class': LLMBasicReplayBuffer, # LLMBasicReplayBuffer , None
         'total_timesteps': 1e5,
         'device': 'cpu',
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'move_gripper_cube-seed_data-TD3-single-only',
-        'exp_group': 'low-level-task-learning',
+        'exp_name': 'cube_between-close_gripper-TD3-sequence-task-llm-buffer',
+        'exp_group': 'low-level-multi-task-learning',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
     
@@ -78,6 +79,7 @@ if __name__ == "__main__":
             max_ep_len=hparams['max_ep_len'],
             single_task_names=hparams['single_task_names'],
             high_level_task_names=hparams['high_level_task_names'],
+            contained_sequence=hparams['contained_sequence'],
             )
 
     # Vec Env
@@ -90,7 +92,7 @@ if __name__ == "__main__":
     callback_list = []
     callback_list += [EvalCallback(env, eval_freq=1000, best_model_save_path=None)] # TODO: use different eval env
     if not hparams['use_baseline_env']:
-        callback_list += [SuccessCallback(log_freq=100)]
+        callback_list += [SuccessCallback(log_freq=1000)]
     callback_list += [VideoRecorderCallback(env, render_freq=10000, n_eval_episodes=1, add_text=True)]
     # wandb
     if hparams['do_track']:
