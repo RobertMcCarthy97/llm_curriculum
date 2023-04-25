@@ -80,10 +80,11 @@ class CurriculumEnvWrapper(gym.Wrapper):
         super().__init__(env)
         self._env = env
         self.use_language_goals = use_language_goals
-        
         self.step_count = 0
         self.agent_conductor = agent_conductor
+        
         self.init_obs_space()
+        self.reset_conductor = AgentConductor(env, manual_decompose_p=1, high_level_task_names='move_cube_to_target')
         
     def init_obs_space(self):
         # goal observation
@@ -123,13 +124,27 @@ class CurriculumEnvWrapper(gym.Wrapper):
         '''
         Use agent oracle actions to step through subtask until reached the single task
         '''
-        for _ in range(100):
-            step_count = 0
+        for _ in range(50):
             obs, info = self.reset_normal(**kwargs)
+            self.reset_conductor.reset()
+            self.reset_conductor.active_single_task_name = self.agent_conductor.active_single_task_name
+            assert self.reset_conductor.active_single_task_name != "move_cube_to_target", "resets broken for highest-level single task"
             for _ in range(50):
-                action = self.get_oracle_action(obs['observation'])
-                obs, reward, terminated, truncated, info = self.step(action)
-                if self.agent_conductor.get_active_task().name == self.agent_conductor.active_single_task_name:
+                reset_prev_active_task = self.reset_conductor.get_active_task()
+                print(f"\nreset active: {reset_prev_active_task.name}")
+                print(f"desired: {self.agent_conductor.active_single_task_name}")
+                input()
+                # action and step env
+                action = self.reset_conductor.get_oracle_action(obs['observation'], reset_prev_active_task)
+                obs, _, _, truncated, info = self.step(action)
+                _, reset_success = self.calc_reward(obs['observation'], reset_prev_active_task)
+                # step reset_conductor
+                reset_active_task = self.reset_conductor.step()
+                reset_goal_changed = (reset_prev_active_task.name != reset_active_task.name)
+                if (reset_success and reset_goal_changed) or truncated:
+                    self.reset_conductor.record_task_success_stat(reset_prev_active_task, reset_success)
+                # check if reached desired task
+                if self.reset_conductor.get_active_task().name == self.agent_conductor.active_single_task_name:
                     return obs, info
         assert False, "Failed to reach single task"
         
@@ -253,8 +268,8 @@ if __name__ == "__main__":
         use_language_goals=False,
         render_mode="human",
         single_task_names=["move_gripper_to_cube"],
-        high_level_task_names=["move_cube_to_target"],
-        contained_sequence=True,
+        high_level_task_names=["grasp_cube"],
+        contained_sequence=False,
     )
 
     for _ in range(5):

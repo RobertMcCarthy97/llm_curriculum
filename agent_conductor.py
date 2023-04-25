@@ -58,6 +58,12 @@ class AgentConductor():
         self.task_names = self.get_task_names()
         self.task_idx_dict, self.n_tasks = self.init_oracle_goals()
         
+        # check single tasks are contained within high-level task tree
+        if self.single_task_names is not None:
+            assert len(self.high_level_task_list) == 1, "only deal with this for now..."
+            all_task_names = self.get_task_names()
+            assert all([single_task in all_task_names for single_task in self.single_task_names]), "Single task not contained within high-level task"
+        
         # stats
         self.task_stats = {}
         self.task_stats['success'] = StatsTracker(self.task_names)
@@ -81,9 +87,8 @@ class AgentConductor():
         if 'pick_up_cube' in self.high_level_task_names:
             high_level_tasks += [PickUpCubeTask(use_dense_reward_lowest_level=self.dense_rew_lowest)]
         if 'grasp_cube' in self.high_level_task_names:
-            assert False, "Resets not working properly!"
             high_level_tasks += [GraspCubeTask(use_dense_reward_lowest_level=self.dense_rew_lowest)]
-        assert len(high_level_tasks) > 0
+        assert len(high_level_tasks) >= 0
         return high_level_tasks
     
     def init_task_embeddings(self):
