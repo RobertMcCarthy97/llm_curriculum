@@ -11,6 +11,7 @@ class FetchPickPlaceStateParser():
         self.left_gripper_i = 10
         self.target_i = 25
         self.gripper_vel_i = 20
+        self.cube_rel_vel_i = 14 # velocity relative to gripper...
         
         self.cube_width = 0.025
         self.table_height = 0.425
@@ -21,6 +22,7 @@ class FetchPickPlaceStateParser():
         self.cube_between_gripper_dist_thresh = self.cube_width
         self.gripper_open_thresh = 1.8 * self.cube_width
         self.gripper_stationary_thresh = 0.001
+        self.cube_moving_vel_threshold = 0.005
         
         self.cube_target_dist_threshold = 0.05
         self.gripper_target_dist_threshold = 0.05
@@ -28,6 +30,8 @@ class FetchPickPlaceStateParser():
         
         self.scale_cube_between = 10
         self.scale_cube_lifted = 10
+        
+        self.velocity_angle_thresh = 45 # degrees
         
         
     def get_gripper_pos(self, state):
@@ -46,8 +50,13 @@ class FetchPickPlaceStateParser():
     
     def get_gripper_vel(self, state):
         cartesian_vel = state[self.gripper_vel_i:self.gripper_vel_i+3]
-        abs_vel = np.linalg.norm(cartesian_vel)
-        return abs_vel
+        return cartesian_vel
+    
+    def get_cube_vel(self, state):
+        gripper_vel = self.get_gripper_vel(state)
+        cube_relative_vel = state[self.cube_rel_vel_i:self.cube_rel_vel_i+3]
+        cartesian_vel = gripper_vel + cube_relative_vel
+        return cartesian_vel
     
     def check_gripper_open(self, state):
         thresh = self.gripper_open_thresh
@@ -111,7 +120,6 @@ class FetchPickPlaceStateParser():
     
     def check_grasped(self, state):
         cube_between_success, cube_between_rew = self.check_cube_between_grippers(state)
-        # print cube pos and gripper pos to 3 decimal places
         grip_closed_cube_success, grip_closed_cube_rew = self.check_grippers_closed_cube_width(state)
         success = cube_between_success and grip_closed_cube_success
         reward = np.clip(cube_between_rew + grip_closed_cube_rew, -1, 0)
@@ -155,7 +163,7 @@ class FetchPickPlaceStateParser():
     
     def check_gripper_stationary(self, state):
         gripper_vel = self.get_gripper_vel(state)
-        stationary = gripper_vel < self.gripper_stationary_thresh
+        stationary = np.linalg.norm(gripper_vel) < self.gripper_stationary_thresh
         success = stationary
         reward = -1 + stationary
         return success, reward
@@ -166,6 +174,28 @@ class FetchPickPlaceStateParser():
         success = open_success and stationary_success
         reward = np.clip(open_rew + stationary_rew, -1, 0)
         return success, reward
+    
+    def check_cube_moving_to_target(self, state):
+        cube_pos = self.get_cube_pos(state)
+        target_pos = self.get_target_pos(state)
+        direction_to_target = target_pos - cube_pos
+        cube_vel = self.get_cube_vel(state)
+        # check velocity sufficiently high
+        cube_moving_success = np.linalg.norm(cube_vel) > self.cube_moving_vel_threshold
+        # check angle
+        v1_u = direction_to_target / np.linalg.norm(direction_to_target)
+        v2_u = cube_vel / np.linalg.norm(cube_vel)
+        angle = np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
+        # check velocity success
+        direction_success = (angle <= self.velocity_angle_thresh)
+        vel_success = direction_success and cube_moving_success
+        # check cube at target
+        cube_at_target_success, _ = self.check_cube_at_target(state)
+        # overall success
+        success = vel_success or cube_at_target_success
+        reward = np.clip(-angle, -1, 0)
+        return success, reward
+
     
     def distance(self, pos1, pos2):
         return np.linalg.norm(pos1 - pos2)
@@ -182,7 +212,7 @@ valid_tasks = ['move_cube_to_target',
                         "close_gripper_cube",
                     "lift_cube",
                 "place_cube_at_target",
-                    "move_gripper_to_target_grasp",
+                    "move_cube_towards_target_grasp",       # "move_gripper_to_target_grasp",
             ]
 
 
@@ -437,7 +467,7 @@ class PlaceCubeAtTargetTask(Task):
     def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
         self.name = "place_cube_at_target"
         self.str_description = "Place cube at target"
-        self.subtask_cls_seq = [MoveGripperToTargetGraspTask]
+        self.subtask_cls_seq = [MoveCubeTowardsTargetGraspTask]
         
         super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
         
@@ -446,21 +476,51 @@ class PlaceCubeAtTargetTask(Task):
         reward = self.binary_reward(success)
         return success, reward
     
-class MoveGripperToTargetGraspTask(Task):
+# class MoveGripperToTargetGraspTask(Task):
+#     '''
+#     # TODO: this doesnt seem to work well at all
+#         - learns to keep cube grasped, but doesn't learn to move cube to target...
+#     '''
+#     def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+#         self.name = "move_gripper_to_target_grasp"
+#         self.str_description = "Move gripper to target while grasping the cube"
+#         self.subtask_cls_seq = []
+        
+#         super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
+    
+#     def check_success_reward(self, current_state):
+#         cube_success, cube_dense_reward = self.state_parser.check_cube_at_target(current_state)
+#         grasp_success, grasp_dense_reward = self.state_parser.check_grasped(current_state)
+#         success = cube_success
+#         # reward
+#         if cube_success:
+#             reward = self.binary_reward(cube_success)
+#         else:
+#             grasp_reward = self.binary_reward(grasp_success)
+#             cube_reward = self.binary_reward(cube_success)
+#             reward = (grasp_reward + cube_reward) / 2
+#         return success, reward
+    
+#     def get_oracle_action(self, state):
+#         # move gripper to target while holding cube
+#         target_pos = self.state_parser.get_target_pos(state)
+#         gripper_pos = self.state_parser.get_gripper_pos(state)
+#         direction = target_pos - gripper_pos
+#         gripper_open = False
+#         return direction, gripper_open
+
+    
+class MoveCubeTowardsTargetGraspTask(Task):
     def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
-        self.name = "move_gripper_to_target_grasp"
-        self.str_description = "Move gripper to target while grasping the cube"
+        self.name = "move_cube_towards_target_grasp"
+        self.str_description = "Move cube towards target while grasping cube"
         self.subtask_cls_seq = []
         
         super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
     
     def check_success_reward(self, current_state):
-        success, dense_reward = self.state_parser.check_cube_at_target_and_grasped(current_state)
-        # reward
-        if self.use_dense_reward_lowest_level:
-            reward = dense_reward
-        else:
-            reward = self.binary_reward(success)
+        success, dense_reward = self.state_parser.check_cube_moving_to_target(current_state)
+        reward = self.binary_reward(success)
         return success, reward
     
     def get_oracle_action(self, state):
@@ -470,6 +530,7 @@ class MoveGripperToTargetGraspTask(Task):
         direction = target_pos - gripper_pos
         gripper_open = False
         return direction, gripper_open
+
 
 # TODO: add these
 # class MoveGripperDirection(Task):
