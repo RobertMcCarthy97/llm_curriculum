@@ -78,7 +78,7 @@ class AgentConductor():
         
         # init (to be overrided)
         self.active_task = self.high_level_task_list[0]
-        self.active_task_steps_active = 0
+        # self.active_task_steps_active = 0
     
     def init_possible_tasks(self, env):
         high_level_tasks = []
@@ -123,6 +123,15 @@ class AgentConductor():
             
         return task_names
     
+    def get_single_task_names(self):
+        return self.single_task_names
+    
+    def get_active_single_task_name(self):
+        return self.active_single_task_name
+    
+    def set_single_task_names(self, single_task_names):
+        self.single_task_names = single_task_names
+    
     def init_oracle_goals(self):
         task_idx_dict = {}
         for i, name in enumerate(self.task_names):
@@ -130,8 +139,6 @@ class AgentConductor():
         return task_idx_dict, len(self.task_names)
         
     def reset(self):
-        # TODO: required for stats but not good...
-        prev_active_task = self.active_task
         # reset tasks (i.e. set complete=False)
         self.reset_tasks()
         # if doing single task per episode (or sequenced), sample from self.single_task_names
@@ -143,8 +150,6 @@ class AgentConductor():
         self.chosen_high_level_task = np.random.choice(self.high_level_task_list)
         # choose active task
         self.active_task = self.decompose_task(self.chosen_high_level_task)
-        # stats
-        self.record_chosen_task(self.active_task, prev_active_task=prev_active_task, reset=True)
         
         return self.active_task
     
@@ -155,8 +160,6 @@ class AgentConductor():
     def step(self):
         prev_active_task = self.active_task
         self.active_task = self.step_task_recursive(prev_active_task)
-        # stats
-        self.record_chosen_task(self.active_task, prev_active_task=prev_active_task)
         return self.active_task
     
     def decompose_task(self, task):
@@ -215,19 +218,27 @@ class AgentConductor():
         direction_act, gripper_act = task.get_oracle_action(state)
         return FetchAction(self.env, direction_act, gripper_act).get_action()
     
-    def record_chosen_task(self, chosen_task, prev_active_task=None, reset=False):
-        # check if task changed
-        if prev_active_task is not None:
-            task_changed = (chosen_task.name != prev_active_task.name) # this isn't a good check...
-        if task_changed or reset:
-            # record change
-            self.task_stats['chosen_n'].append_stat(chosen_task.name, 1)
-            # record prev task active length
-            self.task_stats['length'].append_stat(prev_active_task.name, self.active_task_steps_active)
-            # reset counter
-            self.active_task_steps_active = 0
-        else:
-            self.active_task_steps_active += 1
+    # def track_chosen_task(self, chosen_task, prev_active_task=None, record_stats=True):
+    #     # check if task changed
+    #     task_changed = False
+    #     if prev_active_task is None:
+    #         task_changed = True # changed due to reset
+    #     else:
+    #         task_changed = (chosen_task.name != prev_active_task.name) # this isn't a good check...
+    #     if task_changed:
+    #         if record_stats:
+    #             # record change
+    #             self.task_stats['chosen_n'].append_stat(chosen_task.name, 1)
+    #             # record prev task active length
+    #             self.task_stats['length'].append_stat(prev_active_task.name, self.active_task_steps_active)
+    #         # reset counter
+    #         self.active_task_steps_active = 0
+    #     else:
+    #         self.active_task_steps_active += 1
+    
+    def record_task_chosen_stat(self, task, n_steps):
+        self.task_stats['chosen_n'].append_stat(task.name, 1)
+        self.task_stats['length'].append_stat(task.name, n_steps)
         
     def record_task_success_stat(self, task, is_success):
         self.task_stats['success'].append_stat(task.name, is_success)
