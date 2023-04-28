@@ -53,6 +53,9 @@ class OldGymAPIWrapper(gym.Wrapper):
 
 
 class AddTargetToObsWrapper(gym.ObservationWrapper):
+    """
+    Add the position of the red target to the observartion space
+    """
     def __init__(self, env):
         super().__init__(env)
         self._env = env
@@ -83,6 +86,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         
         # begin counter
         self.active_task_steps = 0
+        self.episode_n_steps = 0
         
     def init_obs_space(self):
         # goal observation
@@ -108,6 +112,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         # stats
         self.episode_n_steps = 0
         active_task = self.agent_conductor.get_active_task()
+        print(f"in agent conductor: active_task: {active_task.name}")
         self.record_task_stats(prev_task, active_task, reset=True)
         # return
         return obs, info

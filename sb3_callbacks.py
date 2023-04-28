@@ -116,6 +116,39 @@ class SuccessCallback(BaseCallback):
             
         return True
     
+class SuccessCallbackMultiRun(BaseCallback):
+    """
+    Custom callback for plotting additional values in tensorboard.
+    """
+
+    def __init__(self, verbose=0, log_freq=1000):
+        super().__init__(verbose)
+        self.log_freq = log_freq
+        self.num_timesteps_multi_run = 0
+        
+    def _on_step(self) -> bool:
+        # Dump
+        if self.num_timesteps_multi_run % self.log_freq == 0:
+            assert len(self.locals['env'].envs) == 1, "not setup for more than 1 env!"
+            env = self.locals['env'].envs[0]
+            stats = env.agent_conductor.get_stats()
+            # record averages
+            for stat_key in stats.keys():
+                for time_key in stats[stat_key].keys():
+                    for task_key in stats[stat_key][time_key].keys():
+                        self.logger.record(f"custom_rollout_{stat_key}_{time_key}/{task_key}", stats[stat_key][time_key][task_key])
+            # record timestep
+            self.logger.record("time/custom_timestep", self.num_timesteps_multi_run / len(self.locals['models_dict'].keys())) # TODO: this assumes all tasks have same number of timesteps
+            self.logger.record("time/custom_timestep_multi-run", self.num_timesteps_multi_run)
+            for task_key, model in self.locals['models_dict'].items():
+                self.logger.record(f"time/{task_key}_steps", model.num_timesteps)
+            # dump and reset
+            self.logger.dump(self.num_timesteps) # very dodgy, but curreently using num_timesteps of whatever model is assigned to the callback as anchor timestep for logging...??
+            env.agent_conductor.reset_epoch_stats()
+        # iter counter
+        self.num_timesteps_multi_run += 1
+            
+        return True  
     
     
 class EvalCallbackCustom(EventCallback):

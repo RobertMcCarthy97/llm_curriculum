@@ -218,24 +218,6 @@ class AgentConductor():
         direction_act, gripper_act = task.get_oracle_action(state)
         return FetchAction(self.env, direction_act, gripper_act).get_action()
     
-    # def track_chosen_task(self, chosen_task, prev_active_task=None, record_stats=True):
-    #     # check if task changed
-    #     task_changed = False
-    #     if prev_active_task is None:
-    #         task_changed = True # changed due to reset
-    #     else:
-    #         task_changed = (chosen_task.name != prev_active_task.name) # this isn't a good check...
-    #     if task_changed:
-    #         if record_stats:
-    #             # record change
-    #             self.task_stats['chosen_n'].append_stat(chosen_task.name, 1)
-    #             # record prev task active length
-    #             self.task_stats['length'].append_stat(prev_active_task.name, self.active_task_steps_active)
-    #         # reset counter
-    #         self.active_task_steps_active = 0
-    #     else:
-    #         self.active_task_steps_active += 1
-    
     def record_task_chosen_stat(self, task, n_steps):
         self.task_stats['chosen_n'].append_stat(task.name, 1)
         self.task_stats['length'].append_stat(task.name, n_steps)
@@ -269,6 +251,27 @@ class AgentConductor():
     
     def get_active_task(self):
         return self.active_task
+    
+    def get_task_from_name(self, task_name):
+        assert len(self.high_level_task_list) == 1
+        # find task object
+        def recursively_search_for_task(task, query_name):
+            if task.name == query_name:
+                return task
+            else:
+                if len(task.subtask_sequence) > 0:
+                    for subtask in task.subtask_sequence:
+                        found_task = recursively_search_for_task(subtask, query_name)
+                        if found_task is not None:
+                            return found_task
+                else:
+                    return None
+        
+        high_level_task = self.high_level_task_list[0]
+        assert high_level_task.next_task is None, "Can't have next task if no parent task."
+        return recursively_search_for_task(high_level_task, task_name)
+        
+        
 
 
 class FetchAction():
