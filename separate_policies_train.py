@@ -12,7 +12,7 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 from env_wrappers import make_env, make_env_baseline
-from stable_baselines3.common.buffers_custom import LLMBasicReplayBuffer
+from stable_baselines3.common.buffers_custom import LLMBasicReplayBuffer, SeparatePoliciesReplayBuffer
 from sb3_callbacks import SuccessCallback, VideoRecorderCallback, EvalCallbackCustom, SuccessCallbackMultiRun
 
 
@@ -32,7 +32,7 @@ def create_env(hparams):
             single_task_names=hparams['single_task_names'],
             high_level_task_names=hparams['high_level_task_names'],
             contained_sequence=hparams['contained_sequence'],
-            # TODO: remove goal info from obs
+            state_obs_only=True,
             )
         # assert False, "remove goal info from obs" # TODO
 
@@ -47,10 +47,11 @@ def setup_logging(env, hparams):
     # Logger and callbacks
     logger = configure(hparams['log_path'], ["stdout", "csv", "tensorboard"])
     callback_list = []
-    # callback_list += [EvalCallbackCustom(eval_env, eval_freq=1000, best_model_save_path=None)] # TODO: use different eval env
+    # callback_list += [EvalCallbackCustom(eval_env, eval_freq=1000, best_model_save_path=None)]
     if not hparams['use_baseline_env']:
         callback_list += [SuccessCallbackMultiRun(log_freq=1000*len(hparams['single_task_names']))] # TODO: dodgy freq setting
     # callback_list += [VideoRecorderCallback(env, render_freq=10000, n_eval_episodes=1, add_text=True)]
+    # TODO: video callback and eval callback for separate policies...
     # wandb
     if hparams['do_track']:
         # log hyperparameters
@@ -84,15 +85,22 @@ def create_models(env):
                     use_oracle_at_warmup=hparams['use_oracle_at_warmup'],
                     )
         model.set_logger(logger)
+        model.replay_buffer.set_task_name(task)
         models_dict[task] = model
         
-    # # link child to parent buffers
-    # for task in models_dict.keys():
-    #     if len(task.subtask_sequence) > 0:
-    #         for subtask in task.subtask_sequence:
-    #             subtask_name = subtask.name
-    #             subtask_buffer = models_dict[subtask_name].replay_buffer
-    #             models_dict[task].replay_buffer.add_child_buffer(subtask_buffer)
+    # link buffers relations
+    for task_name in models_dict.keys():
+        task = env.envs[0].agent_conductor.get_task_from_name(task_name)
+        parent_buffer = models_dict[task_name].replay_buffer
+        if len(task.subtask_sequence) > 0:
+            for subtask in task.subtask_sequence:
+                subtask_name = subtask.name
+                if subtask_name in models_dict.keys():
+                    subtask_buffer = models_dict[subtask_name].replay_buffer
+                    # establish that subtask has parent
+                    subtask_buffer.init_parent()
+                    # link child to parent
+                    parent_buffer.add_child_buffer(subtask_buffer)
                 
     return models_dict
 
@@ -118,13 +126,12 @@ def init_training(
 def training_loop(models_dict, env, total_timesteps, log_interval=4):
     tasks = list(models_dict.keys())
     while models_dict[tasks[0]].num_timesteps < total_timesteps:
-    
+        
         for task_name, model in models_dict.items():
             # Set task
             for vec_env in env.envs:
                 vec_env.agent_conductor.set_single_task_names([task_name])
-            print("set task to", task_name)
-            
+            print(f"\nTraining on task {task_name}")
             # Collect data
             rollout = model.collect_rollouts(
                     env,
@@ -134,7 +141,10 @@ def training_loop(models_dict, env, total_timesteps, log_interval=4):
                     learning_starts=model.learning_starts,
                     replay_buffer=model.replay_buffer,
                     log_interval=log_interval,
+                    reset_b4_collect=True,
                 )
+            # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
+            print(f"rollout num_timesteps: {rollout.episode_timesteps}, rollout_n_episodes: {rollout.n_episodes}")
 
             if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
                 # If no `gradient_steps` is specified,
@@ -152,24 +162,24 @@ def get_hparams():
         'manual_decompose_p': 1,
         'dense_rew_lowest': False,
         'use_language_goals': False,
-        'render_mode': 'rgb_array',
+        'render_mode': 'human',
         'use_oracle_at_warmup': False,
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['lift_cube', 'cube_between_grippers', 'grasp_cube', 'move_gripper_to_cube'],
+        'single_task_names': ['lift_cube', 'pick_up_cube'],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
         # algo
         'algo': TD3, # DDPG/TD3/SAC
-        'policy_type': 'MultiInputPolicy', # TODO: switch to non-dict
-        'learning_starts': 1e3,
-        'replay_buffer_class': None, # LLMBasicReplayBuffer , None
-        'replay_buffer_kwargs': None, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}
+        'policy_type': "MlpPolicy", # TODO: switch to non-dict # "MlpPolicy", "MultiInputPolicy"
+        'learning_starts': 1e0,
+        'replay_buffer_class': SeparatePoliciesReplayBuffer, # LLMBasicReplayBuffer, None, SeparatePoliciesReplayBuffer
+        'replay_buffer_kwargs': {'child_p': 0.2}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
         'total_timesteps': 1e5,
         'device': 'cpu',
         # logging
-        'do_track': True,
+        'do_track': False,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
         'exp_name': 'temp',
         'exp_group': 'temp',
