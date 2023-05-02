@@ -16,7 +16,7 @@ class FetchPickPlaceStateParser():
         self.cube_width = 0.025
         self.table_height = 0.425
         
-        self.cube_height_offset = np.array([0, 0, 0.05])
+        self.cube_height_offset = np.array([0, 0, 0.05]) # 0.05
         self.gripper_closed_cube_thresh = 0.05 # distance between grippers when grasping cube
         self.cube_lifted_thresh = (self.table_height + 2.5*self.cube_width)
         self.cube_between_gripper_dist_thresh = self.cube_width

@@ -67,7 +67,21 @@ class AddTargetToObsWrapper(gym.ObservationWrapper):
         obs = observation['observation']
         goal = observation['desired_goal']
         return np.concatenate([obs, goal], axis=0)
-    
+
+
+class NonGoalNonDictObsWrapper(gym_old.ObservationWrapper):
+    """
+    Recieve env with dict observations and only return state obs
+    """
+    def __init__(self, env):
+        super().__init__(env)
+        self._env = env
+        
+        self.observation_space = env.observation_space['observation']
+        
+    def observation(self, observation):
+        return observation['observation']
+
 
 class CurriculumEnvWrapper(gym.Wrapper):
     '''
@@ -112,8 +126,8 @@ class CurriculumEnvWrapper(gym.Wrapper):
         # stats
         self.episode_n_steps = 0
         active_task = self.agent_conductor.get_active_task()
-        print(f"in agent conductor: active_task: {active_task.name}")
         self.record_task_stats(prev_task, active_task, reset=True)
+        assert active_task.name == info['active_task_name']
         # return
         return obs, info
     
@@ -126,7 +140,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         # obs
         obs = self.set_obs(state_obs, active_task)
         # info
-        info = self.set_info(active_task, state_obs)
+        info = self.set_info(active_task, active_task, state_obs)
         
         return obs, info
     
@@ -165,7 +179,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         self.active_state_obs = state_obs
         
         # calc reward
-        reward, success = self.calc_reward(state_obs, prev_active_task)
+        reward, success = self.calc_reward(state_obs, prev_active_task) # reward based on g_t, obs_t+1
         
         # replan
         active_task = self.agent_conductor.step()
@@ -174,9 +188,10 @@ class CurriculumEnvWrapper(gym.Wrapper):
         obs = self.set_obs(state_obs, active_task)
         
         # info
-        info = self.set_info(active_task, obs['observation'])
+        info = self.set_info(prev_active_task, active_task, obs['observation'])
         info['is_success'] = success
         info['goal_changed'] = (prev_active_task.name != active_task.name)
+        assert active_task.name == info['active_task_name']
         
         if not reset_step:
             self.episode_n_steps += 1
@@ -220,20 +235,20 @@ class CurriculumEnvWrapper(gym.Wrapper):
         else:
             return self.agent_conductor.get_task_oracle_goal(task)
     
-    def set_info(self, obs_task, current_state):
+    def set_info(self, prev_task, stepped_task, current_state):
         info = {}
         # active task details
-        info['active_task_level'] = obs_task.level
-        info['active_task_name'] = obs_task.name
+        info['active_task_level'] = stepped_task.level
+        info['active_task_name'] = stepped_task.name
         # record parent tasks details
-        iter_task = obs_task
-        for i in range(obs_task.level, -1, -1):
+        iter_task = stepped_task
+        for i in range(stepped_task.level, -1, -1):
             info[f'task_level_{i}'] = iter_task.name
             iter_task = iter_task.parent_task
         # record parent task reward and goal
-        if obs_task.parent_task is not None:
-            _, info['obs_parent_goal_reward'] = obs_task.parent_task.check_success_reward(current_state)
-            info['obs_parent_goal'] = self.get_task_goal(obs_task.parent_task)
+        if prev_task.parent_task is not None:
+            _, info['obs_parent_goal_reward'] = prev_task.parent_task.check_success_reward(current_state) # parent reward depends on parent_g_t, obs_t+1
+            info['obs_parent_goal'] = self.get_task_goal(prev_task.parent_task)
         # record overall success
         info['overall_task_success'], _ = self.agent_conductor.chosen_high_level_task.check_success_reward(current_state)
         # return
@@ -275,13 +290,15 @@ def get_user_action():
         action = np.array([0, 0, 0, 0])
     return action * 0.5
 
-def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None, contained_sequence=False):
+def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None, contained_sequence=False, state_obs_only=False):
     
     env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
     env = AddTargetToObsWrapper(env)
     agent_conductor = AgentConductor(env, manual_decompose_p=manual_decompose_p, dense_rew_lowest=dense_rew_lowest, single_task_names=single_task_names, high_level_task_names=high_level_task_names, contained_sequence=contained_sequence)
     env = CurriculumEnvWrapper(env, agent_conductor, use_language_goals=use_language_goals, max_ep_len=max_ep_len)
     env = OldGymAPIWrapper(env)
+    if state_obs_only:
+        env = NonGoalNonDictObsWrapper(env)
     return env
 
 def make_env_baseline(name="FetchPickAndPlace-v2", render_mode=None, max_ep_len=50):

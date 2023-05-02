@@ -85,22 +85,26 @@ def create_models(env):
                     use_oracle_at_warmup=hparams['use_oracle_at_warmup'],
                     )
         model.set_logger(logger)
-        model.replay_buffer.set_task_name(task)
+        if hparams['replay_buffer_class'] is not None:  
+            model.replay_buffer.set_task_name(task)
         models_dict[task] = model
-        
-    # link buffers relations
-    for task_name in models_dict.keys():
-        task = env.envs[0].agent_conductor.get_task_from_name(task_name)
-        parent_buffer = models_dict[task_name].replay_buffer
-        if len(task.subtask_sequence) > 0:
-            for subtask in task.subtask_sequence:
-                subtask_name = subtask.name
-                if subtask_name in models_dict.keys():
-                    subtask_buffer = models_dict[subtask_name].replay_buffer
-                    # establish that subtask has parent
-                    subtask_buffer.init_parent()
-                    # link child to parent
-                    parent_buffer.add_child_buffer(subtask_buffer)
+    
+    if hparams['replay_buffer_class'] is not None:    
+        # link buffers relations
+        for task_name in models_dict.keys():
+            task = env.envs[0].agent_conductor.get_task_from_name(task_name)
+            parent_buffer = models_dict[task_name].replay_buffer
+            if len(task.subtask_sequence) > 0:
+                for subtask in task.subtask_sequence:
+                    subtask_name = subtask.name
+                    if subtask_name in models_dict.keys():
+                        subtask_buffer = models_dict[subtask_name].replay_buffer
+                        # establish that subtask has parent
+                        subtask_buffer.init_parent()
+                        # link child to parent
+                        parent_buffer.add_child_buffer(subtask_buffer)
+                        print(f"parent: {parent_buffer.task_name}, child: {subtask_buffer.task_name}")
+        # TODO: print / save these relations to ensure all correct...
                 
     return models_dict
 
@@ -131,7 +135,7 @@ def training_loop(models_dict, env, total_timesteps, log_interval=4):
             # Set task
             for vec_env in env.envs:
                 vec_env.agent_conductor.set_single_task_names([task_name])
-            print(f"\nTraining on task {task_name}")
+            
             # Collect data
             rollout = model.collect_rollouts(
                     env,
@@ -144,7 +148,6 @@ def training_loop(models_dict, env, total_timesteps, log_interval=4):
                     reset_b4_collect=True,
                 )
             # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
-            print(f"rollout num_timesteps: {rollout.episode_timesteps}, rollout_n_episodes: {rollout.n_episodes}")
 
             if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
                 # If no `gradient_steps` is specified,
@@ -162,27 +165,27 @@ def get_hparams():
         'manual_decompose_p': 1,
         'dense_rew_lowest': False,
         'use_language_goals': False,
-        'render_mode': 'human',
+        'render_mode': 'rgb_array',
         'use_oracle_at_warmup': False,
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['lift_cube', 'pick_up_cube'],
+        'single_task_names': ['pick_up_cube'],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
         # algo
         'algo': TD3, # DDPG/TD3/SAC
         'policy_type': "MlpPolicy", # TODO: switch to non-dict # "MlpPolicy", "MultiInputPolicy"
-        'learning_starts': 1e0,
+        'learning_starts': 1e3,
         'replay_buffer_class': SeparatePoliciesReplayBuffer, # LLMBasicReplayBuffer, None, SeparatePoliciesReplayBuffer
         'replay_buffer_kwargs': {'child_p': 0.2}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
         'total_timesteps': 1e5,
         'device': 'cpu',
         # logging
-        'do_track': False,
+        'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'temp',
-        'exp_group': 'temp',
+        'exp_name': 'pickup-seperate_policies_code-custom_buffer',
+        'exp_group': 'seperate_polcies_debug',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
 
