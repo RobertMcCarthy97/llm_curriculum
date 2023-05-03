@@ -57,22 +57,22 @@ if __name__ == "__main__":
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['move_cube_to_target', 'lift_cube', 'cube_between_grippers'],
+        'single_task_names': ['cube_between_grippers'],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
         # algo
         'algo': TD3, # DDPG/TD3/SAC
         'policy_type': 'MultiInputPolicy',
         'learning_starts': 1e3,
-        'replay_buffer_class': LLMBasicReplayBuffer, # LLMBasicReplayBuffer , None
-        'replay_buffer_kwargs': {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}
-        'total_timesteps': 1e6,
+        'replay_buffer_class': None, # LLMBasicReplayBuffer , None
+        'replay_buffer_kwargs': None, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}
+        'total_timesteps': 1e5,
         'device': 'cpu',
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'temp',
-        'exp_group': 'temp',
+        'exp_name': 'cube_between-only-standard_sb3',
+        'exp_group': 'seperate_polcies_debug',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
     

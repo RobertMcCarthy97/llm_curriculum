@@ -4,7 +4,7 @@ import gym as gym_old
 import numpy as np
 import time
 
-from agent_conductor import AgentConductor
+from llm_curriculum_algo.agent_conductor import AgentConductor
 
 
 class OldGymAPIWrapper(gym.Wrapper):
@@ -81,6 +81,20 @@ class NonGoalNonDictObsWrapper(gym_old.ObservationWrapper):
         
     def observation(self, observation):
         return observation['observation']
+
+
+class MTEnvWrapper(gym_old.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self._env = env
+        
+        self.observation_space = gym_old.spaces.Dict({
+            'env_obs': env.observation_space['observation'],
+            'task_obs': env.observation_space['desired_goal'],
+        })
+        
+    def observation(self, observation):
+        return {'env_obs': observation['observation'], 'task_obs': observation['desired_goal']}
 
 
 class CurriculumEnvWrapper(gym.Wrapper):
@@ -189,7 +203,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         
         # info
         info = self.set_info(prev_active_task, active_task, obs['observation'])
-        info['is_success'] = success
+        info['is_success'], info['success'] = success, success
         info['goal_changed'] = (prev_active_task.name != active_task.name)
         assert active_task.name == info['active_task_name']
         
@@ -290,15 +304,17 @@ def get_user_action():
         action = np.array([0, 0, 0, 0])
     return action * 0.5
 
-def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None, contained_sequence=False, state_obs_only=False):
+def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None, contained_sequence=False, state_obs_only=False, mtenv_wrapper=False):
     
     env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
     env = AddTargetToObsWrapper(env)
-    agent_conductor = AgentConductor(env, manual_decompose_p=manual_decompose_p, dense_rew_lowest=dense_rew_lowest, single_task_names=single_task_names, high_level_task_names=high_level_task_names, contained_sequence=contained_sequence)
+    agent_conductor = AgentConductor(env, manual_decompose_p=manual_decompose_p, dense_rew_lowest=dense_rew_lowest, single_task_names=single_task_names, high_level_task_names=high_level_task_names, contained_sequence=contained_sequence, use_language_goals=use_language_goals)
     env = CurriculumEnvWrapper(env, agent_conductor, use_language_goals=use_language_goals, max_ep_len=max_ep_len)
     env = OldGymAPIWrapper(env)
     if state_obs_only:
         env = NonGoalNonDictObsWrapper(env)
+    if mtenv_wrapper:
+        env = MTEnvWrapper(env)
     return env
 
 def make_env_baseline(name="FetchPickAndPlace-v2", render_mode=None, max_ep_len=50):

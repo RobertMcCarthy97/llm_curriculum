@@ -1,6 +1,6 @@
 import numpy as np
 
-from tasks import MoveCubeToTargetTask, PickUpCubeTask, GraspCubeTask
+from llm_curriculum_algo.tasks import MoveCubeToTargetTask, PickUpCubeTask, GraspCubeTask
 from sentence_transformers import SentenceTransformer
 
 class StatsTracker():
@@ -38,10 +38,11 @@ class StatsTracker():
     
 
 class AgentConductor():
-    def __init__(self, env, manual_decompose_p=None, dense_rew_lowest=False, single_task_names=None, high_level_task_names=None, contained_sequence=False):
+    def __init__(self, env, manual_decompose_p=None, dense_rew_lowest=False, single_task_names=None, high_level_task_names=None, contained_sequence=False, use_language_goals=False):
         self.env = env
         self.manual_decompose_p = manual_decompose_p
         self.dense_rew_lowest = dense_rew_lowest
+        self.use_language_goals = use_language_goals
         
         self.single_task_names = single_task_names
         
@@ -73,8 +74,9 @@ class AgentConductor():
         # language embeddings
         # https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
         # Or use same as 'Guided pretraining' paper? https://huggingface.co/sentence-transformers/paraphrase-MiniLM-L3-v2 
-        self.sentence_embedder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-        self.init_task_embeddings()
+        if self.use_language_goals:
+            self.sentence_embedder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+            self.init_task_embeddings()
         
         # init (to be overrided)
         self.active_task = self.high_level_task_list[0]
