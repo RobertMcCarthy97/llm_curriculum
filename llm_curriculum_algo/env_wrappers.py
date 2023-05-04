@@ -83,18 +83,30 @@ class NonGoalNonDictObsWrapper(gym_old.ObservationWrapper):
         return observation['observation']
 
 
-class MTEnvWrapper(gym_old.ObservationWrapper):
-    def __init__(self, env):
+class MTEnvWrapper(gym_old.Wrapper):
+    def __init__(self, env, task_index: int):
         super().__init__(env)
         self._env = env
+        self._task_index = task_index
         
         self.observation_space = gym_old.spaces.Dict({
             'env_obs': env.observation_space['observation'],
-            'task_obs': env.observation_space['desired_goal'],
+            'task_obs': gym_old.spaces.Box(low=0, high=np.inf, shape=(1,))
         })
         
-    def observation(self, observation):
-        return {'env_obs': observation['observation'], 'task_obs': observation['desired_goal']}
+    def reset(self):
+        # TODO: make sure correct task idx is set here...
+        obs = self._env.reset()
+        return self.mod_observation(obs)
+    
+    def step(self, action):
+        obs, reward, done, info = self._env.step(action)
+        return self.mod_observation(obs), reward, done, info
+        
+    def mod_observation(self, observation):
+        task_obs = np.array([self._task_index])
+        # assert task_idx == info['active_task_idx'] # TODO
+        return {'env_obs': observation['observation'], 'task_obs': task_obs}
 
 
 class CurriculumEnvWrapper(gym.Wrapper):
@@ -254,6 +266,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         # active task details
         info['active_task_level'] = stepped_task.level
         info['active_task_name'] = stepped_task.name
+        # info['active_task_index'] = self.agent_conductor.get_task_index(stepped_task)
         # record parent tasks details
         iter_task = stepped_task
         for i in range(stepped_task.level, -1, -1):
@@ -261,7 +274,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
             iter_task = iter_task.parent_task
         # record parent task reward and goal
         if prev_task.parent_task is not None:
-            _, info['obs_parent_goal_reward'] = prev_task.parent_task.check_success_reward(current_state) # parent reward depends on parent_g_t, obs_t+1
+            _, info['obs_parent_goal_reward'] = prev_task.parent_task.check_success_reward(current_state) # parent reward depends on parent_g_t, obs_t+1 - TODO: this naming is very confusding!!
             info['obs_parent_goal'] = self.get_task_goal(prev_task.parent_task)
         # record overall success
         info['overall_task_success'], _ = self.agent_conductor.chosen_high_level_task.check_success_reward(current_state)
@@ -304,7 +317,7 @@ def get_user_action():
         action = np.array([0, 0, 0, 0])
     return action * 0.5
 
-def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None, contained_sequence=False, state_obs_only=False, mtenv_wrapper=False):
+def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None, contained_sequence=False, state_obs_only=False, mtenv_wrapper=False, mtenv_task_idx=None):
     
     env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
     env = AddTargetToObsWrapper(env)
@@ -314,7 +327,7 @@ def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=Fal
     if state_obs_only:
         env = NonGoalNonDictObsWrapper(env)
     if mtenv_wrapper:
-        env = MTEnvWrapper(env)
+        env = MTEnvWrapper(env, mtenv_task_idx)
     return env
 
 def make_env_baseline(name="FetchPickAndPlace-v2", render_mode=None, max_ep_len=50):
