@@ -317,7 +317,7 @@ def get_user_action():
         action = np.array([0, 0, 0, 0])
     return action * 0.5
 
-def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None, contained_sequence=False, state_obs_only=False, mtenv_wrapper=False, mtenv_task_idx=None):
+def make_env(manual_decompose_p=1, dense_rew_lowest=False, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None, contained_sequence=False, state_obs_only=False, mtenv_wrapper=False, mtenv_task_idx=None):
     
     env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
     env = AddTargetToObsWrapper(env)
