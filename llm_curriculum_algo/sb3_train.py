@@ -39,7 +39,10 @@ def create_env(hparams):
     env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
     
     return env
-    
+
+'''
+conda activate llm_curriculum
+''' 
 
 if __name__ == "__main__":
     '''
@@ -57,7 +60,7 @@ if __name__ == "__main__":
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['cube_between_grippers'],
+        'single_task_names': ['lift_cube'],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
         # algo
@@ -71,8 +74,8 @@ if __name__ == "__main__":
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'cube_between-only-standard_sb3',
-        'exp_group': 'seperate_polcies_debug',
+        'exp_name': 'lift_cube-standard_sb3-SAC-seed100',
+        'exp_group': 'mtrl_initial_tests',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
     
