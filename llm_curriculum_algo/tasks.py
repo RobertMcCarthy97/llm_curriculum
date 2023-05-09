@@ -292,7 +292,6 @@ class Task():
                     subtask.check_and_set_subtasks_complete(subtask, current_state) # TODO: could be weird scenarios where task complete but subtasks arent??
                     return
                     
-    
     def check_success_reward(self, current_state):
         raise NotImplementedError("Subclass must implement abstract method")
     
@@ -305,6 +304,7 @@ class Task():
         return task.get_oracle_action(state)
         
     def get_incremental_reward(self):
+        raise NotImplementedError("Subclass must implement abstract method")
         def recursive_incremental_reward(task, lower_level_perc_complete=1.0):
             if task.parent_task is None:
                 assert self.next_task is None
@@ -317,6 +317,35 @@ class Task():
             
         perc_complete = recursive_incremental_reward(self)
         return perc_complete
+    
+    def record_relations(self):
+        '''
+        Records any relations and their distance from task
+        '''
+        # parents
+        def set_parent_relations(task, distance=1):
+            parents_dict = {}
+            parent_task = task.parent_task
+            if parent_task is not None:
+                parents_dict[parent_task.name] = distance
+                parents_dict.update(set_parent_relations(parent_task, distance=distance+1))
+            return parents_dict
+        parents_dict = set_parent_relations(self, distance=1)
+        
+        # children
+        def set_child_relations(task, distance=1):
+            child_dict = {}
+            if len(task.subtask_sequence) > 0:
+                for child_task in task.subtask_sequence:
+                    child_dict[child_task.name] = distance
+                    child_dict.update(set_child_relations(child_task, distance=distance+1))
+            return child_dict
+        child_dict = set_child_relations(self, distance=1)
+        # set relations
+        self.relations = {'parents': parents_dict, 'children': child_dict}
+        
+    def get_relations(self):
+        return self.relations
     
     def binary_reward(self, success):
         if success:

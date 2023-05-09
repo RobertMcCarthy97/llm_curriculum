@@ -12,7 +12,9 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 from env_wrappers import make_env, make_env_baseline
-from stable_baselines3.common.buffers_custom import LLMBasicReplayBuffer, SeparatePoliciesReplayBuffer
+from curriculum_manager import DummySeperateEpisodesCM, SeperateEpisodesCM
+
+from stable_baselines3.common.buffers_custom import LLMBasicReplayBuffer, SeparatePoliciesReplayBuffer # TODO: should move these into this repo!!??
 from sb3_callbacks import SuccessCallback, VideoRecorderCallback, EvalCallbackCustom, SuccessCallbackMultiRun
 
 
@@ -71,7 +73,6 @@ def create_models(env):
     assert len(task_list) > 0
     
     models_dict = {}
-    
     # create models
     for task in task_list:
         model = hparams['algo'](
@@ -92,18 +93,9 @@ def create_models(env):
     if hparams['replay_buffer_class'] is not None:    
         # link buffers relations
         for task_name in models_dict.keys():
-            task = env.envs[0].agent_conductor.get_task_from_name(task_name)
-            parent_buffer = models_dict[task_name].replay_buffer
-            if len(task.subtask_sequence) > 0:
-                for subtask in task.subtask_sequence:
-                    subtask_name = subtask.name
-                    if subtask_name in models_dict.keys():
-                        subtask_buffer = models_dict[subtask_name].replay_buffer
-                        # establish that subtask has parent
-                        subtask_buffer.init_parent()
-                        # link child to parent
-                        parent_buffer.add_child_buffer(subtask_buffer)
-                        print(f"parent: {parent_buffer.task_name}, child: {subtask_buffer.task_name}")
+            assert len(env.envs) == 1
+            relations = env.envs[0].agent_conductor.get_task_from_name(task_name).get_relations()
+            models_dict[task_name].replay_buffer.init_datasharing(relations, models_dict)
         # TODO: print / save these relations to ensure all correct...
                 
     return models_dict
@@ -127,35 +119,43 @@ def init_training(
             )
         callback.on_training_start(locals(), globals())
       
-def training_loop(models_dict, env, total_timesteps, log_interval=4):
-    tasks = list(models_dict.keys())
-    while models_dict[tasks[0]].num_timesteps < total_timesteps:
+def training_loop(curriculum_manager, models_dict, env, total_timesteps, log_interval=4):
+    
+    for task_name in curriculum_manager:
+        print(f"chosen task: {task_name}")
         
-        for task_name, model in models_dict.items():
-            # Set task
-            for vec_env in env.envs:
-                vec_env.agent_conductor.set_single_task_names([task_name])
-            
-            # Collect data
-            rollout = model.collect_rollouts(
-                    env,
-                    train_freq=model.train_freq,
-                    action_noise=model.action_noise,
-                    callback=callback,
-                    learning_starts=model.learning_starts,
-                    replay_buffer=model.replay_buffer,
-                    log_interval=log_interval,
-                    reset_b4_collect=True,
-                )
-            # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
+        # Get model
+        model = models_dict[task_name]
+        
+        # Set task
+        for vec_env in env.envs:
+            vec_env.agent_conductor.set_single_task_names([task_name])
+        
+        # Collect data
+        rollout = model.collect_rollouts(
+                env,
+                train_freq=model.train_freq,
+                action_noise=model.action_noise,
+                callback=callback,
+                learning_starts=model.learning_starts,
+                replay_buffer=model.replay_buffer,
+                log_interval=log_interval,
+                reset_b4_collect=True,
+            )
+        # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
 
-            if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
-                # If no `gradient_steps` is specified,
-                # do as many gradients steps as steps performed during the rollout
-                gradient_steps = model.gradient_steps if model.gradient_steps >= 0 else rollout.episode_timesteps
-                # Special case when the user passes `gradient_steps=0`
-                if gradient_steps > 0:
-                    model.train(batch_size=model.batch_size, gradient_steps=gradient_steps)
+        if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
+            # If no `gradient_steps` is specified,
+            # do as many gradients steps as steps performed during the rollout
+            gradient_steps = model.gradient_steps if model.gradient_steps >= 0 else rollout.episode_timesteps
+            # Special case when the user passes `gradient_steps=0`
+            if gradient_steps > 0:
+                model.train(batch_size=model.batch_size, gradient_steps=gradient_steps)
+                
+        # end condition
+        if model.num_timesteps > total_timesteps: # TODO: use global env count instead
+            break
+     
 
 
 def get_hparams():
@@ -170,22 +170,23 @@ def get_hparams():
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['pick_up_cube'],
+        'single_task_names': ['move_cube_to_target', 'pick_up_cube', "grasp_cube"],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
+        'curriculum_manager_cls': SeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
         # algo
         'algo': TD3, # DDPG/TD3/SAC
-        'policy_type': "MlpPolicy", # TODO: switch to non-dict # "MlpPolicy", "MultiInputPolicy"
+        'policy_type': "MlpPolicy", # "MlpPolicy", "MultiInputPolicy"
         'learning_starts': 1e3,
         'replay_buffer_class': SeparatePoliciesReplayBuffer, # LLMBasicReplayBuffer, None, SeparatePoliciesReplayBuffer
         'replay_buffer_kwargs': {'child_p': 0.2}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
         'total_timesteps': 1e5,
         'device': 'cpu',
         # logging
-        'do_track': True,
+        'do_track': False,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'pickup-seperate_policies_code-custom_buffer',
-        'exp_group': 'seperate_polcies_debug',
+        'exp_name': 'temp',
+        'exp_group': 'temp',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
 
@@ -222,19 +223,14 @@ if __name__ == "__main__":
 
     # create models
     models_dict = create_models(env)
+    
+    # create curriculum manager
+    curriculum_manager = hparams['curriculum_manager_cls'](tasks_list=hparams['single_task_names'], agent_conductor=env.envs[0].agent_conductor)
+    env.envs[0].curriculum_manager = curriculum_manager # very dirty # TODO: change (add curriculum manager to agent_conductor??)
 
     # Train
     init_training(models_dict, hparams['total_timesteps'], callback=callback)
-    training_loop(models_dict, env, hparams['total_timesteps'])
+    training_loop(curriculum_manager, models_dict, env, hparams['total_timesteps'])
     
     if hparams['do_track']:
         run.finish()
-
-
-# create env
-
-# create dict of models for each task
-
-# link child buffers to parent buffers
-
-# Train loop

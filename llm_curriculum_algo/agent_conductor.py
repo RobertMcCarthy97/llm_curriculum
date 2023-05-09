@@ -3,6 +3,21 @@ import numpy as np
 from llm_curriculum_algo.tasks import MoveCubeToTargetTask, PickUpCubeTask, GraspCubeTask
 from sentence_transformers import SentenceTransformer
 
+class ExponentialDecayingMovingAverage:
+    def __init__(self, alpha):
+        self.alpha = alpha
+        self.edma = None
+
+    def update(self, data_point):
+        if self.edma is None:
+            self.edma = data_point
+        else:
+            self.edma = self.alpha * data_point + (1 - self.alpha) * self.edma
+        return self.edma
+
+    def get_edma(self):
+        return self.edma
+    
 class StatsTracker():
     def __init__(self, task_names) -> None:
         self.task_names = task_names
@@ -10,11 +25,17 @@ class StatsTracker():
         self.raw_stats = {}
         self.raw_stats['all'] = self.init_raw_stats(task_names)
         self.raw_stats['epoch'] = self.init_raw_stats(task_names)
+        self.epoch_edma = self.init_raw_stats(task_names, edma=True)
+        
+        self.latest_epoch_agg = self.calc_latest_epoch_agg() # should be zeros??
     
-    def init_raw_stats(self, task_names):
+    def init_raw_stats(self, task_names, edma=False):
         raw_stats = {}
         for name  in task_names:
-            raw_stats[name] = []
+            if edma:
+                raw_stats[name] = ExponentialDecayingMovingAverage(alpha=0.1) # TODO: set alpha properly
+            else:
+                raw_stats[name] = []
         return raw_stats
     
     def append_stat(self, task_name, stat):
@@ -22,6 +43,11 @@ class StatsTracker():
         self.raw_stats['epoch'][task_name].append(stat)
         
     def reset_epoch_stats(self):
+        # record current epoch stats
+        self.latest_epoch_agg = self.calc_latest_epoch_agg()
+        # update edma
+        self.update_edma(self.latest_epoch_agg)
+        # reset
         self.raw_stats['epoch'] = self.init_raw_stats(self.task_names)
         
     def get_agg_stats(self, agg_func):
@@ -35,6 +61,19 @@ class StatsTracker():
                     agg_stat = agg_func(self.raw_stats[time_key][task_key])
                 agg_stats[time_key][task_key] = agg_stat
         return agg_stats
+    
+    def calc_latest_epoch_agg(self):
+        agg_stats = self.get_agg_stats(lambda x: np.mean(x))
+        latest_epoch_agg = agg_stats['epoch']
+        return latest_epoch_agg
+    
+    def update_edma(self, latest_epoch_agg):
+        for task_key, task_stat in latest_epoch_agg.items():
+            if task_stat is not None:
+                self.epoch_edma[task_key].update(task_stat)
+            
+    def get_task_edma(self, task_name):
+        return self.epoch_edma[task_name].get_edma()
     
 
 class AgentConductor():
@@ -58,6 +97,8 @@ class AgentConductor():
         self.high_level_task_list = self.init_possible_tasks(env)
         self.task_names = self.get_task_names()
         self.task_idx_dict, self.n_tasks = self.init_oracle_goals()
+        self.task_name2obj_dict = self.set_task_name2obj_dict()
+        self.init_task_relations(self.task_names)
         
         # check single tasks are contained within high-level task tree
         if self.single_task_names is not None:
@@ -110,6 +151,11 @@ class AgentConductor():
             
         return task_embeddings_dict
     
+    def init_task_relations(self, task_names):
+        for task_name in task_names:
+            task = self.get_task_from_name(task_name)
+            task.record_relations()
+    
     def get_task_names(self):
         def recursively_get_names(task):
             task_names = [task.name]
@@ -124,6 +170,22 @@ class AgentConductor():
             task_names = task_names + recursively_get_names(task)
             
         return task_names
+    
+    def set_task_name2obj_dict(self):
+        assert len(self.high_level_task_list) == 1
+        # find task object
+        def recursively_search_for_tasks(task):
+            name2obj_dict = {task.name: task}
+            if len(task.subtask_sequence) > 0:
+                for subtask in task.subtask_sequence:
+                    name2obj_dict.update(recursively_search_for_tasks(subtask))
+            return name2obj_dict
+        
+        high_level_task = self.high_level_task_list[0]
+        assert high_level_task.next_task is None, "Can't have next task if no parent task."
+        
+        name2obj_dict = recursively_search_for_tasks(high_level_task)
+        return name2obj_dict
     
     def get_single_task_names(self):
         return self.single_task_names
@@ -254,24 +316,11 @@ class AgentConductor():
     def get_active_task(self):
         return self.active_task
     
+    def get_task_name2obj_dict(self):
+        return self.task_name2obj_dict
+    
     def get_task_from_name(self, task_name):
-        assert len(self.high_level_task_list) == 1
-        # find task object
-        def recursively_search_for_task(task, query_name):
-            if task.name == query_name:
-                return task
-            else:
-                if len(task.subtask_sequence) > 0:
-                    for subtask in task.subtask_sequence:
-                        found_task = recursively_search_for_task(subtask, query_name)
-                        if found_task is not None:
-                            return found_task
-                else:
-                    return None
-        
-        high_level_task = self.high_level_task_list[0]
-        assert high_level_task.next_task is None, "Can't have next task if no parent task."
-        return recursively_search_for_task(high_level_task, task_name)
+        return self.task_name2obj_dict[task_name]
         
         
 

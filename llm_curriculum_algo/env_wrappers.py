@@ -273,9 +273,11 @@ class CurriculumEnvWrapper(gym.Wrapper):
             info[f'task_level_{i}'] = iter_task.name
             iter_task = iter_task.parent_task
         # record parent task reward and goal
-        if prev_task.parent_task is not None:
-            _, info['obs_parent_goal_reward'] = prev_task.parent_task.check_success_reward(current_state) # parent reward depends on parent_g_t, obs_t+1 - TODO: this naming is very confusding!!
+        if prev_task.parent_task is not None: # TODO: delete this?
+            info['obs_parent_goal_reward'] = prev_task.parent_task.check_success_reward(current_state)[1] # parent reward depends on parent_g_t, obs_t+1 - TODO: this naming is very confusding!!
             info['obs_parent_goal'] = self.get_task_goal(prev_task.parent_task)
+        for parent_name in prev_task.relations['parents'].keys():
+            info[f'obs_{parent_name}_reward'] = self.agent_conductor.get_task_from_name(parent_name).check_success_reward(current_state)[1]
         # record overall success
         info['overall_task_success'], _ = self.agent_conductor.chosen_high_level_task.check_success_reward(current_state)
         # return

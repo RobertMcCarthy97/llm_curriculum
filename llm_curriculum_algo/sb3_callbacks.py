@@ -130,6 +130,10 @@ class SuccessCallbackMultiRun(BaseCallback):
         # Dump
         if self.num_timesteps_multi_run % self.log_freq == 0:
             assert len(self.locals['env'].envs) == 1, "not setup for more than 1 env!"
+            # if len(self.locals['models_dict'].keys()) > 1:
+            #     for i in range(len(self.locals['models_dict'].keys()) - 1):
+            #         assert self.locals['models_dict'][i].num_timesteps == self.locals['models_dict'][i+1].num_timesteps, "not setup for different number of timesteps!"
+                
             env = self.locals['env'].envs[0]
             stats = env.agent_conductor.get_stats()
             # record averages
@@ -142,9 +146,17 @@ class SuccessCallbackMultiRun(BaseCallback):
             self.logger.record("time/custom_timestep_multi-run", self.num_timesteps_multi_run)
             for task_key, model in self.locals['models_dict'].items():
                 self.logger.record(f"time/{task_key}_steps", model.num_timesteps)
+            # record curriculum manager probs
+            cm = env.curriculum_manager
+            p_agg_stats = cm.get_agg_stats()
+            for task_key, model in self.locals['models_dict'].items():
+                self.logger.record(f"curriculum/{task_key}_p", p_agg_stats['epoch'][task_key])
+                self.logger.record(f"curriculum/{task_key}_ema_success", env.agent_conductor.task_stats['success'].get_task_edma(task_key))
             # dump and reset
             self.logger.dump(self.num_timesteps) # very dodgy, but curreently using num_timesteps of whatever model is assigned to the callback as anchor timestep for logging...??
             env.agent_conductor.reset_epoch_stats()
+            cm.reset_epoch_stats()
+        
         # iter counter
         self.num_timesteps_multi_run += 1
             
