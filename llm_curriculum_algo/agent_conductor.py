@@ -289,8 +289,10 @@ class AgentConductor():
     def record_task_success_stat(self, task, is_success):
         self.task_stats['success'].append_stat(task.name, is_success)
     
-    def get_task_success_rate(self, task):
-        raise NotImplementedError()
+    def get_task_epoch_success_rate(self, task_name):
+        success_stats = self.task_stats['success'].get_agg_stats(lambda x: np.mean(x))
+        assert False
+        return success_stats['epoch'][task_name]
     
     def get_stats(self):
         stats = {}

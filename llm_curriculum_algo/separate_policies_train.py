@@ -122,7 +122,6 @@ def init_training(
 def training_loop(curriculum_manager, models_dict, env, total_timesteps, log_interval=4):
     
     for task_name in curriculum_manager:
-        print(f"chosen task: {task_name}")
         
         # Get model
         model = models_dict[task_name]
@@ -170,23 +169,23 @@ def get_hparams():
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['move_cube_to_target', 'pick_up_cube', "grasp_cube"],
+        'single_task_names': ['cube_between_grippers', 'lift_cube', 'pick_up_cube'],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
-        'curriculum_manager_cls': SeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
+        'curriculum_manager_cls': DummySeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
         # algo
         'algo': TD3, # DDPG/TD3/SAC
         'policy_type': "MlpPolicy", # "MlpPolicy", "MultiInputPolicy"
         'learning_starts': 1e3,
         'replay_buffer_class': SeparatePoliciesReplayBuffer, # LLMBasicReplayBuffer, None, SeparatePoliciesReplayBuffer
-        'replay_buffer_kwargs': {'child_p': 0.2}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
+        'replay_buffer_kwargs': {'child_p': 0.5}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
         'total_timesteps': 1e5,
         'device': 'cpu',
         # logging
-        'do_track': False,
+        'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'temp',
-        'exp_group': 'temp',
+        'exp_name': 'between-lift-pickup-seperate_iter_amp-child_p0.5',
+        'exp_group': 'seperate-iter_amp',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
 
