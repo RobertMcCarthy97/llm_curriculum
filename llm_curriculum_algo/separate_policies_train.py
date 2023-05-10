@@ -6,13 +6,14 @@ from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize, VecMonit
 from stable_baselines3.common.callbacks import CallbackList, EveryNTimesteps
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.type_aliases import MaybeCallback
+from stable_baselines3.common.type_aliases import MaybeCallback, TrainFreq, TrainFrequencyUnit
 
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
 from env_wrappers import make_env, make_env_baseline
 from curriculum_manager import DummySeperateEpisodesCM, SeperateEpisodesCM
+from sequenced_rollouts import SequencedRolloutCollector
 
 from stable_baselines3.common.buffers_custom import LLMBasicReplayBuffer, SeparatePoliciesReplayBuffer # TODO: should move these into this repo!!??
 from sb3_callbacks import SuccessCallback, VideoRecorderCallback, EvalCallbackCustom, SuccessCallbackMultiRun
@@ -154,7 +155,45 @@ def training_loop(curriculum_manager, models_dict, env, total_timesteps, log_int
         # end condition
         if model.num_timesteps > total_timesteps: # TODO: use global env count instead
             break
-     
+        
+        
+def training_loop_sequential(models_dict, env, total_timesteps, log_interval=4): # TODO: log interval
+    
+    rollout_collector = SequencedRolloutCollector(env, models_dict)
+    timesteps_count = 0
+    
+    while timesteps_count < total_timesteps: # TODO: use global env count instead
+        # print("Collecting rollout....")
+        # Collect data
+        rollout, models_steps_taken = rollout_collector.collect_rollouts(
+                # env,
+                train_freq=TrainFreq(1, TrainFrequencyUnit.EPISODE), # TODO: make hyperparam
+                # action_noise=model.action_noise, # TODO: wopuld action noise be beneficial??
+                callback=callback,
+                # learning_starts=model.learning_starts,
+                # replay_buffer=model.replay_buffer,
+                log_interval=log_interval,
+            )
+        # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
+        timesteps_count += rollout.episode_timesteps
+        # print(f"model_steps_taken: {models_steps_taken}")
+        # print(f"total_timesteps: {timesteps_count}")
+
+        for model_name, model in models_dict.items():
+            # print(f"checking model {model_name} for update")
+            # print(f"model.num_timesteps: {model.num_timesteps}, model.learning_starts: {model.learning_starts}")
+            if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
+                # If no `gradient_steps` is specified,
+                # do as many gradients steps as steps performed during the rollout
+                assert model.gradient_steps < 0
+                gradient_steps = model.gradient_steps if model.gradient_steps >= 0 else models_steps_taken[model_name]
+                # Special case when the user passes `gradient_steps=0`
+                ###### Custom: we just do 1 grad step per env step
+                if gradient_steps > 0:
+                    # print(f"updating model {model_name} for {gradient_steps} steps")
+                    model.train(batch_size=model.batch_size, gradient_steps=gradient_steps)
+                    
+        # assert False, "select proper training loop via hparams"
 
 
 def get_hparams():
@@ -178,14 +217,14 @@ def get_hparams():
         'policy_type': "MlpPolicy", # "MlpPolicy", "MultiInputPolicy"
         'learning_starts': 1e3,
         'replay_buffer_class': SeparatePoliciesReplayBuffer, # LLMBasicReplayBuffer, None, SeparatePoliciesReplayBuffer
-        'replay_buffer_kwargs': {'child_p': 0.5}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
+        'replay_buffer_kwargs': {'child_p': 0.2}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
         'total_timesteps': 1e5,
         'device': 'cpu',
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'between-lift-pickup-seperate_iter_amp-child_p0.5',
-        'exp_group': 'seperate-iter_amp',
+        'exp_name': 'temp',
+        'exp_group': 'temp',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
 
@@ -229,7 +268,8 @@ if __name__ == "__main__":
 
     # Train
     init_training(models_dict, hparams['total_timesteps'], callback=callback)
-    training_loop(curriculum_manager, models_dict, env, hparams['total_timesteps'])
+    training_loop(curriculum_manager, models_dict, env, hparams['total_timesteps']) # TODO
+    # training_loop_sequential(models_dict, env, hparams['total_timesteps'])
     
     if hparams['do_track']:
         run.finish()
