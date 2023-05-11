@@ -12,7 +12,7 @@ class OldGymAPIWrapper(gym.Wrapper):
     - Converts env ouputs to old gym API format
     - Assumes no terminations and enforces a max_ep_len truncation 
     '''
-    def __init__(self, env, max_ep_len):
+    def __init__(self, env):
         super().__init__(env)
         
         # action space
@@ -31,9 +31,6 @@ class OldGymAPIWrapper(gym.Wrapper):
                 new_space_dict[key] = gym_old.spaces.Box(low=space.low, high=space.high, shape=space.shape)
             
             self.observation_space = gym_old.spaces.Dict(new_space_dict)
-            
-        # Time-limits
-        self.max_ep_len = max_ep_len
                 
     def reset(self):
         obs, info = self.env.reset()
@@ -41,10 +38,9 @@ class OldGymAPIWrapper(gym.Wrapper):
         return obs
     
     def step(self, action):
-        obs, reward, _, _, info = self.env.step(action)
+        obs, reward, _, truncated, info = self.env.step(action)
         # handle dones
-        self.ep_steps += 1 
-        if self.ep_steps >= self.max_ep_len:
+        if truncated:
             done = True
             info["TimeLimit.truncated"] = True
         else:
@@ -76,12 +72,12 @@ class CurriculumEnvWrapper(gym.Wrapper):
     - Adds the target pos to observation
     - Goals are specified in language, and decomposed by agent_conductor
     '''
-    def __init__(self, env, agent_conductor, use_language_goals=False):
+    def __init__(self, env, agent_conductor, use_language_goals=False, max_ep_len=50):
         super().__init__(env)
         self._env = env
         self.use_language_goals = use_language_goals
-        self.step_count = 0
         self.agent_conductor = agent_conductor
+        self.max_ep_len = max_ep_len
         
         self.init_obs_space()
         self.reset_conductor = AgentConductor(env, manual_decompose_p=1, high_level_task_names='move_cube_to_target')
@@ -103,9 +99,11 @@ class CurriculumEnvWrapper(gym.Wrapper):
     def reset(self, **kwargs):
         # single task scenario
         if self.agent_conductor.single_task_names is not None:
-            return self.reset_single_task(**kwargs) # TODO: need to stop task info tracking??
+            obs, info =  self.reset_single_task(**kwargs) # TODO: need to stop task info tracking??
         else:
-            return self.reset_normal(**kwargs)
+            obs, info =  self.reset_normal(**kwargs)
+        self.episode_n_steps = 0
+        return obs, info
     
     def reset_normal(self, **kwargs):
         # reset env
@@ -131,12 +129,12 @@ class CurriculumEnvWrapper(gym.Wrapper):
             assert self.reset_conductor.active_single_task_name != "move_cube_to_target", "resets broken for highest-level single task"
             for _ in range(50):
                 reset_prev_active_task = self.reset_conductor.get_active_task()
-                print(f"\nreset active: {reset_prev_active_task.name}")
-                print(f"desired: {self.agent_conductor.active_single_task_name}")
-                input()
+                # print(f"\nreset active: {reset_prev_active_task.name}")
+                # print(f"desired: {self.agent_conductor.active_single_task_name}")
+                # input()
                 # action and step env
                 action = self.reset_conductor.get_oracle_action(obs['observation'], reset_prev_active_task)
-                obs, _, _, truncated, info = self.step(action)
+                obs, _, _, truncated, info = self.step(action, reset_step=True)
                 _, reset_success = self.calc_reward(obs['observation'], reset_prev_active_task)
                 # step reset_conductor
                 reset_active_task = self.reset_conductor.step()
@@ -149,7 +147,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         assert False, "Failed to reach single task"
         
     
-    def step(self, action):
+    def step(self, action, reset_step=False):
         # TODO: fix reward? currently r = f(s_t+1, g_t)
         # prev active task
         prev_active_task = self.agent_conductor.get_active_task()
@@ -167,13 +165,19 @@ class CurriculumEnvWrapper(gym.Wrapper):
         info = self.set_info(active_task, obs['observation'])
         info['is_success'] = success
         info['goal_changed'] = (prev_active_task.name != active_task.name)
+        
+        if not reset_step:
+            self.episode_n_steps += 1
+            # truncated
+            truncated = (self.episode_n_steps >= self.max_ep_len)
+        else:
+            truncated = False
         # terminated
         terminated = False # TODO: implement termination condition
         
         # stats
         if (success and info['goal_changed']) or truncated:
             self.agent_conductor.record_task_success_stat(prev_active_task, success)
-        self.step_count += 1
         
         return obs, reward, terminated, truncated, info
 
@@ -251,8 +255,8 @@ def make_env(manual_decompose_p=1, dense_rew_lowest=True, use_language_goals=Fal
     env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
     env = AddTargetToObsWrapper(env)
     agent_conductor = AgentConductor(env, manual_decompose_p=manual_decompose_p, dense_rew_lowest=dense_rew_lowest, single_task_names=single_task_names, high_level_task_names=high_level_task_names, contained_sequence=contained_sequence)
-    env = CurriculumEnvWrapper(env, agent_conductor, use_language_goals=use_language_goals)
-    env = OldGymAPIWrapper(env, max_ep_len)
+    env = CurriculumEnvWrapper(env, agent_conductor, use_language_goals=use_language_goals, max_ep_len=max_ep_len)
+    env = OldGymAPIWrapper(env)
     return env
 
 def make_env_baseline(name="FetchPickAndPlace-v2", render_mode=None, max_ep_len=50):
@@ -268,8 +272,9 @@ if __name__ == "__main__":
         use_language_goals=False,
         render_mode="human",
         single_task_names=["move_gripper_to_cube"],
-        high_level_task_names=["grasp_cube"],
+        high_level_task_names=["move_cube_to_target"],
         contained_sequence=False,
+        max_ep_len=25
     )
 
     for _ in range(5):
@@ -297,7 +302,7 @@ if __name__ == "__main__":
             # print(f"step count: {env.ep_steps}")
             print(f"success: {info['is_success']}")
             print(f"Reward: {reward}")
-            # print("done: ", done)
+            print("done: ", done)
             print()
             
             # # env.render()

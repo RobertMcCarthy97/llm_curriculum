@@ -20,7 +20,7 @@ if __name__ == "__main__":
     '''
     
     hparams = {
-        'seed': 0,
+        'seed': 100,
         # env
         'manual_decompose_p': 1,
         'dense_rew_lowest': False,
@@ -30,21 +30,21 @@ if __name__ == "__main__":
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['cube_between_grippers'],
+        'single_task_names': ['move_gripper_to_cube'],
         'high_level_task_names': ['move_cube_to_target'],
-        'contained_sequence': True,
+        'contained_sequence': False,
         # algo
         'algo': TD3, # DDPG/TD3/SAC
         'policy_type': 'MultiInputPolicy',
         'learning_starts': 1e3,
-        'replay_buffer_class': LLMBasicReplayBuffer, # LLMBasicReplayBuffer , None
+        'replay_buffer_class': None, # LLMBasicReplayBuffer , None
         'total_timesteps': 1e5,
         'device': 'cpu',
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'cube_between-close_gripper-TD3-sequence-task-llm-buffer',
-        'exp_group': 'low-level-multi-task-learning',
+        'exp_name': 'incremental_changes_2-seed100',
+        'exp_group': 'move_gripper_to_cube-rollbacks',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
     
