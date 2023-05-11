@@ -108,7 +108,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
     def reset_normal(self, **kwargs):
         # reset env
         state_obs, _ = self._env.reset(**kwargs)
-        self.active_state_obs = state_obs
+        self.active_state_obs = state_obs # TODO: delete
         # get task
         active_task = self.agent_conductor.reset()
         # obs
@@ -127,9 +127,6 @@ class CurriculumEnvWrapper(gym.Wrapper):
             self.reset_conductor.set_single_task_names([self.agent_conductor.active_single_task_name])
             self.reset_conductor.reset()
             for _ in range(50):
-                # check if reached desired task
-                if self.reset_conductor.get_active_task().name == self.agent_conductor.get_active_single_task_name():
-                    return obs, info
                 reset_prev_active_task = self.reset_conductor.get_active_task()
                 # action and step env
                 action = self.reset_conductor.get_oracle_action(obs['observation'], reset_prev_active_task)
@@ -140,6 +137,9 @@ class CurriculumEnvWrapper(gym.Wrapper):
                 reset_goal_changed = (reset_prev_active_task.name != reset_active_task.name)
                 if (reset_success and reset_goal_changed) or truncated:
                     self.reset_conductor.record_task_success_stat(reset_prev_active_task, reset_success)
+                # check if reached desired task
+                if self.reset_conductor.get_active_task().name == self.agent_conductor.get_active_single_task_name():
+                    return obs, info
         assert False, "Failed to reach single task"
         
     
