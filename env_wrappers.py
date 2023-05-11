@@ -124,14 +124,13 @@ class CurriculumEnvWrapper(gym.Wrapper):
         '''
         for _ in range(50):
             obs, info = self.reset_normal(**kwargs)
+            self.reset_conductor.set_single_task_names([self.agent_conductor.active_single_task_name])
             self.reset_conductor.reset()
-            self.reset_conductor.active_single_task_name = self.agent_conductor.active_single_task_name
-            assert self.reset_conductor.active_single_task_name != "move_cube_to_target", "resets broken for highest-level single task"
             for _ in range(50):
+                # check if reached desired task
+                if self.reset_conductor.get_active_task().name == self.agent_conductor.get_active_single_task_name():
+                    return obs, info
                 reset_prev_active_task = self.reset_conductor.get_active_task()
-                # print(f"\nreset active: {reset_prev_active_task.name}")
-                # print(f"desired: {self.agent_conductor.active_single_task_name}")
-                # input()
                 # action and step env
                 action = self.reset_conductor.get_oracle_action(obs['observation'], reset_prev_active_task)
                 obs, _, _, truncated, info = self.step(action, reset_step=True)
@@ -141,9 +140,6 @@ class CurriculumEnvWrapper(gym.Wrapper):
                 reset_goal_changed = (reset_prev_active_task.name != reset_active_task.name)
                 if (reset_success and reset_goal_changed) or truncated:
                     self.reset_conductor.record_task_success_stat(reset_prev_active_task, reset_success)
-                # check if reached desired task
-                if self.reset_conductor.get_active_task().name == self.agent_conductor.active_single_task_name:
-                    return obs, info
         assert False, "Failed to reach single task"
         
     
@@ -152,7 +148,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         # prev active task
         prev_active_task = self.agent_conductor.get_active_task()
         # step env
-        state_obs, _, _, truncated, _ = self._env.step(action)
+        state_obs, _, _, _, _ = self._env.step(action)
         self.active_state_obs = state_obs
         # calc reward
         reward, success = self.calc_reward(state_obs, prev_active_task)

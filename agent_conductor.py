@@ -123,6 +123,15 @@ class AgentConductor():
             
         return task_names
     
+    # def get_single_task_names(self):
+    #     return self.single_task_names
+
+    def get_active_single_task_name(self):
+        return self.active_single_task_name
+
+    def set_single_task_names(self, single_task_names):
+        self.single_task_names = single_task_names
+    
     def init_oracle_goals(self):
         task_idx_dict = {}
         for i, name in enumerate(self.task_names):

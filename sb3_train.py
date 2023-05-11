@@ -20,7 +20,7 @@ if __name__ == "__main__":
     '''
     
     hparams = {
-        'seed': 100,
+        'seed': 0,
         # env
         'manual_decompose_p': 1,
         'dense_rew_lowest': False,
@@ -43,7 +43,7 @@ if __name__ == "__main__":
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'incremental_changes_2-seed100',
+        'exp_name': 'incremental_changes_3',
         'exp_group': 'move_gripper_to_cube-rollbacks',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
