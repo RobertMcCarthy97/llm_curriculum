@@ -31,7 +31,7 @@ class StatsTracker():
     
     def init_raw_stats(self, task_names, edma=False):
         raw_stats = {}
-        for name  in task_names:
+        for name in task_names:
             if edma:
                 raw_stats[name] = ExponentialDecayingMovingAverage(alpha=0.1) # TODO: set alpha properly
             else:
@@ -323,6 +323,22 @@ class AgentConductor():
     
     def get_task_from_name(self, task_name):
         return self.task_name2obj_dict[task_name]
+    
+    def get_possible_task_names(self):
+        if len(self.single_task_names) > 0:
+            if self.contained_sequence:
+                assert len(self.single_task_names) == 1
+                task_names = []
+                task = self.get_task_from_name(self.single_task_names[0])
+                while task.next_task is not None:
+                    task_names.append(task.name)
+                    task = task.next_task
+                task_names.append(task.name)
+                return task_names
+            else:
+                return self.single_task_names
+        else:
+            raise NotImplementedError
         
         
 

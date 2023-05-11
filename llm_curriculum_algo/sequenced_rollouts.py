@@ -90,8 +90,7 @@ class SequencedRolloutCollector():
             
             # Select which model to use
             model, model_name = self.choose_model()
-            # print("selected model: ", model_name)
-            # TODO check model_name is same as active task
+            
             # Since changing models, need to manually update models last obs (in case model has changed)
             self.update_last_obs_model(model)
             
@@ -103,11 +102,16 @@ class SequencedRolloutCollector():
             # Select action randomly or according to policy
             actions, buffer_actions = model._sample_action(model.learning_starts, model.action_noise, self.env.num_envs) # TODO: should treat learning starts differently here??
 
-            # print(f"agent_conductor active task pre-step: {self.env.envs[0].agent_conductor.active_task.name}")
+            assert self.env.envs[0].agent_conductor.active_task.name == model_name
             # Rescale and perform action
             new_obs, rewards, dones, infos = self.env.step(actions)
-            # print(f"agent_conductor active task post-step: {self.env.envs[0].agent_conductor.active_task.name}")
-            # print("info active_task: ", infos[0]["active_task_name"])
+            assert model_name == infos[0]["prev_task_name"]
+            '''
+            Note: env resets automatically
+            - new_obs is reset obs, but rewards, dones, info are from final step of previous episode
+            - info contains the terminal obs for storing last transition
+            - this is all dealt with appropriately in the model._store_transition method
+            '''
 
             model.num_timesteps += self.env.num_envs
             models_steps_taken[model_name] += self.env.num_envs
@@ -154,7 +158,7 @@ class SequencedRolloutCollector():
                         model._dump_logs()
                     
         callback.on_rollout_end()
-
+        
         return RolloutReturn(num_collected_steps * self.env.num_envs, num_collected_episodes, continue_training), models_steps_taken
 
     def rollout_reset(self):

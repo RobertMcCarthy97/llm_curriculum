@@ -419,6 +419,7 @@ class MoveGripperToCubeTask(Task):
         success, dense_reward = self.state_parser.check_gripper_above_cube(current_state)
         if self.use_dense_reward_lowest_level:
             reward = dense_reward
+            raise NotImplementedError
         else:
             reward = self.binary_reward(success)
         return success, reward

@@ -214,7 +214,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         obs = self.set_obs(state_obs, active_task)
         
         # info
-        info = self.set_info(prev_active_task, active_task, obs['observation'])
+        info = self.set_info(prev_active_task, active_task, state_obs)
         info['is_success'], info['success'] = success, success
         info['goal_changed'] = (prev_active_task.name != active_task.name)
         assert active_task.name == info['active_task_name']
@@ -263,6 +263,9 @@ class CurriculumEnvWrapper(gym.Wrapper):
     
     def set_info(self, prev_task, stepped_task, current_state):
         info = {}
+        # prev task details
+        info['prev_task_level'] = prev_task.level
+        info['prev_task_name'] = prev_task.name
         # active task details
         info['active_task_level'] = stepped_task.level
         info['active_task_name'] = stepped_task.name
@@ -344,7 +347,7 @@ if __name__ == "__main__":
         dense_rew_lowest=False,
         use_language_goals=False,
         render_mode="human",
-        single_task_names=["grasp_cube", "place_cube_at_target", "lift_cube"],
+        single_task_names=["move_gripper_to_cube"],
         high_level_task_names=["move_cube_to_target"],
         contained_sequence=False,
     )
@@ -356,9 +359,9 @@ if __name__ == "__main__":
 
         for _ in range(25):
             ## Actions
-            # action = env.action_space.sample()
+            action = env.action_space.sample()
             # action = get_user_action()
-            action = env.get_oracle_action(obs['observation'])
+            # action = env.get_oracle_action(obs['observation'])
             # print(action)
             input()
             
@@ -374,7 +377,8 @@ if __name__ == "__main__":
             # print(f"step count: {env.ep_steps}")
             print(f"success: {info['is_success']}")
             print(f"Reward: {reward}")
-            # print("done: ", done)
+            print("done: ", done)
+            # print(f"info: {info}")
             # print("Parent goal: ", info.get('obs_parent_goal', None))
             # print("Parent goal reward: ", info.get('obs_parent_goal_reward', None))
             print()

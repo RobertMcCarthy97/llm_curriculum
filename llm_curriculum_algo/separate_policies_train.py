@@ -70,7 +70,7 @@ def setup_logging(env, hparams):
     return logger, callback
     
 def create_models(env):
-    task_list = env.envs[0].agent_conductor.get_single_task_names()
+    task_list = env.envs[0].agent_conductor.get_possible_task_names()
     assert len(task_list) > 0
     
     models_dict = {}
@@ -197,7 +197,7 @@ def training_loop_sequential(models_dict, env, total_timesteps, log_interval=4):
 
 
 def get_hparams():
-    return {
+    hparams =  {
         'seed': 0,
         # env
         'manual_decompose_p': 1,
@@ -208,10 +208,11 @@ def get_hparams():
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['cube_between_grippers', 'lift_cube', 'pick_up_cube'],
+        'single_task_names': ['close_gripper_cube'],
         'high_level_task_names': ['move_cube_to_target'],
-        'contained_sequence': False,
+        'contained_sequence': True,
         'curriculum_manager_cls': DummySeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
+        'sequenced_episodes': True,
         # algo
         'algo': TD3, # DDPG/TD3/SAC
         'policy_type': "MlpPolicy", # "MlpPolicy", "MultiInputPolicy"
@@ -227,6 +228,11 @@ def get_hparams():
         'exp_group': 'temp',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
+    if hparams['contained_sequence']:
+        assert hparams['sequenced_episodes']
+    # if hparams['sequenced_episodes']: # TODO
+
+    return hparams
 
 if __name__ == "__main__":
     '''
@@ -263,13 +269,15 @@ if __name__ == "__main__":
     models_dict = create_models(env)
     
     # create curriculum manager
-    curriculum_manager = hparams['curriculum_manager_cls'](tasks_list=hparams['single_task_names'], agent_conductor=env.envs[0].agent_conductor)
+    curriculum_manager = hparams['curriculum_manager_cls'](tasks_list=env.envs[0].agent_conductor.get_possible_task_names(), agent_conductor=env.envs[0].agent_conductor)
     env.envs[0].curriculum_manager = curriculum_manager # very dirty # TODO: change (add curriculum manager to agent_conductor??)
 
     # Train
     init_training(models_dict, hparams['total_timesteps'], callback=callback)
-    training_loop(curriculum_manager, models_dict, env, hparams['total_timesteps']) # TODO
-    # training_loop_sequential(models_dict, env, hparams['total_timesteps'])
+    if hparams['sequenced_episodes']:
+        training_loop_sequential(models_dict, env, hparams['total_timesteps'])
+    else:
+        training_loop(curriculum_manager, models_dict, env, hparams['total_timesteps'])
     
     if hparams['do_track']:
         run.finish()

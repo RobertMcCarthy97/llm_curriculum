@@ -133,7 +133,6 @@ class SuccessCallbackMultiRun(BaseCallback):
             # if len(self.locals['models_dict'].keys()) > 1:
             #     for i in range(len(self.locals['models_dict'].keys()) - 1):
             #         assert self.locals['models_dict'][i].num_timesteps == self.locals['models_dict'][i+1].num_timesteps, "not setup for different number of timesteps!"
-                
             env = self.locals['env'].envs[0]
             stats = env.agent_conductor.get_stats()
             # record averages
