@@ -11,12 +11,12 @@ from stable_baselines3.common.type_aliases import MaybeCallback, TrainFreq, Trai
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
-from env_wrappers import make_env, make_env_baseline
-from curriculum_manager import DummySeperateEpisodesCM, SeperateEpisodesCM
-from sequenced_rollouts import SequencedRolloutCollector
+from llm_curriculum_algo.env_wrappers import make_env, make_env_baseline
+from llm_curriculum_algo.curriculum_manager import DummySeperateEpisodesCM, SeperateEpisodesCM
+from llm_curriculum_algo.sequenced_rollouts import SequencedRolloutCollector
 
 from stable_baselines3.common.buffers_custom import LLMBasicReplayBuffer, SeparatePoliciesReplayBuffer # TODO: should move these into this repo!!??
-from sb3_callbacks import SuccessCallback, VideoRecorderCallback, EvalCallbackCustom, SuccessCallbackMultiRun
+from llm_curriculum_algo.sb3_callbacks import VideoRecorderCallback, EvalCallbackMultiTask, SuccessCallbackSeperatePolicies
 
 
 def create_env(hparams):
@@ -37,7 +37,6 @@ def create_env(hparams):
             contained_sequence=hparams['contained_sequence'],
             state_obs_only=True,
             )
-        # assert False, "remove goal info from obs" # TODO
 
     # Vec Env
     env = DummyVecEnv([lambda: env])
@@ -46,15 +45,32 @@ def create_env(hparams):
     
     return env
 
-def setup_logging(env, hparams):
+def setup_logging(hparams, train_env, base_freq=1000):
+    
+    single_task_names = train_env.envs[0].agent_conductor.get_possible_task_names()
+    log_freq = base_freq * len(single_task_names) # TODO: make hparam
+    vid_freq = base_freq * 10
+    
     # Logger and callbacks
     logger = configure(hparams['log_path'], ["stdout", "csv", "tensorboard"])
+    
+    # create eval envs
+    if hparams['sequenced_episodes']:
+        eval_env_sequenced = create_env(hparams)
+        non_seq_params = hparams.copy()
+        non_seq_params.update({'sequenced_episodes': False, 'contained_sequence': False, 'single_task_names': single_task_names})
+        eval_env_non_seq = create_env(non_seq_params)
+        video_env = eval_env_sequenced
+    else:
+        eval_env_non_seq = create_env(hparams)
+        eval_env_sequenced = None
+        video_env = eval_env_non_seq
+    
     callback_list = []
-    # callback_list += [EvalCallbackCustom(eval_env, eval_freq=1000, best_model_save_path=None)]
+    callback_list += [EvalCallbackMultiTask(eval_env_non_seq, eval_env_sequenced=eval_env_sequenced, eval_freq=log_freq, best_model_save_path=None, seperate_policies=True)]
     if not hparams['use_baseline_env']:
-        callback_list += [SuccessCallbackMultiRun(log_freq=1000*len(hparams['single_task_names']))] # TODO: dodgy freq setting
-    # callback_list += [VideoRecorderCallback(env, render_freq=10000, n_eval_episodes=1, add_text=True)]
-    # TODO: video callback and eval callback for separate policies...
+        callback_list += [SuccessCallbackSeperatePolicies(log_freq=log_freq)]
+    callback_list += [VideoRecorderCallback(video_env, render_freq=vid_freq, n_eval_episodes=1, add_text=True, sequenced_rollouts=hparams['sequenced_episodes'])]
     # wandb
     if hparams['do_track']:
         # log hyperparameters
@@ -67,6 +83,7 @@ def setup_logging(env, hparams):
                 verbose=1,
             )]
     callback = CallbackList(callback_list)
+    
     return logger, callback
     
 def create_models(env):
@@ -81,7 +98,7 @@ def create_models(env):
                     env,
                     verbose=1,
                     learning_starts=hparams['learning_starts'],
-                    replay_buffer_class=hparams['replay_buffer_class'], # TODO: add proper replay buffer
+                    replay_buffer_class=hparams['replay_buffer_class'],
                     replay_buffer_kwargs=hparams['replay_buffer_kwargs'],
                     device=hparams['device'],
                     use_oracle_at_warmup=hparams['use_oracle_at_warmup'],
@@ -162,8 +179,7 @@ def training_loop_sequential(models_dict, env, total_timesteps, log_interval=4):
     rollout_collector = SequencedRolloutCollector(env, models_dict)
     timesteps_count = 0
     
-    while timesteps_count < total_timesteps: # TODO: use global env count instead
-        # print("Collecting rollout....")
+    while timesteps_count < total_timesteps:
         # Collect data
         rollout, models_steps_taken = rollout_collector.collect_rollouts(
                 # env,
@@ -176,24 +192,14 @@ def training_loop_sequential(models_dict, env, total_timesteps, log_interval=4):
             )
         # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
         timesteps_count += rollout.episode_timesteps
-        # print(f"model_steps_taken: {models_steps_taken}")
-        # print(f"total_timesteps: {timesteps_count}")
 
         for model_name, model in models_dict.items():
-            # print(f"checking model {model_name} for update")
-            # print(f"model.num_timesteps: {model.num_timesteps}, model.learning_starts: {model.learning_starts}")
             if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
-                # If no `gradient_steps` is specified,
-                # do as many gradients steps as steps performed during the rollout
-                assert model.gradient_steps < 0
-                gradient_steps = model.gradient_steps if model.gradient_steps >= 0 else models_steps_taken[model_name]
-                # Special case when the user passes `gradient_steps=0`
                 ###### Custom: we just do 1 grad step per env step
+                assert model.gradient_steps < 0
+                gradient_steps = models_steps_taken[model_name]
                 if gradient_steps > 0:
-                    # print(f"updating model {model_name} for {gradient_steps} steps")
                     model.train(batch_size=model.batch_size, gradient_steps=gradient_steps)
-                    
-        # assert False, "select proper training loop via hparams"
 
 
 def get_hparams():
@@ -208,11 +214,11 @@ def get_hparams():
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['close_gripper_cube'],
+        'single_task_names': ['cube_between_grippers'],
         'high_level_task_names': ['move_cube_to_target'],
-        'contained_sequence': True,
         'curriculum_manager_cls': DummySeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
         'sequenced_episodes': True,
+        'contained_sequence': True,
         # algo
         'algo': TD3, # DDPG/TD3/SAC
         'policy_type': "MlpPolicy", # "MlpPolicy", "MultiInputPolicy"
@@ -222,7 +228,7 @@ def get_hparams():
         'total_timesteps': 1e5,
         'device': 'cpu',
         # logging
-        'do_track': True,
+        'do_track': False,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
         'exp_name': 'temp',
         'exp_group': 'temp',
@@ -260,10 +266,9 @@ if __name__ == "__main__":
 
     # create envs
     env = create_env(hparams)
-    eval_env = create_env(hparams)
 
     # setup logging
-    logger, callback = setup_logging(env, hparams)
+    logger, callback = setup_logging(hparams, env)
 
     # create models
     models_dict = create_models(env)
