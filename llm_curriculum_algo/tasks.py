@@ -418,8 +418,10 @@ class MoveGripperToCubeTask(Task):
     def check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_gripper_above_cube(current_state)
         if self.use_dense_reward_lowest_level:
-            reward = dense_reward
-            raise NotImplementedError
+            if success:
+                reward = 0
+            else:
+                reward = dense_reward
         else:
             reward = self.binary_reward(success)
         return success, reward
@@ -549,8 +551,15 @@ class MoveCubeTowardsTargetGraspTask(Task):
         super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
     
     def check_success_reward(self, current_state):
-        success, dense_reward = self.state_parser.check_cube_moving_to_target(current_state)
-        reward = self.binary_reward(success)
+        if self.use_dense_reward_lowest_level:
+            success, dense_reward = self.state_parser.check_cube_at_target(current_state)
+            if success:
+                reward = 0
+            else:
+                reward = dense_reward
+        else:
+            success, dense_reward = self.state_parser.check_cube_moving_to_target(current_state)
+            reward = self.binary_reward(success)
         return success, reward
     
     def get_oracle_action(self, state):
