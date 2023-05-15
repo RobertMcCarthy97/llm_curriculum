@@ -60,7 +60,7 @@ def setup_logging(hparams, train_env, base_freq=1000):
     if hparams['sequenced_episodes']:
         eval_env_sequenced = create_env(hparams)
         non_seq_params = hparams.copy()
-        non_seq_params.update({'sequenced_episodes': False, 'contained_sequence': False, 'single_task_names': single_task_names})
+        non_seq_params.update({'sequenced_episodes': False, 'contained_sequence': False, 'single_task_names': single_task_names, 'manual_decompose_p': 1})
         eval_env_non_seq = create_env(non_seq_params)
         video_env = eval_env_sequenced
     else:
@@ -89,7 +89,7 @@ def setup_logging(hparams, train_env, base_freq=1000):
     
     return logger, callback
     
-def create_models(env):
+def create_models(env, logger, hparams):
     task_list = env.envs[0].agent_conductor.get_possible_task_names()
     assert len(task_list) > 0
     
@@ -177,7 +177,7 @@ def training_loop(curriculum_manager, models_dict, env, total_timesteps, log_int
             break
         
         
-def training_loop_sequential(models_dict, env, total_timesteps, log_interval=4): # TODO: log interval
+def training_loop_sequential(models_dict, env, total_timesteps, logger, log_interval=4): # TODO: log interval
     
     rollout_collector = SequencedRolloutCollector(env, models_dict)
     timesteps_count = 0
@@ -195,6 +195,7 @@ def training_loop_sequential(models_dict, env, total_timesteps, log_interval=4):
             )
         # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
         timesteps_count += rollout.episode_timesteps
+        logger.record("time/train_loop_timesteps", timesteps_count)
 
         for model_name, model in models_dict.items():
             if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
@@ -209,20 +210,20 @@ def get_hparams():
     hparams =  {
         'seed': 0,
         # env
-        'manual_decompose_p': 1,
+        'manual_decompose_p': None,
         'dense_rew_lowest': False,
-        'dense_rew_tasks': ['move_gripper_to_cube'],
+        'dense_rew_tasks': ["move_gripper_to_cube"],
         'use_language_goals': False,
         'render_mode': 'rgb_array',
         'use_oracle_at_warmup': False,
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['move_gripper_to_cube'],
-        'high_level_task_names': ['move_cube_to_target'],
-        'curriculum_manager_cls': DummySeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
+        'single_task_names': [],
+        'high_level_task_names': ['grasp_cube_mini'],
+        'curriculum_manager_cls': SeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
         'sequenced_episodes': True,
-        'contained_sequence': True,
+        'contained_sequence': False,
         # algo
         'algo': TD3, # DDPG/TD3/SAC
         'policy_type': "MlpPolicy", # "MlpPolicy", "MultiInputPolicy"
@@ -234,8 +235,8 @@ def get_hparams():
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'move_gripper2grasp2lift_sequenced_code',
-        'exp_group': 'sequenced_episodes',
+        'exp_name': 'grasp_mini-auto_p(broken)-seperate-sequential',
+        'exp_group': 'sequential-iter_amp',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
     if hparams['contained_sequence']:
@@ -274,14 +275,16 @@ if __name__ == "__main__":
 
     # setup logging
     logger, callback = setup_logging(hparams, env)
+    assert len(env.envs) == 1
+    env.envs[0].agent_conductor.set_logger(logger)
 
     # create models
-    models_dict = create_models(env)
+    models_dict = create_models(env, logger, hparams)
     
     # Train
     init_training(models_dict, hparams['total_timesteps'], callback=callback)
     if hparams['sequenced_episodes']:
-        training_loop_sequential(models_dict, env, hparams['total_timesteps'])
+        training_loop_sequential(models_dict, env, hparams['total_timesteps'], logger)
     else:
         training_loop(curriculum_manager, models_dict, env, hparams['total_timesteps'])
     

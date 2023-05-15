@@ -105,14 +105,17 @@ class SeperateEpisodesCM(CurriculumManager):
         
         return p
         
-    def get_p_task(self, task_name, positive_relationship=True):
-        success = self.agent_conductor.task_stats['success'].get_task_edma(task_name)
-        if success is None:
-            success = 0
-        if positive_relationship:
-            p = success
+    def get_p_task(self, task_name, positive_relationship=True, use_edma=True):
+        if use_edma:
+            success_rate = self.agent_conductor.task_stats['success'].get_task_edma(task_name) # TODO: make these agent conductor methods
         else:
-            p = 1 - success
+            success_rate = self.agent_conductor.task_stats['success'].get_task_epoch_agg(task_name)
+        if success_rate is None:
+            success_rate = 0
+        if positive_relationship:
+            p = success_rate
+        else:
+            p = 1 - success_rate
         return self.clip_p(p)
     
     def clip_p(self, p):
@@ -140,19 +143,29 @@ class SeperateEpisodesCM(CurriculumManager):
                 
     def calc_decompose_p(self, task_name):
         '''
-        Decide probabiility of whether to decompose a task
+        Decide probability of whether to decompose a task
+        
+        Child_p is just the average child_p (# TODO: improve)
+        
+        Flaws:
+        - If self bad (0.0) and child good (1.0), still decomposes 50% of time. Should focus more on self here!!
+        - If self good (1.0) and child bad (0.0), still decomposes 50% of time. Mostly care about higher level tasks, so should focus more on self here?
+        
+        # TODO:
+        - Take max p?
+        - Or just add more weight to the higher p??
         '''
         p_list = []
         
         # p based on tasks own success rate
-        p_self = self.get_p_task(task_name, positive_relationship=False)
+        p_self = self.get_p_task(task_name, positive_relationship=True) # (better self is, more likely to stick with self)
         p_list.append(p_self)
         
-        # p based on children success rates
+        # p of sticking with task based on children success rates
         if len(self.child_parent_info[task_name]['children']) > 0:
             p_childs = []
             for child_name in self.child_parent_info[task_name]['children']:
-                p_childs += [self.get_p_task(child_name, positive_relationship=True)]
+                p_childs += [self.get_p_task(child_name, positive_relationship=True)] # (better child is, more likely to stick with self)
             p_child = np.mean(p_childs)
             p_list.append(p_child)
 

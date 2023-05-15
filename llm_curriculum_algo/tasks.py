@@ -214,7 +214,7 @@ valid_tasks = ['move_cube_to_target',
                 "place_cube_at_target",
                     "move_cube_towards_target_grasp",       # "move_gripper_to_target_grasp",
             ]
-
+valid_tasks += ['grasp_cube_mini']
 
 class Task():
     '''
@@ -373,7 +373,27 @@ class Task():
         if len(self.subtask_sequence) > 0:
             for subtask in self.subtask_sequence:
                 subtask.reset()
- 
+
+'''
+GraspCube Mini
+'''
+
+class GraspCubeMiniTask(Task):
+    '''
+    The parent task for the FetchPickPlace environment
+    '''
+    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+        self.name = "grasp_cube_mini"
+        self.str_description = "grasp cube mini"
+        self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask]
+        
+        super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
+        
+    def check_success_reward(self, current_state):
+        success, _ = self.state_parser.check_cube_between_grippers_easy(current_state)
+        reward = self.binary_reward(success)
+        return success, reward
+
  
 '''
 FetchPickAndPlace
@@ -430,6 +450,7 @@ class MoveGripperToCubeTask(Task):
             else:
                 reward = dense_reward
         else:
+            # TODO: make sure revert for MTRL!!
             reward = self.binary_reward(success)
         return success, reward
     

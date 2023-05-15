@@ -122,7 +122,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         self.max_ep_len = max_ep_len
         
         self.init_obs_space()
-        self.reset_conductor = AgentConductor(env, manual_decompose_p=1, high_level_task_names='move_cube_to_target')
+        self.reset_conductor = AgentConductor(env, manual_decompose_p=1, high_level_task_names=agent_conductor.high_level_task_names) # TODO: what if using different high-level task
         
         # begin counter
         self.active_task_steps = 0
@@ -173,6 +173,11 @@ class CurriculumEnvWrapper(gym.Wrapper):
     def reset_single_task(self, **kwargs):
         '''
         Use agent oracle actions to step through subtask until reached the single task
+        
+        TODO: extend as follows:
+        - take 'task_to_reset_to' as input
+        - replace self.agent_conductor.active_single_task_name with 'task_to_reset_to'
+        - 'task_to_reset_to' can just be high_level_task_name if no single tasks???
         '''
         for _ in range(50):
             obs, info = self.reset_normal(**kwargs)
@@ -349,21 +354,34 @@ if __name__ == "__main__":
     from llm_curriculum_algo.curriculum_manager import DummySeperateEpisodesCM, SeperateEpisodesCM
     
     env = make_env(
-        manual_decompose_p=1,
+        manual_decompose_p=None,
         dense_rew_lowest=False,
-        dense_rew_tasks=[],
+        dense_rew_tasks=["move_gripper_to_cube"],
         use_language_goals=False,
         render_mode="human",
         single_task_names=[],
-        high_level_task_names=["grasp_cube"],
+        high_level_task_names=["grasp_cube_mini"],
         contained_sequence=False,
         curriculum_manager_cls=SeperateEpisodesCM
     )
+    
+    # env = make_env(
+    #     manual_decompose_p=1,
+    #     dense_rew_lowest=False,
+    #     dense_rew_tasks=[],
+    #     use_language_goals=False,
+    #     render_mode="human",
+    #     single_task_names=["lift_cube"],
+    #     high_level_task_names=["move_cube_to_target"],
+    #     contained_sequence=False,
+    #     curriculum_manager_cls=SeperateEpisodesCM
+    # )
 
     for _ in range(5):
         
         # obs, info = env.reset()
         obs = env.reset()
+        print("env reset")
 
         for _ in range(25):
             ## Actions

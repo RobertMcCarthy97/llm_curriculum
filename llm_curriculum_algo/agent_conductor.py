@@ -1,10 +1,10 @@
 import numpy as np
 
-from llm_curriculum_algo.tasks import MoveCubeToTargetTask, PickUpCubeTask, GraspCubeTask
+from llm_curriculum_algo.tasks import MoveCubeToTargetTask, PickUpCubeTask, GraspCubeTask, GraspCubeMiniTask
 from sentence_transformers import SentenceTransformer
 
 class ExponentialDecayingMovingAverage:
-    def __init__(self, alpha):
+    def __init__(self, alpha=0.5): # TODO: make alpha an official hyperparameter
         self.alpha = alpha
         self.edma = None
 
@@ -33,7 +33,7 @@ class StatsTracker():
         raw_stats = {}
         for name in task_names:
             if edma:
-                raw_stats[name] = ExponentialDecayingMovingAverage(alpha=0.1) # TODO: set alpha properly
+                raw_stats[name] = ExponentialDecayingMovingAverage() # TODO: set alpha properly
             else:
                 raw_stats[name] = []
         return raw_stats
@@ -75,6 +75,9 @@ class StatsTracker():
     def get_task_edma(self, task_name):
         return self.epoch_edma[task_name].get_edma()
     
+    def get_task_epoch_agg(self, task_name):
+        return self.latest_epoch_agg[task_name]
+    
 
 class AgentConductor():
     def __init__(self, env, manual_decompose_p=None, dense_rew_lowest=False, single_task_names=[], high_level_task_names=None, contained_sequence=False, use_language_goals=False, dense_rew_tasks=[]):
@@ -95,6 +98,9 @@ class AgentConductor():
         assert not (dense_rew_lowest and (len(dense_rew_tasks) > 0))
         self.dense_rew_lowest = dense_rew_lowest
         self.dense_reward_tasks = dense_rew_tasks
+        
+        # logger
+        self.logger = None
         
         # tasks
         self.high_level_task_list = self.init_possible_tasks(env, dense_rew_lowest)
@@ -136,6 +142,9 @@ class AgentConductor():
             high_level_tasks += [PickUpCubeTask(use_dense_reward_lowest_level=dense_rew_lowest)]
         if 'grasp_cube' in self.high_level_task_names:
             high_level_tasks += [GraspCubeTask(use_dense_reward_lowest_level=dense_rew_lowest)]
+            raise NotImplementedError("resets not working")
+        if 'grasp_cube_mini' in self.high_level_task_names:
+            high_level_tasks += [GraspCubeMiniTask(use_dense_reward_lowest_level=dense_rew_lowest)]
         assert len(high_level_tasks) >= 0
         return high_level_tasks
     
@@ -211,6 +220,9 @@ class AgentConductor():
         
     def set_curriculum_manager(self, curriculum_manager):
         self.curriculum_manager = curriculum_manager
+        
+    def set_logger(self, logger):
+        self.logger = logger
     
     def init_oracle_goals(self):
         task_idx_dict = {}
@@ -247,7 +259,7 @@ class AgentConductor():
         if task.name == self.active_single_task_name:
             return task
         if not task.complete:
-            if len(task.subtask_sequence) >= 0:
+            if len(task.subtask_sequence) > 0:
                 if self.decide_decompose(task):
                     for subtask in task.subtask_sequence:
                         if not subtask.complete:
@@ -261,7 +273,8 @@ class AgentConductor():
         else:
             decompose_p = self.manual_decompose_p
         do_decompose = np.random.choice([True, False], p=[decompose_p, 1-decompose_p])
-        print(f"decompose_p: {decompose_p}, do_decompose: {do_decompose}")
+        if self.logger is not None:
+            self.logger.record(f"curriculum/{task.name}_decompose_p", decompose_p)
         return do_decompose
     
     def step_task_recursive(self, task):
@@ -293,7 +306,6 @@ class AgentConductor():
     
     def get_oracle_action(self, state, task):
         # assert self.chosen_high_level_task != 'grasp_cube', "oracle actions don't work well here!!"
-        print("revert assert oracle grasp!!")
         direction_act, gripper_act = task.get_oracle_action(state)
         return FetchAction(self.env, direction_act, gripper_act).get_action()
     
