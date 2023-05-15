@@ -53,14 +53,14 @@ if __name__ == "__main__":
         'seed': 0,
         # env
         'manual_decompose_p': 1,
-        'dense_rew_lowest': False,
+        'dense_rew_lowest': True,
         'use_language_goals': False,
         'render_mode': 'rgb_array',
         'use_oracle_at_warmup': False,
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['lift_cube'],
+        'single_task_names': ['move_gripper_to_cube'],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
         # algo
@@ -74,8 +74,8 @@ if __name__ == "__main__":
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'lift_cube-standard_sb3-SAC-seed100',
-        'exp_group': 'mtrl_initial_tests',
+        'exp_name': 'move_gripper_to_cube-dense_reward',
+        'exp_group': 'dense_reward',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
     

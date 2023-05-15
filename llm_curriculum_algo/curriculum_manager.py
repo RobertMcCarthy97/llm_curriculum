@@ -1,7 +1,7 @@
 import random
 import numpy as np
 
-from agent_conductor import StatsTracker
+from llm_curriculum_algo.agent_conductor import StatsTracker
 
 class CurriculumManager():
     def __init__(self, tasks_list, agent_conductor):
@@ -25,6 +25,26 @@ class CurriculumManager():
     
     def reset_epoch_stats(self):
         self.stat_tracker.reset_epoch_stats()
+    
+    def init_child_parent_info(self):
+        tasks_info = {}
+        for task_name in self.tasks_list:
+            task_info = {'children': [], 'parent': None}
+            
+            task = self.agent_conductor.get_task_from_name(task_name)
+            
+            if len(task.subtask_sequence) > 0:
+                for child in task.subtask_sequence:
+                    if child.name in self.tasks_list:
+                        task_info['children'].append(child.name)
+            
+            if task.parent_task is not None:
+                if task.parent_task.name in self.tasks_list:
+                    task_info['parent'] = task.parent_task.name
+                    
+            tasks_info[task_name] = task_info
+        
+        return tasks_info
 
 
 class DummySeperateEpisodesCM(CurriculumManager):
@@ -45,26 +65,6 @@ class SeperateEpisodesCM(CurriculumManager):
         super().__init__(tasks_list, agent_conductor)
         
         self.child_parent_info = self.init_child_parent_info()
-        
-    def init_child_parent_info(self):
-        tasks_info = {}
-        for task_name in self.tasks_list:
-            task_info = {'children': [], 'parent': None}
-            
-            task = self.agent_conductor.get_task_from_name(task_name)
-            
-            if len(task.subtask_sequence) > 0:
-                for child in task.subtask_sequence:
-                    if child.name in self.tasks_list:
-                        task_info['children'].append(child.name)
-            
-            if task.parent_task is not None:
-                if task.parent_task.name in self.tasks_list:
-                    task_info['parent'] = task.parent_task.name
-                    
-            tasks_info[task_name] = task_info
-        
-        return tasks_info
 
     def calculate_probability(self, task_name):
         p_list = []
@@ -105,7 +105,6 @@ class SeperateEpisodesCM(CurriculumManager):
         
         return p
         
-    
     def get_p_task(self, task_name, positive_relationship=True):
         success = self.agent_conductor.task_stats['success'].get_task_edma(task_name)
         if success is None:
@@ -138,3 +137,27 @@ class SeperateEpisodesCM(CurriculumManager):
             attempts += 1
             if attempts > 1000:
                 assert False, "Could not find a task to return"
+                
+    def calc_decompose_p(self, task_name):
+        '''
+        Decide probabiility of whether to decompose a task
+        '''
+        p_list = []
+        
+        # p based on tasks own success rate
+        p_self = self.get_p_task(task_name, positive_relationship=False)
+        p_list.append(p_self)
+        
+        # p based on children success rates
+        if len(self.child_parent_info[task_name]['children']) > 0:
+            p_childs = []
+            for child_name in self.child_parent_info[task_name]['children']:
+                p_childs += [self.get_p_task(child_name, positive_relationship=True)]
+            p_child = np.mean(p_childs)
+            p_list.append(p_child)
+
+        # combined p
+        p = np.mean(p_list)
+        # p is probability of sticking with task, so decompose_p is 1-p
+        decompose_p = 1 - p
+        return decompose_p

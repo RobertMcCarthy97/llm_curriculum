@@ -145,7 +145,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
     def reset(self, **kwargs):
         prev_task = self.agent_conductor.get_active_task()
         # single task scenario
-        if self.agent_conductor.single_task_names is not None:
+        if len(self.agent_conductor.single_task_names) > 0:
             obs, info = self.reset_single_task(**kwargs) # TODO: need to stop task info tracking??
         else:
             obs, info = self.reset_normal(**kwargs)
@@ -322,12 +322,17 @@ def get_user_action():
         action = np.array([0, 0, 0, 0])
     return action * 0.5
 
-def make_env(manual_decompose_p=1, dense_rew_lowest=False, use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=None, high_level_task_names=None, contained_sequence=False, state_obs_only=False, mtenv_wrapper=False, mtenv_task_idx=None):
+def make_env(manual_decompose_p=1, dense_rew_lowest=False, dense_rew_tasks=[], use_language_goals=False, render_mode=None, max_ep_len=50, single_task_names=[], high_level_task_names=None, contained_sequence=False, state_obs_only=False, mtenv_wrapper=False, mtenv_task_idx=None, curriculum_manager_cls=None):
     
     env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
     env = AddTargetToObsWrapper(env)
-    agent_conductor = AgentConductor(env, manual_decompose_p=manual_decompose_p, dense_rew_lowest=dense_rew_lowest, single_task_names=single_task_names, high_level_task_names=high_level_task_names, contained_sequence=contained_sequence, use_language_goals=use_language_goals)
+    
+    agent_conductor = AgentConductor(env, manual_decompose_p=manual_decompose_p, dense_rew_lowest=dense_rew_lowest, dense_rew_tasks=dense_rew_tasks, single_task_names=single_task_names, high_level_task_names=high_level_task_names, contained_sequence=contained_sequence, use_language_goals=use_language_goals)
     env = CurriculumEnvWrapper(env, agent_conductor, use_language_goals=use_language_goals, max_ep_len=max_ep_len)
+    if curriculum_manager_cls is not None:
+        curriculum_manager = curriculum_manager_cls(tasks_list=agent_conductor.get_possible_task_names(), agent_conductor=agent_conductor)
+        agent_conductor.set_curriculum_manager(curriculum_manager) # TODO: not good stuff
+
     env = OldGymAPIWrapper(env)
     if state_obs_only:
         env = NonGoalNonDictObsWrapper(env)
@@ -341,15 +346,18 @@ def make_env_baseline(name="FetchPickAndPlace-v2", render_mode=None, max_ep_len=
     return env
 
 if __name__ == "__main__":
+    from llm_curriculum_algo.curriculum_manager import DummySeperateEpisodesCM, SeperateEpisodesCM
     
     env = make_env(
         manual_decompose_p=1,
         dense_rew_lowest=False,
+        dense_rew_tasks=[],
         use_language_goals=False,
         render_mode="human",
-        single_task_names=["move_gripper_to_cube"],
-        high_level_task_names=["move_cube_to_target"],
+        single_task_names=[],
+        high_level_task_names=["grasp_cube"],
         contained_sequence=False,
+        curriculum_manager_cls=SeperateEpisodesCM
     )
 
     for _ in range(5):
@@ -359,9 +367,9 @@ if __name__ == "__main__":
 
         for _ in range(25):
             ## Actions
-            action = env.action_space.sample()
+            # action = env.action_space.sample()
             # action = get_user_action()
-            # action = env.get_oracle_action(obs['observation'])
+            action = env.get_oracle_action(obs['observation'])
             # print(action)
             input()
             

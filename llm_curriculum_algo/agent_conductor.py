@@ -77,31 +77,36 @@ class StatsTracker():
     
 
 class AgentConductor():
-    def __init__(self, env, manual_decompose_p=None, dense_rew_lowest=False, single_task_names=None, high_level_task_names=None, contained_sequence=False, use_language_goals=False):
+    def __init__(self, env, manual_decompose_p=None, dense_rew_lowest=False, single_task_names=[], high_level_task_names=None, contained_sequence=False, use_language_goals=False, dense_rew_tasks=[]):
         self.env = env
         self.manual_decompose_p = manual_decompose_p
-        self.dense_rew_lowest = dense_rew_lowest
         self.use_language_goals = use_language_goals
         
         self.single_task_names = single_task_names
         
         self.high_level_task_names = high_level_task_names
-        if self.single_task_names is not None:
+        if len(self.single_task_names) > 0:
             assert self.manual_decompose_p == 1
             
         self.contained_sequence = contained_sequence
         if self.contained_sequence:
-            assert self.single_task_names is not None and len(self.single_task_names) == 1
+            assert len(self.single_task_names) == 1
+            
+        assert not (dense_rew_lowest and (len(dense_rew_tasks) > 0))
+        self.dense_rew_lowest = dense_rew_lowest
+        self.dense_reward_tasks = dense_rew_tasks
         
         # tasks
-        self.high_level_task_list = self.init_possible_tasks(env)
+        self.high_level_task_list = self.init_possible_tasks(env, dense_rew_lowest)
         self.task_names = self.get_task_names()
         self.task_idx_dict, self.n_tasks = self.init_oracle_goals()
         self.task_name2obj_dict = self.set_task_name2obj_dict()
         self.init_task_relations(self.task_names)
+        if len(dense_rew_tasks) > 0:
+            self.init_dense_reward_tasks(dense_rew_tasks)
         
         # check single tasks are contained within high-level task tree
-        if self.single_task_names is not None:
+        if len(self.single_task_names) > 0:
             assert len(self.high_level_task_list) == 1, "only deal with this for now..."
             all_task_names = self.get_task_names()
             assert all([single_task in all_task_names for single_task in self.single_task_names]), "Single task not contained within high-level task"
@@ -123,14 +128,14 @@ class AgentConductor():
         self.active_task = self.high_level_task_list[0]
         # self.active_task_steps_active = 0
     
-    def init_possible_tasks(self, env):
+    def init_possible_tasks(self, env, dense_rew_lowest):
         high_level_tasks = []
         if 'move_cube_to_target' in self.high_level_task_names:
-            high_level_tasks += [MoveCubeToTargetTask(use_dense_reward_lowest_level=self.dense_rew_lowest)]
+            high_level_tasks += [MoveCubeToTargetTask(use_dense_reward_lowest_level=dense_rew_lowest)]
         if 'pick_up_cube' in self.high_level_task_names:
-            high_level_tasks += [PickUpCubeTask(use_dense_reward_lowest_level=self.dense_rew_lowest)]
+            high_level_tasks += [PickUpCubeTask(use_dense_reward_lowest_level=dense_rew_lowest)]
         if 'grasp_cube' in self.high_level_task_names:
-            high_level_tasks += [GraspCubeTask(use_dense_reward_lowest_level=self.dense_rew_lowest)]
+            high_level_tasks += [GraspCubeTask(use_dense_reward_lowest_level=dense_rew_lowest)]
         assert len(high_level_tasks) >= 0
         return high_level_tasks
     
@@ -155,6 +160,13 @@ class AgentConductor():
         for task_name in task_names:
             task = self.get_task_from_name(task_name)
             task.record_relations()
+            
+    def init_dense_reward_tasks(self, dense_reward_tasks):
+        possible_task_names = self.get_possible_task_names()
+        for task_name in dense_reward_tasks:
+            assert task_name in possible_task_names
+            task = self.get_task_from_name(task_name)
+            task.set_use_dense_reward(True)
     
     def get_task_names(self):
         def recursively_get_names(task):
@@ -165,6 +177,7 @@ class AgentConductor():
                     task_names = task_names + subtask_names
             return task_names
         
+        assert len(self.high_level_task_list) == 1
         task_names = []
         for task in self.high_level_task_list:
             task_names = task_names + recursively_get_names(task)
@@ -195,6 +208,9 @@ class AgentConductor():
     
     def set_single_task_names(self, single_task_names):
         self.single_task_names = single_task_names
+        
+    def set_curriculum_manager(self, curriculum_manager):
+        self.curriculum_manager = curriculum_manager
     
     def init_oracle_goals(self):
         task_idx_dict = {}
@@ -206,7 +222,7 @@ class AgentConductor():
         # reset tasks (i.e. set complete=False)
         self.reset_tasks()
         # if doing single task per episode (or sequenced), sample from self.single_task_names
-        if self.single_task_names is not None:
+        if len(self.single_task_names) > 0:
             self.active_single_task_name = np.random.choice(self.single_task_names)
         else:
             self.active_single_task_name = None
@@ -236,17 +252,16 @@ class AgentConductor():
                     for subtask in task.subtask_sequence:
                         if not subtask.complete:
                             return self.decompose_task(subtask)
-        # Return current task (i.e. don't decompose) if (i) is complete, (ii) has no subtasks, or (iii) decided not to decompose
+        # Don't decompose IF: (i) is complete, OR (ii) has no subtasks, OR (iii) decided not to decompose
         return task
     
     def decide_decompose(self, task):
         if self.manual_decompose_p is None:
-            task_success_rate = self.get_task_success_rate(task)
-            decompose_p = np.clip(0.9 - task_success_rate, 0.05, 1)
-            do_decompose = np.random.choice([True, False], p=[decompose_p, 1-decompose_p])
+            decompose_p = self.curriculum_manager.calc_decompose_p(task.name)
         else:
-            p = [self.manual_decompose_p, 1-self.manual_decompose_p]
-            do_decompose = np.random.choice([True, False], p=p)
+            decompose_p = self.manual_decompose_p
+        do_decompose = np.random.choice([True, False], p=[decompose_p, 1-decompose_p])
+        print(f"decompose_p: {decompose_p}, do_decompose: {do_decompose}")
         return do_decompose
     
     def step_task_recursive(self, task):
@@ -266,19 +281,19 @@ class AgentConductor():
                 # If no parent, already at highest-level so stick with same
                 return task
             else:
-                # If completed task and parent exists - replan from start! (don't stay on same level)
-                return self.decompose_task(self.chosen_high_level_task)
-                # if task.check_next_task_exists() is False:
-                #     # If completed sequence and parent exists - replan from start! (don't stay on same level)
-                #     return self.decompose_task(self.chosen_high_level_task)
-                # else:
-                #     # If current complete and next exists -> go to next
-                #     return self.step_task_recursive(task.get_next_task())
+                if task.check_next_task_exists():
+                    # If completed task, parent exists, and next exist - replan from next_task
+                    return self.decompose_task(task.next_task)
+                else:
+                    # If completed task, parent exists, and no next_task - replan from start!
+                    return self.decompose_task(self.chosen_high_level_task)
         else:
             # If task not complete, then keep trying!
             return task
     
     def get_oracle_action(self, state, task):
+        # assert self.chosen_high_level_task != 'grasp_cube', "oracle actions don't work well here!!"
+        print("revert assert oracle grasp!!")
         direction_act, gripper_act = task.get_oracle_action(state)
         return FetchAction(self.env, direction_act, gripper_act).get_action()
     
@@ -338,7 +353,7 @@ class AgentConductor():
             else:
                 return self.single_task_names
         else:
-            raise NotImplementedError
+            return self.get_task_names()
         
         
 

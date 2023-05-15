@@ -29,6 +29,7 @@ def create_env(hparams):
         env = make_env(
             manual_decompose_p=hparams['manual_decompose_p'],
             dense_rew_lowest=hparams['dense_rew_lowest'],
+            dense_rew_tasks=hparams['dense_rew_tasks'],
             use_language_goals=hparams['use_language_goals'],
             render_mode=hparams['render_mode'],
             max_ep_len=hparams['max_ep_len'],
@@ -36,6 +37,7 @@ def create_env(hparams):
             high_level_task_names=hparams['high_level_task_names'],
             contained_sequence=hparams['contained_sequence'],
             state_obs_only=True,
+            curriculum_manager_cls=hparams['curriculum_manager_cls'],
             )
 
     # Vec Env
@@ -48,7 +50,7 @@ def create_env(hparams):
 def setup_logging(hparams, train_env, base_freq=1000):
     
     single_task_names = train_env.envs[0].agent_conductor.get_possible_task_names()
-    log_freq = base_freq * len(single_task_names) # TODO: make hparam
+    log_freq = base_freq * max(1, len(single_task_names)) # TODO: make hparam
     vid_freq = base_freq * 10
     
     # Logger and callbacks
@@ -65,9 +67,10 @@ def setup_logging(hparams, train_env, base_freq=1000):
         eval_env_non_seq = create_env(hparams)
         eval_env_sequenced = None
         video_env = eval_env_non_seq
+    # TODO: link train curriculum manager + agent_conductor to eval envs?? (so can get same decompositions in eval...)
     
     callback_list = []
-    callback_list += [EvalCallbackMultiTask(eval_env_non_seq, eval_env_sequenced=eval_env_sequenced, eval_freq=log_freq, best_model_save_path=None, seperate_policies=True)]
+    callback_list += [EvalCallbackMultiTask(eval_env_non_seq, eval_env_sequenced=eval_env_sequenced, eval_freq=log_freq, best_model_save_path=None, seperate_policies=True, single_task_names=single_task_names)]
     if not hparams['use_baseline_env']:
         callback_list += [SuccessCallbackSeperatePolicies(log_freq=log_freq)]
     callback_list += [VideoRecorderCallback(video_env, render_freq=vid_freq, n_eval_episodes=1, add_text=True, sequenced_rollouts=hparams['sequenced_episodes'])]
@@ -208,13 +211,14 @@ def get_hparams():
         # env
         'manual_decompose_p': 1,
         'dense_rew_lowest': False,
+        'dense_rew_tasks': ['move_gripper_to_cube'],
         'use_language_goals': False,
         'render_mode': 'rgb_array',
         'use_oracle_at_warmup': False,
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['cube_between_grippers'],
+        'single_task_names': ['move_gripper_to_cube'],
         'high_level_task_names': ['move_cube_to_target'],
         'curriculum_manager_cls': DummySeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
         'sequenced_episodes': True,
@@ -228,16 +232,17 @@ def get_hparams():
         'total_timesteps': 1e5,
         'device': 'cpu',
         # logging
-        'do_track': False,
+        'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'temp',
-        'exp_group': 'temp',
+        'exp_name': 'move_gripper2grasp2lift_sequenced_code',
+        'exp_group': 'sequenced_episodes',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
     if hparams['contained_sequence']:
         assert hparams['sequenced_episodes']
-    # if hparams['sequenced_episodes']: # TODO
-
+    # if hparams['sequenced_episodes']:
+    #     assert len(hparams['single_task_names']) == 0 or hparams['contained_sequence']
+    
     return hparams
 
 if __name__ == "__main__":
@@ -273,10 +278,6 @@ if __name__ == "__main__":
     # create models
     models_dict = create_models(env)
     
-    # create curriculum manager
-    curriculum_manager = hparams['curriculum_manager_cls'](tasks_list=env.envs[0].agent_conductor.get_possible_task_names(), agent_conductor=env.envs[0].agent_conductor)
-    env.envs[0].curriculum_manager = curriculum_manager # very dirty # TODO: change (add curriculum manager to agent_conductor??)
-
     # Train
     init_training(models_dict, hparams['total_timesteps'], callback=callback)
     if hparams['sequenced_episodes']:

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, List
 import os
 import warnings
 
@@ -160,7 +160,7 @@ class SuccessCallbackSeperatePolicies(BaseCallback):
                 self.logger.record(f"time/{task_key}_steps", model.num_timesteps) # task n_steps
             
             # record curriculum manager task probabilities
-            cm = env.curriculum_manager
+            cm = env.agent_conductor.curriculum_manager
             p_agg_stats = cm.get_agg_stats()
             for task_key, model in self.locals['models_dict'].items():
                 self.logger.record(f"curriculum/{task_key}_p", p_agg_stats['epoch'][task_key])
@@ -220,6 +220,7 @@ class EvalCallbackMultiTask(EventCallback):
         verbose: int = 1,
         warn: bool = True,
         seperate_policies: bool = False,
+        single_task_names: List[str] = None,
     ):
         super().__init__(callback_after_eval, verbose=verbose)
 
@@ -236,6 +237,8 @@ class EvalCallbackMultiTask(EventCallback):
         self.render = render
         self.warn = warn
         self.seperate_policies = seperate_policies
+        self.single_task_names = single_task_names
+        assert len(single_task_names) > 0
 
         # Convert to VecEnv for consistency
         if not isinstance(eval_env, VecEnv):
@@ -308,14 +311,8 @@ class EvalCallbackMultiTask(EventCallback):
                         ) from e
                     assert len(env.envs) == 1, "Not checked if can handle more than 1 env"
             
-            # Get task list
-            if self.locals['env'].envs[0].agent_conductor.get_single_task_names() is not None:
-                tasks = self.locals['env'].envs[0].agent_conductor.get_single_task_names()
-            else:
-                tasks = self.eval_env.envs[0].agent_conductor.get_task_names()
-            
             # Test on each task individually
-            for task in tasks:
+            for task in self.single_task_names:
                 # set env eval task
                 self.eval_env.envs[0].agent_conductor.set_single_task_names([task]) # very hacky, but this ensures the task is always chosen
                 # Reset success rate buffer
