@@ -354,13 +354,13 @@ if __name__ == "__main__":
     from llm_curriculum_algo.curriculum_manager import DummySeperateEpisodesCM, SeperateEpisodesCM
     
     env = make_env(
-        manual_decompose_p=None,
+        manual_decompose_p=0.5,
         dense_rew_lowest=False,
-        dense_rew_tasks=["move_gripper_to_cube"],
+        dense_rew_tasks=["move_gripper_to_cube", "move_cube_towards_target_grasp"],
         use_language_goals=False,
         render_mode="human",
         single_task_names=[],
-        high_level_task_names=["grasp_cube_mini"],
+        high_level_task_names=["move_cube_to_target"],
         contained_sequence=False,
         curriculum_manager_cls=SeperateEpisodesCM
     )
@@ -383,7 +383,7 @@ if __name__ == "__main__":
         obs = env.reset()
         print("env reset")
 
-        for _ in range(25):
+        for _ in range(35):
             ## Actions
             # action = env.action_space.sample()
             # action = get_user_action()

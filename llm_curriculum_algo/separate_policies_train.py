@@ -116,7 +116,7 @@ def create_models(env, logger, hparams):
         for task_name in models_dict.keys():
             assert len(env.envs) == 1
             relations = env.envs[0].agent_conductor.get_task_from_name(task_name).get_relations()
-            models_dict[task_name].replay_buffer.init_datasharing(relations, models_dict)
+            models_dict[task_name].replay_buffer.init_datasharing(relations, models_dict, agent_conductor=env.envs[0].agent_conductor)
         # TODO: print / save these relations to ensure all correct...
                 
     return models_dict
@@ -212,7 +212,7 @@ def get_hparams():
         # env
         'manual_decompose_p': None,
         'dense_rew_lowest': False,
-        'dense_rew_tasks': ["move_gripper_to_cube"],
+        'dense_rew_tasks': ["move_gripper_to_cube", "move_cube_towards_target_grasp"],
         'use_language_goals': False,
         'render_mode': 'rgb_array',
         'use_oracle_at_warmup': False,
@@ -220,7 +220,7 @@ def get_hparams():
         'use_baseline_env': False,
         # task
         'single_task_names': [],
-        'high_level_task_names': ['grasp_cube_mini'],
+        'high_level_task_names': ['move_cube_to_target'],
         'curriculum_manager_cls': SeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
         'sequenced_episodes': True,
         'contained_sequence': False,
@@ -230,12 +230,12 @@ def get_hparams():
         'learning_starts': 1e3,
         'replay_buffer_class': SeparatePoliciesReplayBuffer, # LLMBasicReplayBuffer, None, SeparatePoliciesReplayBuffer
         'replay_buffer_kwargs': {'child_p': 0.2}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
-        'total_timesteps': 1e5,
+        'total_timesteps': 1e6,
         'device': 'cpu',
         # logging
-        'do_track': True,
+        'do_track': False,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'grasp_mini-auto_p(broken)-seperate-sequential',
+        'exp_name': 'pick_place_full-auto_p(broken)-seperate-sequential-2',
         'exp_group': 'sequential-iter_amp',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }

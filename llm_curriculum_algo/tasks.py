@@ -214,11 +214,12 @@ valid_tasks = ['move_cube_to_target',
                 "place_cube_at_target",
                     "move_cube_towards_target_grasp",       # "move_gripper_to_target_grasp",
             ]
-valid_tasks += ['grasp_cube_mini']
+valid_tasks += ['grasp_cube_mini', 'pick_up_cube_mini', 'pick_place_mini']
 
 class Task():
     '''
     WARNING: Task should only exist within a single rollout (i.e. re-initialize each time the nvironmnet is reset!!)
+    - Note: very important that final child in sequence has identical success condition to parent (child MUST complete parent)
     '''
     def __init__(self, parent_task=None, subtask_cls_seq=[], level=0, use_dense_reward_lowest_level=False, complete_thresh=3):
         assert self.name in valid_tasks
@@ -275,10 +276,15 @@ class Task():
         if success:
             # If so, set to complete
             self.set_complete(success)
-            if self.next_task is None and self.parent_task is not None:
-                # check parent complete and set (if end of subtask sequence complete, parent likely complete)
-                parent_success, _ = self.parent_task.check_success_reward(current_state)
-                self.parent_task.set_complete(parent_success)
+            
+            # check parents
+            def check_parent_success(task, current_state):
+                if task.next_task is None and task.parent_task is not None:
+                    parent_success, _ = task.parent_task.check_success_reward(current_state)
+                    task.parent_task.set_complete(parent_success)
+                    check_parent_success(task.parent_task, current_state)
+            check_parent_success(self, current_state)
+            
         # Check if subtasks complete
         self.check_and_set_subtasks_complete(self, current_state)
         
@@ -348,9 +354,28 @@ class Task():
         # set relations
         self.relations = {'parents': parents_dict, 'children': child_dict}
         
+    def record_child_proportions(self):
+        '''
+        Records what percent of the task each child completes
+        '''
+        # children
+        def set_child_proportions(task, task_prop=1.0):
+            assert task_prop <= 1.0
+            child_props = {}
+            if len(task.subtask_sequence) > 0:
+                for child_task in task.subtask_sequence:
+                    child_prop = (1.0 / len(task.subtask_sequence)) * task_prop
+                    child_props[child_task.name] = child_prop
+                    child_props.update(set_child_proportions(child_task, task_prop=child_prop))
+            return child_props
+        self.child_propostions = set_child_proportions(self, task_prop=1.0)
+        
     def get_relations(self):
         return self.relations
-    
+
+    def get_child_proportions(self):
+        return self.child_propostions
+        
     def binary_reward(self, success):
         if success:
             return 0.0
@@ -394,7 +419,46 @@ class GraspCubeMiniTask(Task):
         reward = self.binary_reward(success)
         return success, reward
 
- 
+'''
+PickupCube Mini
+'''
+
+class PickUpCubeMiniTask(Task):
+    '''
+    The parent task for the FetchPickPlace environment
+    '''
+    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+        self.name = "pick_up_cube_mini"
+        self.str_description = "Pick up cube mini"
+        self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask, CloseGripperCubeTask, LiftCubeTask]
+        
+        super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
+        
+    def check_success_reward(self, current_state):
+        success, _ = self.state_parser.check_cube_lifted(current_state)
+        reward = self.binary_reward(success)
+        return success, reward
+
+'''
+PickAndPlace Mini
+'''
+
+class PickPlaceMiniTask(Task):
+    '''
+    The parent task for the FetchPickPlace environment
+    '''
+    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+        self.name = "pick_place_mini"
+        self.str_description = "pick and place mini"
+        self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask, CloseGripperCubeTask, LiftCubeTask, MoveCubeTowardsTargetGraspTask]
+        
+        super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
+        
+    def check_success_reward(self, current_state):
+        success, _ = self.state_parser.check_cube_at_target(current_state)
+        reward = self.binary_reward(success)
+        return success, reward
+
 '''
 FetchPickAndPlace
  
@@ -588,6 +652,7 @@ class MoveCubeTowardsTargetGraspTask(Task):
         else:
             success, dense_reward = self.state_parser.check_cube_moving_to_target(current_state)
             reward = self.binary_reward(success)
+            assert False, "success condition dody - doesn't match with parents..."
         return success, reward
     
     def get_oracle_action(self, state):

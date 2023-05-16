@@ -27,6 +27,10 @@ class CurriculumManager():
         self.stat_tracker.reset_epoch_stats()
     
     def init_child_parent_info(self):
+        '''
+        Only records direct children and parents
+        
+        '''
         tasks_info = {}
         for task_name in self.tasks_list:
             task_info = {'children': [], 'parent': None}
@@ -45,6 +49,16 @@ class CurriculumManager():
             tasks_info[task_name] = task_info
         
         return tasks_info
+    
+    def init_task_last_childs(self):
+        task_last_childs = {}
+        for task_name in self.tasks_list:
+            task = self.agent_conductor.get_task_from_name(task_name)
+            if len(task.subtask_sequence) > 0:
+                task_last_childs[task_name] = task.subtask_sequence[-1].name
+            else:
+                task_last_childs[task_name] = None
+        return task_last_childs
 
 
 class DummySeperateEpisodesCM(CurriculumManager):
@@ -65,6 +79,7 @@ class SeperateEpisodesCM(CurriculumManager):
         super().__init__(tasks_list, agent_conductor)
         
         self.child_parent_info = self.init_child_parent_info()
+        self.task_last_childs = self.init_task_last_childs()
 
     def calculate_probability(self, task_name):
         p_list = []
@@ -141,7 +156,7 @@ class SeperateEpisodesCM(CurriculumManager):
             if attempts > 1000:
                 assert False, "Could not find a task to return"
                 
-    def calc_decompose_p(self, task_name):
+    def calc_decompose_p(self, task_name, child_strat='all'):
         '''
         Decide probability of whether to decompose a task
         
@@ -163,10 +178,22 @@ class SeperateEpisodesCM(CurriculumManager):
         
         # p of sticking with task based on children success rates
         if len(self.child_parent_info[task_name]['children']) > 0:
-            p_childs = []
-            for child_name in self.child_parent_info[task_name]['children']:
-                p_childs += [self.get_p_task(child_name, positive_relationship=True)] # (better child is, more likely to stick with self)
-            p_child = np.mean(p_childs)
+            
+            if child_strat == 'all':
+                p_childs = []
+                for child_name in self.child_parent_info[task_name]['children']:
+                    p_childs += [self.get_p_task(child_name, positive_relationship=True)] # (better child is, more likely to stick with self)
+                p_child = np.mean(p_childs)
+            
+            elif child_strat == 'last':
+                # TODO: what if last has good success rate but only been run very few times??
+                last_child_name = self.task_last_childs[task_name]
+                p_child = self.get_p_task(last_child_name, positive_relationship=True)
+                assert False, "not thought through yet..."
+            
+            else:
+                raise NotImplementedError
+            
             p_list.append(p_child)
 
         # combined p
