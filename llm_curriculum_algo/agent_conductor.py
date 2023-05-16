@@ -1,6 +1,6 @@
 import numpy as np
 
-from llm_curriculum_algo.tasks import MoveCubeToTargetTask, PickUpCubeTask, GraspCubeTask, GraspCubeMiniTask
+from llm_curriculum_algo.tasks import MoveCubeToTargetTask, PickUpCubeTask, GraspCubeTask, PickUpCubeMiniTask
 from sentence_transformers import SentenceTransformer
 
 class ExponentialDecayingMovingAverage:
@@ -108,6 +108,7 @@ class AgentConductor():
         self.task_idx_dict, self.n_tasks = self.init_oracle_goals()
         self.task_name2obj_dict = self.set_task_name2obj_dict()
         self.init_task_relations(self.task_names)
+        self.init_child_proportions(self.task_names)
         if len(dense_rew_tasks) > 0:
             self.init_dense_reward_tasks(dense_rew_tasks)
         
@@ -145,7 +146,9 @@ class AgentConductor():
             raise NotImplementedError("resets not working")
         if 'grasp_cube_mini' in self.high_level_task_names:
             high_level_tasks += [GraspCubeMiniTask(use_dense_reward_lowest_level=dense_rew_lowest)]
-        assert len(high_level_tasks) >= 0
+        if 'pickup_cube_mini' in self.high_level_task_names:
+            high_level_tasks += [PickUpCubeMiniTask(use_dense_reward_lowest_level=dense_rew_lowest)]
+        assert len(high_level_tasks) > 0
         return high_level_tasks
     
     def init_task_embeddings(self):
@@ -169,6 +172,11 @@ class AgentConductor():
         for task_name in task_names:
             task = self.get_task_from_name(task_name)
             task.record_relations()
+            
+    def init_child_proportions(self, task_names):
+        for task_name in task_names:
+            task = self.get_task_from_name(task_name)
+            task.record_child_proportions()
             
     def init_dense_reward_tasks(self, dense_reward_tasks):
         possible_task_names = self.get_possible_task_names()
@@ -288,18 +296,25 @@ class AgentConductor():
             # single task logic
             return task
         # normal logic
+        '''
+        Once gone down (via decompose_task), only ever come back up 1 level if finished a sub-task sequence
+        '''
         if task.complete:
-            if task.parent_task is None:
-                assert task.check_next_task_exists() is False, "Can't have next task if no parent task."
-                # If no parent, already at highest-level so stick with same
-                return task
-            else:
+            def step_sub_task(task):
+                assert task.complete
                 if task.check_next_task_exists():
+                    assert task.parent_task is not None
                     # If completed task, parent exists, and next exist - replan from next_task
                     return self.decompose_task(task.next_task)
                 else:
-                    # If completed task, parent exists, and no next_task - replan from start!
-                    return self.decompose_task(self.chosen_high_level_task)
+                    if self.chosen_high_level_task.complete:
+                        # if high_level completed then just return self (nothing else to do!)
+                        return task
+                    else:
+                        assert task.parent_task is not None # if self is complete and hig-level is not, then task must have parent - more work to do!
+                        # if no next but has parent, then go up to parent
+                        return step_sub_task(task.parent_task)
+            return step_sub_task(task)
         else:
             # If task not complete, then keep trying!
             return task
