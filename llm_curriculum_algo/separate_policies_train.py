@@ -105,6 +105,7 @@ def create_models(env, logger, hparams):
                     replay_buffer_kwargs=hparams['replay_buffer_kwargs'],
                     device=hparams['device'],
                     use_oracle_at_warmup=hparams['use_oracle_at_warmup'],
+                    policy_kwargs=hparams['policy_kwargs'],
                     )
         model.set_logger(logger)
         if hparams['replay_buffer_class'] is not None:  
@@ -140,9 +141,10 @@ def init_training(
             )
         callback.on_training_start(locals(), globals())
       
-def training_loop(curriculum_manager, models_dict, env, total_timesteps, log_interval=4):
+def training_loop(models_dict, env, total_timesteps, log_interval=4):
     
-    for task_name in curriculum_manager:
+    for task_name in env.envs[0].agent_conductor.curriculum_manager:
+        assert len(env.envs) == 1
         
         # Get model
         model = models_dict[task_name]
@@ -210,19 +212,19 @@ def get_hparams():
     hparams =  {
         'seed': 0,
         # env
-        'manual_decompose_p': None,
+        'manual_decompose_p': 1,
         'dense_rew_lowest': False,
-        'dense_rew_tasks': ["move_gripper_to_cube", "move_cube_towards_target_grasp"],
+        'dense_rew_tasks': [], #
         'use_language_goals': False,
         'render_mode': 'rgb_array',
-        'use_oracle_at_warmup': False,
+        'use_oracle_at_warmup': False, #
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': [],
+        'single_task_names': ["lift_cube"], #
         'high_level_task_names': ['move_cube_to_target'],
         'curriculum_manager_cls': SeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
-        'sequenced_episodes': True,
+        'sequenced_episodes': False,
         'contained_sequence': False,
         # algo
         'algo': TD3, # DDPG/TD3/SAC
@@ -232,6 +234,7 @@ def get_hparams():
         'replay_buffer_kwargs': {'child_p': 0.2}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
         'total_timesteps': 1e6,
         'device': 'cpu',
+        'policy_kwargs': {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}, # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
         # logging
         'do_track': False,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
@@ -243,6 +246,9 @@ def get_hparams():
         assert hparams['sequenced_episodes']
     # if hparams['sequenced_episodes']:
     #     assert len(hparams['single_task_names']) == 0 or hparams['contained_sequence']
+    if hparams['policy_kwargs'] is not None:
+        assert hparams['policy_type'] == "MlpPolicy"
+        assert hparams['algo'] == TD3
     
     return hparams
 
@@ -286,7 +292,7 @@ if __name__ == "__main__":
     if hparams['sequenced_episodes']:
         training_loop_sequential(models_dict, env, hparams['total_timesteps'], logger)
     else:
-        training_loop(curriculum_manager, models_dict, env, hparams['total_timesteps'])
+        training_loop(models_dict, env, hparams['total_timesteps'])
     
     if hparams['do_track']:
         run.finish()
