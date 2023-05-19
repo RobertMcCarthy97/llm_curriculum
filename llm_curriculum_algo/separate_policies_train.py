@@ -1,4 +1,5 @@
 from datetime import datetime
+import numpy as np
 
 from stable_baselines3 import DDPG, SAC, TD3
 from stable_baselines3.common.logger import configure
@@ -7,6 +8,8 @@ from stable_baselines3.common.callbacks import CallbackList, EveryNTimesteps
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.type_aliases import MaybeCallback, TrainFreq, TrainFrequencyUnit
+from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
+
 
 import wandb
 from wandb.integration.sb3 import WandbCallback
@@ -93,6 +96,12 @@ def create_models(env, logger, hparams):
     task_list = env.envs[0].agent_conductor.get_possible_task_names()
     assert len(task_list) > 0
     
+    # init action noise
+    if hparams['action_noise'] is not None:
+        assert hparams['action_noise'] is NormalActionNoise
+        n_actions = env.action_space.shape[-1]
+        hparams['action_noise'] = hparams['action_noise'](mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions)) # TODO: make magnitude a hparam?
+    
     models_dict = {}
     # create models
     for task in task_list:
@@ -106,6 +115,7 @@ def create_models(env, logger, hparams):
                     device=hparams['device'],
                     use_oracle_at_warmup=hparams['use_oracle_at_warmup'],
                     policy_kwargs=hparams['policy_kwargs'],
+                    action_noise=hparams['action_noise']
                     )
         model.set_logger(logger)
         if hparams['replay_buffer_class'] is not None:  
@@ -221,7 +231,7 @@ def get_hparams():
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ["lift_cube"], #
+        'single_task_names': ["move_gripper_to_cube"], #
         'high_level_task_names': ['move_cube_to_target'],
         'curriculum_manager_cls': SeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM
         'sequenced_episodes': False,
@@ -234,20 +244,25 @@ def get_hparams():
         'replay_buffer_kwargs': {'child_p': 0.2}, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
         'total_timesteps': 1e6,
         'device': 'cpu',
-        'policy_kwargs': {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}, # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
+        'policy_kwargs': None, # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
+        'action_noise': None, # NormalActionNoise, None
         # logging
-        'do_track': False,
+        'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'pick_place_full-auto_p(broken)-seperate-sequential-2',
+        'exp_name': 'move_gripper_to_cube-only-seperate_code-NO_action_noise1',
         'exp_group': 'sequential-iter_amp',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
+    
+    ##### Checks
     if hparams['contained_sequence']:
         assert hparams['sequenced_episodes']
     # if hparams['sequenced_episodes']:
     #     assert len(hparams['single_task_names']) == 0 or hparams['contained_sequence']
     if hparams['policy_kwargs'] is not None:
         assert hparams['policy_type'] == "MlpPolicy"
+        assert hparams['algo'] == TD3
+    if hparams['action_noise'] is not None:
         assert hparams['algo'] == TD3
     
     return hparams
