@@ -179,9 +179,9 @@ class AgentConductor():
             task.record_child_proportions()
             
     def init_dense_reward_tasks(self, dense_reward_tasks):
-        possible_task_names = self.get_possible_task_names()
+        # possible_task_names = self.get_possible_task_names()
         for task_name in dense_reward_tasks:
-            assert task_name in possible_task_names
+            assert task_name in self.task_names
             task = self.get_task_from_name(task_name)
             task.set_use_dense_reward(True)
     

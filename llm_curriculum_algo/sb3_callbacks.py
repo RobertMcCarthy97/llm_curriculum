@@ -124,6 +124,7 @@ class SuccessCallback(BaseCallback):
                         self.logger.record(f"custom_rollout_{stat_key}_{time_key}/{task_key}", stats[stat_key][time_key][task_key])
             # record timestep
             self.logger.record("time/custom_timestep", self.num_timesteps)
+            self.logger.record("time/custom_timestep_multi_run", self.num_timesteps / len(env.agent_conductor.get_possible_task_names())) # just divide by n_tasks (assumes sampled equally)
             # dump and reset
             self.logger.dump(self.num_timesteps)
             env.agent_conductor.reset_epoch_stats()

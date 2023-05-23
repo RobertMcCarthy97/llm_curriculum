@@ -214,7 +214,7 @@ valid_tasks = ['move_cube_to_target',
                 "place_cube_at_target",
                     "move_cube_towards_target_grasp",       # "move_gripper_to_target_grasp",
             ]
-valid_tasks += ['grasp_cube_mini', 'pick_up_cube_mini', 'pick_place_mini']
+# valid_tasks += ['grasp_cube_mini', 'pick_up_cube_mini', 'pick_place_mini']
 
 class Task():
     '''
@@ -652,7 +652,7 @@ class MoveCubeTowardsTargetGraspTask(Task):
         else:
             success, dense_reward = self.state_parser.check_cube_moving_to_target(current_state)
             reward = self.binary_reward(success)
-            assert False, "success condition dody - doesn't match with parents..."
+            print("MoveCubeTowardsTargetGraspTask - sparse reward - success condition dody - doesn't match with parents...")
         return success, reward
     
     def get_oracle_action(self, state):

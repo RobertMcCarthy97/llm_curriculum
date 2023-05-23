@@ -245,7 +245,7 @@ def get_hparams():
         'total_timesteps': 1e6,
         'device': 'cpu',
         'policy_kwargs': None, # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
-        'action_noise': None, # NormalActionNoise, None
+        'action_noise': NormalActionNoise, # NormalActionNoise, None
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
