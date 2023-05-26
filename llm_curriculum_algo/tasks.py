@@ -501,7 +501,7 @@ class MoveGripperToCubeTask(Task):
     '''
     def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
         self.name = "move_gripper_to_cube"
-        self.str_description = "Move gripper to cube"
+        self.str_description = "Go to cube"
         self.subtask_cls_seq = []
         
         super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
@@ -637,7 +637,7 @@ class PlaceCubeAtTargetTask(Task):
 class MoveCubeTowardsTargetGraspTask(Task):
     def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
         self.name = "move_cube_towards_target_grasp"
-        self.str_description = "Move cube towards target while grasping cube"
+        self.str_description = "Move cube to target while grasping"
         self.subtask_cls_seq = []
         
         super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
@@ -692,7 +692,7 @@ class OpenGripperTask(Task):
 class CubeBetweenGripperTask(Task):
     def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
         self.name = "cube_between_grippers"
-        self.str_description = "Cube between grippers"
+        self.str_description = "Put grippers around cube"
         self.subtask_cls_seq = []
         
         super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
