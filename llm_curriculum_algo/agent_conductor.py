@@ -83,7 +83,6 @@ class AgentConductor():
     def __init__(self, env, manual_decompose_p=None, dense_rew_lowest=False, single_task_names=[], high_level_task_names=None, contained_sequence=False, use_language_goals=False, dense_rew_tasks=[]):
         self.env = env
         self.manual_decompose_p = manual_decompose_p
-        self.use_language_goals = use_language_goals
         
         self.single_task_names = single_task_names
         
@@ -127,9 +126,10 @@ class AgentConductor():
         # language embeddings
         # https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
         # Or use same as 'Guided pretraining' paper? https://huggingface.co/sentence-transformers/paraphrase-MiniLM-L3-v2 
-        if self.use_language_goals:
-            self.sentence_embedder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-            self.init_task_embeddings()
+        if use_language_goals:
+            self.sentence_embedder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2') # TODO: pick better model
+            self.task_embeddings_dict = self.init_task_embeddings()
+            del self.sentence_embedder
         
         # init (to be overrided)
         self.active_task = self.high_level_task_list[0]

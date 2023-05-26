@@ -15,6 +15,7 @@ from env_wrappers import make_env, make_env_baseline
 from stable_baselines3.common.buffers_custom import LLMBasicReplayBuffer
 from sb3_callbacks import SuccessCallback, VideoRecorderCallback, EvalCallbackMultiTask
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
+from stable_baselines3.common.custom_encoders import CustomSimpleCombinedExtractor
 
 
 def create_env(hparams):
@@ -39,32 +40,27 @@ def create_env(hparams):
     # Vec Env
     env = DummyVecEnv([lambda: env])
     env = VecMonitor(env, info_keywords=hparams['info_keywords'])
-    env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
+    if hparams['norm_obs']:
+        env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
+    else:
+        assert False
     
     return env
 
-'''
-conda activate llm_curriculum
-''' 
-
-if __name__ == "__main__":
-    '''
-    TODO: implement W&B sweep?
-    '''
-    
+def get_hparams():
     hparams = {
         'seed': 0,
         # env
         'manual_decompose_p': 1,
         'dense_rew_lowest': False,
-        'dense_rew_tasks': ["move_gripper_to_cube", "move_cube_towards_target_grasp"],
-        'use_language_goals': False,
+        'dense_rew_tasks': [],
+        'use_language_goals': True,
         'render_mode': 'rgb_array',
         'use_oracle_at_warmup': False,
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ["move_gripper_to_cube", "cube_between_grippers", "lift_cube"],
+        'single_task_names': ["lift_cube"],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
         # algo
@@ -77,17 +73,35 @@ if __name__ == "__main__":
         'replay_buffer_kwargs': None, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}
         'total_timesteps': 1e5,
         'device': 'cpu',
-        'policy_kwargs': {}, # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
+        'policy_kwargs': {}, # {}, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
+        'features_extractor': {'features_extractor_class': CustomSimpleCombinedExtractor, 'features_extractor_kwargs': {'encoders':{'observation': 'mlp', 'desired_goal': 'mlp'}, 'fuse_method': 'concat'}} , # None, {'features_extractor_class': CustomSimpleCombinedExtractor, 'features_extractor_kwargs': {'encoders':{'state': 'flatten', 'task': 'flatten'}, fuse_method: 'concat'}} 
         'gradient_steps': -1,
-        'do_mtrl_hparam_boost': False,
+        'do_mtrl_hparam_boost': True,
+        'norm_obs': True,
         # logging
         'do_track': False,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'move_cube_to_target-only',
-        'exp_group': 'single_task',
+        'exp_name': 'grasp_cube-mtrl-no_norm_obs',
+        'exp_group': 'norm_obs',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
     # TODO: learning rates to 3e-4? (following MTRL)
+    if 'goal_based_custom_args' in hparams['policy_kwargs']:
+        assert hparams['policy_type'] == 'MlpPolicy', "not setup for other policy types yet"
+    # features extractor
+    if hparams['features_extractor'] is not None:
+        assert hparams['policy_type'] == 'MultiInputPolicy', "not setup for other policy types yet"
+        assert hparams['algo'] == TD3, "not setup for other algos yet"
+        hparams['policy_kwargs'].update(hparams['features_extractor'])
+
+    return hparams
+
+'''
+conda activate llm_curriculum
+''' 
+
+if __name__ == "__main__":
+    hparams = get_hparams()
     
     # W&B
     if hparams['do_track']:
