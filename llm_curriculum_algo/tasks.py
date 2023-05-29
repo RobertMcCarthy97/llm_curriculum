@@ -639,11 +639,15 @@ class MoveCubeTowardsTargetGraspTask(Task):
         self.name = "move_cube_towards_target_grasp"
         self.str_description = "Move cube to target while grasping"
         self.subtask_cls_seq = []
+
+        print("\nWARNING:")
+        print("MoveCubeTowardsTargetGraspTask - sparse reward - success condition dody - doesn't match with parents...\n\n")
         
         super().__init__(parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level)
     
     def check_success_reward(self, current_state):
         if self.use_dense_reward:
+            assert False
             success, dense_reward = self.state_parser.check_cube_at_target(current_state)
             if success:
                 reward = 0
@@ -652,7 +656,7 @@ class MoveCubeTowardsTargetGraspTask(Task):
         else:
             success, dense_reward = self.state_parser.check_cube_moving_to_target(current_state)
             reward = self.binary_reward(success)
-            print("MoveCubeTowardsTargetGraspTask - sparse reward - success condition dody - doesn't match with parents...")
+            # print("MoveCubeTowardsTargetGraspTask - sparse reward - success condition dody - doesn't match with parents...")
         return success, reward
     
     def get_oracle_action(self, state):

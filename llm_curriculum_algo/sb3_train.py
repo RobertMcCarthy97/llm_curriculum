@@ -1,5 +1,6 @@
 from datetime import datetime
 import numpy as np
+import argparse
 
 from stable_baselines3 import DDPG, SAC, TD3
 from stable_baselines3.common.logger import configure
@@ -15,7 +16,7 @@ from env_wrappers import make_env, make_env_baseline
 from stable_baselines3.common.buffers_custom import LLMBasicReplayBuffer
 from sb3_callbacks import SuccessCallback, VideoRecorderCallback, EvalCallbackMultiTask
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
-from stable_baselines3.common.custom_encoders import CustomSimpleCombinedExtractor
+from stable_baselines3.common.custom_encoders import CustomSimpleCombinedExtractor, FiLM
 
 
 def create_env(hparams):
@@ -54,13 +55,13 @@ def get_hparams():
         'manual_decompose_p': 1,
         'dense_rew_lowest': False,
         'dense_rew_tasks': [],
-        'use_language_goals': True,
+        'use_language_goals': False,
         'render_mode': 'rgb_array',
         'use_oracle_at_warmup': False,
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ["lift_cube"],
+        'single_task_names': ["move_gripper_to_cube", "cube_between_grippers", "lift_cube", "move_cube_towards_target_grasp"],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
         # algo
@@ -74,27 +75,80 @@ def get_hparams():
         'total_timesteps': 1e5,
         'device': 'cpu',
         'policy_kwargs': {}, # {}, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
-        'features_extractor': {'features_extractor_class': CustomSimpleCombinedExtractor, 'features_extractor_kwargs': {'encoders':{'observation': 'mlp', 'desired_goal': 'mlp'}, 'fuse_method': 'concat'}} , # None, {'features_extractor_class': CustomSimpleCombinedExtractor, 'features_extractor_kwargs': {'encoders':{'state': 'flatten', 'task': 'flatten'}, fuse_method: 'concat'}} 
+        'features_extractor': None, # None, 'film', 'custom' 
+        'share_features_extractor': True,
         'gradient_steps': -1,
         'do_mtrl_hparam_boost': True,
         'norm_obs': True,
         # logging
-        'do_track': False,
+        'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
         'exp_name': 'grasp_cube-mtrl-no_norm_obs',
-        'exp_group': 'norm_obs',
+        'exp_group': 'encoders_sweep',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
     # TODO: learning rates to 3e-4? (following MTRL)
+
+    # Check for overrides
+    hparams = override_hparams(hparams)
+
+    ## Checks
     if 'goal_based_custom_args' in hparams['policy_kwargs']:
         assert hparams['policy_type'] == 'MlpPolicy', "not setup for other policy types yet"
+    if hparams['use_language_goals']:
+        assert hparams['features_extractor'] is not None
     # features extractor
+    hparams['features_extractor'] = get_features_extractor_hparams(hparams['features_extractor'])
     if hparams['features_extractor'] is not None:
         assert hparams['policy_type'] == 'MultiInputPolicy', "not setup for other policy types yet"
         assert hparams['algo'] == TD3, "not setup for other algos yet"
         hparams['policy_kwargs'].update(hparams['features_extractor'])
+    hparams['policy_kwargs']['share_features_extractor'] = hparams['share_features_extractor']
 
     return hparams
+
+def get_features_extractor_hparams(extractor_name):
+    if extractor_name == None:
+        return {}
+    elif extractor_name == 'film':
+        return {'features_extractor_class': FiLM}
+    elif extractor_name == 'custom':
+        return {'features_extractor_class': CustomSimpleCombinedExtractor, 'features_extractor_kwargs': {'encoders':{'observation': 'mlp', 'desired_goal': 'mlp'}, 'fuse_method': 'concat'}}
+    else:
+        assert False
+
+def override_hparams(hparams):
+    # Instantiate the parser
+    parser = argparse.ArgumentParser(description='Hyperparameters for the experiment')
+
+    # Check whether to override
+    parser.add_argument('--override_hparams', action='store_true')
+
+    # Add arguments to the parser for each hyperparameter
+    parser.add_argument('--exp_name', type=str)
+    parser.add_argument('--use_language_goals', action='store_true')
+    parser.add_argument('--features_extractor', type=str)
+    parser.add_argument('--share_features_extractor', action='store_true')
+
+    # Parse the command line arguments
+    args = parser.parse_args()
+
+    if args.override_hparams:
+        assert args.exp_name is not None
+        assert 'exp_name' in hparams
+        hparams['exp_name'] = args.exp_name
+        if args.use_language_goals is not None:
+            assert 'use_language_goals' in hparams
+            hparams['use_language_goals'] = args.use_language_goals
+        if args.features_extractor is not None:
+            assert 'features_extractor' in hparams
+            hparams['features_extractor'] = args.features_extractor
+        if args.share_features_extractor is not None:
+            assert 'share_features_extractor' in hparams
+            hparams['share_features_extractor'] = args.share_features_extractor
+
+    return hparams
+
 
 '''
 conda activate llm_curriculum
@@ -186,3 +240,4 @@ if __name__ == "__main__":
     
     if hparams['do_track']:
         run.finish()
+
