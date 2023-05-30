@@ -16,7 +16,7 @@ from env_wrappers import make_env, make_env_baseline
 from stable_baselines3.common.buffers_custom import LLMBasicReplayBuffer
 from sb3_callbacks import SuccessCallback, VideoRecorderCallback, EvalCallbackMultiTask
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
-from stable_baselines3.common.custom_encoders import CustomSimpleCombinedExtractor, FiLM
+from stable_baselines3.common.custom_encoders import CustomSimpleCombinedExtractor, FiLM, MixtureofExpertsEncoder
 
 
 def create_env(hparams):
@@ -61,7 +61,7 @@ def get_hparams():
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ["move_gripper_to_cube", "cube_between_grippers", "lift_cube", "move_cube_towards_target_grasp"],
+        'single_task_names': ["lift_cube"],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
         # algo
@@ -75,13 +75,13 @@ def get_hparams():
         'total_timesteps': 1e5,
         'device': 'cpu',
         'policy_kwargs': {}, # {}, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
-        'features_extractor': None, # None, 'film', 'custom' 
+        'features_extractor': 'care', # None, 'film', 'custom', 'care'
         'share_features_extractor': True,
         'gradient_steps': -1,
         'do_mtrl_hparam_boost': True,
         'norm_obs': True,
         # logging
-        'do_track': True,
+        'do_track': False,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
         'exp_name': 'grasp_cube-mtrl-no_norm_obs',
         'exp_group': 'encoders_sweep',
@@ -114,6 +114,8 @@ def get_features_extractor_hparams(extractor_name):
         return {'features_extractor_class': FiLM}
     elif extractor_name == 'custom':
         return {'features_extractor_class': CustomSimpleCombinedExtractor, 'features_extractor_kwargs': {'encoders':{'observation': 'mlp', 'desired_goal': 'mlp'}, 'fuse_method': 'concat'}}
+    elif extractor_name == 'care':
+        return {'features_extractor_class': MixtureofExpertsEncoder, 'features_extractor_kwargs': {'num_experts': 4, 'detach_emb_for_selection': True}}
     else:
         assert False
 
