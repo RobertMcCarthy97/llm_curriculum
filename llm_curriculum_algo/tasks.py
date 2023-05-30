@@ -512,7 +512,7 @@ class MoveGripperToCubeTask(Task):
             if success:
                 reward = 0
             else:
-                reward = dense_reward
+                reward = np.clip(dense_reward * 6, -1, 0)
         else:
             # TODO: make sure revert for MTRL!!
             reward = self.binary_reward(success)
@@ -647,12 +647,11 @@ class MoveCubeTowardsTargetGraspTask(Task):
     
     def check_success_reward(self, current_state):
         if self.use_dense_reward:
-            assert False
             success, dense_reward = self.state_parser.check_cube_at_target(current_state)
             if success:
                 reward = 0
             else:
-                reward = dense_reward
+                reward = np.clip(dense_reward * 3, -1, 0)
         else:
             success, dense_reward = self.state_parser.check_cube_moving_to_target(current_state)
             reward = self.binary_reward(success)
