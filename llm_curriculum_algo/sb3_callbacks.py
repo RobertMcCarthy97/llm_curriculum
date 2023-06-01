@@ -176,8 +176,50 @@ class SuccessCallbackSeperatePolicies(BaseCallback):
         self.num_timesteps_multi_run += 1
             
         return True  
+
+
+class GradientCallback(BaseCallback):
+    """
+    Custom callback for plotting additional values in tensorboard.
+
+    Only suitable for single policy learning (currently)
+    """
+
+    def __init__(self, verbose=0, log_freq=1000):
+        super().__init__(verbose)
+        self.log_freq = log_freq
+        
+    def _on_step(self) -> bool:
+        # Dump
+        if self.num_timesteps % self.log_freq == 0:
+            grads = self.report_grad_norm()
+            for key in grads.keys():
+                self.logger.record(f"grads/{key}", grads[key])
+        return True
     
-    
+    def report_grad_norm(self):
+        # may add qf1, policy, etc.
+        policy = self.locals['self'].policy
+        grads = {}
+        grads["actor"] = self.get_grad_norm(policy.actor)
+        grads["critic"] = self.get_grad_norm(policy.critic)
+        grads["critic_target"] = self.get_grad_norm(policy.critic_target)
+        if policy.features_extractor_class is not None:
+            grads["actor_encoder"] = self.get_grad_norm(policy.actor.features_extractor)
+            grads["critic_encoder"] = self.get_grad_norm(policy.critic.features_extractor)
+        return grads
+
+    def get_grad_norm(self, model):
+        grad_norm = []
+        for p in list(filter(lambda p: p.grad is not None, model.parameters())):
+            grad_norm.append(p.grad.data.norm(2).item())
+        if grad_norm:
+            grad_norm = np.mean(grad_norm)
+        else:
+            grad_norm = 0.0
+        return grad_norm
+
+
 class EvalCallbackMultiTask(EventCallback):
     """
     Callback for evaluating an agent.
