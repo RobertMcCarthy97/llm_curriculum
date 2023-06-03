@@ -12,6 +12,9 @@ torch = "^1.13"
 gymnasium-robotics = "^1.2.2"
 
 
+[tool.poetry.group.tests.dependencies]
+pytest = "^7.3.1"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
