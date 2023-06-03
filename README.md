@@ -17,5 +17,6 @@ python -m pytest tests
 
 ## Examples
 
-Please refer to `examples` folder
+Original Fetch environment: `examples/fetch_pick_and_place.py`. 
+Custom Fetch environment: `examples/fetch_custom_env.py`. 
 
