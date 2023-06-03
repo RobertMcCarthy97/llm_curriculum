@@ -10,6 +10,7 @@ packages = [{include = "llm_curriculum"}]
 python = "^3.9"
 torch = "^1.13"
 gymnasium-robotics = "^1.2.2"
+gym = "0.23.1"
 
 
 [tool.poetry.group.tests.dependencies]
@@ -20,6 +21,14 @@ flake8 = "^6.0.0"
 pytest-flake8 = "^1.1.1"
 check-manifest = "^0.49"
 pre-commit = "^3.3.2"
+
+[tool.ruff]
+# Never enforce `E501` (line length violations).
+ignore = ["E501"]
+
+# Never try to fix `F401` (unused imports).
+unfixable = ["F401"]
+
 
 [build-system]
 requires = ["poetry-core"]
