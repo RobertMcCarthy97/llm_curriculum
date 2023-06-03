@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "llm-curriculum"
+version = "0.1.0"
+description = ""
+authors = ["Daniel Tan <dtch1997@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "llm_curriculum"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+torch = "^1.13"
+gymnasium-robotics = "^1.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
