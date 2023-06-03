@@ -14,9 +14,9 @@ from wandb.integration.sb3 import WandbCallback
 
 from env_wrappers import make_env, make_env_baseline
 from stable_baselines3.common.buffers_custom import LLMBasicReplayBuffer
-from sb3_callbacks import SuccessCallback, VideoRecorderCallback, EvalCallbackMultiTask
+from sb3_callbacks import SuccessCallback, VideoRecorderCallback, EvalCallbackMultiTask, GradientCallback
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
-from stable_baselines3.common.custom_encoders import CustomSimpleCombinedExtractor, FiLM, MixtureofExpertsEncoder
+from stable_baselines3.common.custom_encoders import CustomSimpleCombinedExtractor, FiLM, MixtureofExpertsEncoder, CAREDummy
 
 
 def create_env(hparams):
@@ -54,14 +54,14 @@ def get_hparams():
         # env
         'manual_decompose_p': 1,
         'dense_rew_lowest': False,
-        'dense_rew_tasks': ['move_gripper_to_cube', "move_cube_towards_target_grasp"],
+        'dense_rew_tasks': ["move_gripper_to_cube", "move_cube_towards_target_grasp"], # ['move_gripper_to_cube', "move_cube_towards_target_grasp"]
         'use_language_goals': False,
         'render_mode': 'rgb_array',
         'use_oracle_at_warmup': False,
         'max_ep_len': 50,
         'use_baseline_env': False,
         # task
-        'single_task_names': ['move_gripper_to_cube', "cube_between_grippers", "close_gripper_cube", "lift_cube", "move_cube_towards_target_grasp"],
+        'single_task_names': ["move_gripper_to_cube", "cube_between_grippers", "close_gripper_cube", "lift_cube", "move_cube_towards_target_grasp"],
         'high_level_task_names': ['move_cube_to_target'],
         'contained_sequence': False,
         # algo
@@ -70,22 +70,24 @@ def get_hparams():
         'learning_starts': 1e3,
         'batch_size': 128,
         'action_noise': NormalActionNoise, # NormalActionNoise, None
-        'replay_buffer_class': None, # LLMBasicReplayBuffer , None
+        'replay_buffer_class': None, # LLMBasicReplayBuffer, None
         'replay_buffer_kwargs': None, # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}
         'total_timesteps': 1e5,
         'device': 'cpu',
-        'policy_kwargs': {}, # {}, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
-        'features_extractor': None, # None, 'film', 'custom', 'care'
-        'share_features_extractor': False,
-        'CARE_n_experts': 2,
+        'policy_kwargs': {'goal_based_custom_args': {'use_siren': False, 'use_sigmoid': True}}, # {}, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
         'gradient_steps': -1,
         'do_mtrl_hparam_boost': True,
         'norm_obs': True,
+        # extractor
+        'features_extractor': 'care', # None, 'film', 'custom', 'care', 'care_dummy
+        'share_features_extractor': False,
+        'CARE_n_experts': 2,
+        ####
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'move_gripper-between-close-lift-move2target-dense_movex6',
-        'exp_group': 'CARE-exps',
+        'exp_name': 'gripper2cube-betw-close-lift-2target-care2-sigmoid',
+        'exp_group': 'film+care-debug',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }
     # TODO: learning rates to 3e-4? (following MTRL)
@@ -94,8 +96,6 @@ def get_hparams():
     hparams = override_hparams(hparams)
 
     ## Checks
-    if 'goal_based_custom_args' in hparams['policy_kwargs']:
-        assert hparams['policy_type'] == 'MlpPolicy', "not setup for other policy types yet"
     if hparams['use_language_goals']:
         assert hparams['features_extractor'] is not None
     # features extractor
@@ -118,6 +118,8 @@ def get_features_extractor_hparams(hparams):
         return {'features_extractor_class': CustomSimpleCombinedExtractor, 'features_extractor_kwargs': {'encoders':{'observation': 'mlp', 'desired_goal': 'mlp'}, 'fuse_method': 'concat'}}
     elif extractor_name == 'care':
         return {'features_extractor_class': MixtureofExpertsEncoder, 'features_extractor_kwargs': {'num_experts': hparams['CARE_n_experts'], 'detach_emb_for_selection': True}}
+    elif extractor_name == 'care_dummy':
+        return {'features_extractor_class': CAREDummy, 'features_extractor_kwargs': {'num_experts': hparams['CARE_n_experts']}}
     else:
         assert False
 
@@ -135,7 +137,7 @@ def override_hparams(hparams):
     parser.add_argument('--share_features_extractor', action='store_true')
     parser.add_argument('--care_n_experts', type=int)
 
-    # Parse the command line arguments
+    # Parse the command line argumentsTrue
     args = parser.parse_args()
 
     if args.override_hparams:
@@ -204,9 +206,10 @@ if __name__ == "__main__":
     
     callback_list = []
     callback_list += [EvalCallbackMultiTask(eval_env, eval_freq=log_freq, best_model_save_path=None, single_task_names=single_task_names)] # TODO: use different eval env
+    callback_list += [VideoRecorderCallback(eval_env, render_freq=vid_freq, n_eval_episodes=1, add_text=True)]
+    callback_list += [GradientCallback(log_freq=log_freq)]
     if not hparams['use_baseline_env']:
         callback_list += [SuccessCallback(log_freq=log_freq)]
-    callback_list += [VideoRecorderCallback(eval_env, render_freq=vid_freq, n_eval_episodes=1, add_text=True)]
     # wandb
     if hparams['do_track']:
         # log hyperparameters
@@ -214,7 +217,7 @@ if __name__ == "__main__":
         # wandb callback
         callback_list += [
             WandbCallback(
-                gradient_save_freq=10,
+                gradient_save_freq=1000,
                 model_save_path=None,
                 verbose=1,
             )]
@@ -242,6 +245,7 @@ if __name__ == "__main__":
                 gradient_steps=hparams['gradient_steps'],
                 )
     model.set_logger(logger)
+    # import pdb; pdb.set_trace()
 
     # Train the model
     model.learn(total_timesteps=hparams['total_timesteps'], callback=callback, progress_bar=False)
