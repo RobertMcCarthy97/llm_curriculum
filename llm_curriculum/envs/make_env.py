@@ -78,14 +78,14 @@ def make_single_task_env(
     """
     Make a Fetch environment with a single task.
     """
-    make_env(
+    return make_env(
         manual_decompose_p=1,
         dense_rew_lowest=False,
         dense_rew_tasks=[],
         use_language_goals=False,
         render_mode=render_mode,
         single_task_names=[task_name],
-        high_level_task_names=["pick_up_cube"],
+        high_level_task_names=["move_cube_to_target"],
         contained_sequence=False,
         curriculum_manager_cls=SeperateEpisodesCM,
     )
