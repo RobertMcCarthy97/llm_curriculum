@@ -1,4 +1,4 @@
-from llm_curriculum.envs.wrappers import make_env
+from llm_curriculum.envs.make_env import make_env
 from llm_curriculum.envs.curriculum_manager import (
     SeperateEpisodesCM,
 )
