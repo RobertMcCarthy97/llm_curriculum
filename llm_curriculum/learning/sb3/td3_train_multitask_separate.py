@@ -19,7 +19,7 @@ from wandb.integration.sb3 import WandbCallback
 
 from llm_curriculum.envs.make_env import make_env, make_env_baseline
 from llm_curriculum.envs.curriculum_manager import SeperateEpisodesCM
-from llm_curriculum.envs.sequenced_rollouts import SequencedRolloutCollector
+from llm_curriculum.learning.sb3.sequenced_rollouts import SequencedRolloutCollector
 
 from stable_baselines3.common.buffers_custom import (
     SeparatePoliciesReplayBuffer,
