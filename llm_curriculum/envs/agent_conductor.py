@@ -400,6 +400,12 @@ class AgentConductor:
     def get_active_task(self):
         return self.active_task
 
+    def get_active_task_reward(self, state):
+        assert len(self.single_task_names) == 1
+        assert self.active_task.name == self.single_task_names[0]
+        _, reward = self.active_task.check_success_reward(state)
+        return reward
+
     def get_task_name2obj_dict(self):
         return self.task_name2obj_dict
 
