@@ -4,14 +4,21 @@ Code to run experiments on leveraging LLM's compositional task-solving capacity 
 
 ## Quickstart
 
-Install dependencies:
+Set up environment
+```bash
+conda create -n llm-curriculum python=3.9
+conda activate
 ```
-poetry install
-poetry run pre-commit install
+
+Install dependencies:
+```bash
+python -m pip install setuptools==65.6.3 pip==21
+python -m pip install -r requirements/base.txt
+python -m pip install -r requirements/dev.txt
 ```
 
 Check tests work:
-```
+```bash
 python -m pytest tests
 ```
 
