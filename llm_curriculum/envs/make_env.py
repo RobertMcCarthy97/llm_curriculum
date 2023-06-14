@@ -28,6 +28,7 @@ def make_env(
     mtenv_wrapper=False,
     mtenv_task_idx=None,
     curriculum_manager_cls=None,
+    old_gym=True,
 ):
 
     env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
@@ -58,11 +59,14 @@ def make_env(
             curriculum_manager
         )  # TODO: not good stuff
 
-    env = OldGymAPIWrapper(env)
     if state_obs_only:
         env = NonGoalNonDictObsWrapper(env)
-    if mtenv_wrapper:
-        env = MTEnvWrapper(env, mtenv_task_idx)
+
+    if old_gym:
+        env = OldGymAPIWrapper(env)
+        if mtenv_wrapper:
+            env = MTEnvWrapper(env, mtenv_task_idx)
+
     return env
 
 
