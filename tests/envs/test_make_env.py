@@ -25,7 +25,10 @@ def test_make_env_baseline():
     env.reset()
 
 
-@pytest.mark.parametrize("env_id", ["grasp_cube", "lift_cube"])
+env_ids = ["grasp_cube", "lift_cube", "pick_up_cube"]
+
+
+@pytest.mark.parametrize("env_id", env_ids)
 def test_registered_environments(env_id):
     # Initialize the environment
     env = make_single_task_env(env_id)

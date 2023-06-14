@@ -7,10 +7,13 @@ readme = "README.md"
 packages = [{include = "llm_curriculum"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.11"
 torch = "^1.13"
 gymnasium-robotics = "^1.2.2"
 gym = "0.23.1"
+stable-baselines3 = "1.2.0"
+tensorboard = "^2.13.0"
+wandb = "^0.15.3"
 
 
 [tool.poetry.group.tests.dependencies]

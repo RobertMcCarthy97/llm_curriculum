@@ -7,6 +7,7 @@ class FetchPickPlaceStateParser:
     """
 
     def __init__(self):
+        # Define indices of state vector
         self.gripper_pos_i = 0
         self.cube_pos_i = 3
         self.right_gripper_i = 9
@@ -15,9 +16,11 @@ class FetchPickPlaceStateParser:
         self.gripper_vel_i = 20
         self.cube_rel_vel_i = 14  # velocity relative to gripper...
 
+        # Define constants
         self.cube_width = 0.025
         self.table_height = 0.425
 
+        # Define thresholds
         self.cube_height_offset = np.array([0, 0, 0.05])  # 0.05
         self.gripper_closed_cube_thresh = (
             0.05  # distance between grippers when grasping cube
@@ -27,15 +30,14 @@ class FetchPickPlaceStateParser:
         self.gripper_open_thresh = 1.8 * self.cube_width
         self.gripper_stationary_thresh = 0.001
         self.cube_moving_vel_threshold = 0.005
-
         self.cube_target_dist_threshold = 0.05
         self.gripper_target_dist_threshold = 0.05
         self.gripper_cube_dist_thresh = 0.05
+        self.velocity_angle_thresh = 45  # degrees
 
+        # Define scales
         self.scale_cube_between = 10
         self.scale_cube_lifted = 10
-
-        self.velocity_angle_thresh = 45  # degrees
 
     def get_gripper_pos(self, state):
         return state[self.gripper_pos_i : self.gripper_pos_i + 3]
