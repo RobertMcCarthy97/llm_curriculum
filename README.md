@@ -16,6 +16,7 @@ python -m pip install setuptools==65.6.3 pip==21
 python -m pip install -r requirements/base.txt
 python -m pip install -r requirements/dev.txt
 python -m pip install -e .
+pre-commit install
 ```
 
 Check tests work:
@@ -26,5 +27,17 @@ python -m pytest tests
 ## Examples
 
 Original Fetch environment: `examples/fetch_pick_and_place.py`. 
+
 Custom Fetch environment: `examples/fetch_custom_env.py`. 
 
+## Training
+
+Single-task training:
+```bash
+python llm_curriculum/learning/sb3/td3_train.py
+```
+
+Multi-task learning:
+```bash
+python llm_curriculum/learning/sb3/td3_train_multitask_separate.py
+```
