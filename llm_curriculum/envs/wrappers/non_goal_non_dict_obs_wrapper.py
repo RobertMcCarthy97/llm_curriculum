@@ -1,7 +1,7 @@
-import gymnasium as gym
+import gym as gym_old
 
 
-class NonGoalNonDictObsWrapper(gym.ObservationWrapper):
+class NonGoalNonDictObsWrapper(gym_old.ObservationWrapper):
     """
     Recieve env with dict observations and only return state obs
     """
