@@ -66,10 +66,9 @@ class SequencedRolloutCollector():
             model.policy.set_training_mode(False) # TODO: why is this False!!!!????
 
             # Vectorize action noise if needed
-            assert model.action_noise is None, "not setup to deal with this yet"
-            # if model.action_noise is not None and self.env.num_envs > 1 and not isinstance(model.action_noise, VectorizedActionNoise):
-            #     action_noise = VectorizedActionNoise(action_noise, self.env.num_envs)
-            #     assert False
+            if model.action_noise is not None and self.env.num_envs > 1 and not isinstance(model.action_noise, VectorizedActionNoise):
+                action_noise = VectorizedActionNoise(action_noise, self.env.num_envs)
+                assert False, "not setup to deal with this yet"
 
             assert not model.use_sde, "not setup to deal with this yet"
             # if self.use_sde:
@@ -81,7 +80,7 @@ class SequencedRolloutCollector():
         assert isinstance(self.env, VecEnv), "You must pass a VecEnv"
         assert train_freq.frequency > 0, "Should at least collect one step or episode."
         if self.env.num_envs > 1:
-                assert model.train_freq.unit == TrainFrequencyUnit.STEP, "You must use only one env when doing episodic training."
+            assert model.train_freq.unit == TrainFrequencyUnit.STEP, "You must use only one env when doing episodic training."
            
         num_collected_steps, num_collected_episodes = 0, 0
         
@@ -150,10 +149,9 @@ class SequencedRolloutCollector():
                     num_collected_episodes += 1
                     # model._episode_num += 1 # TODO: record episode when model swithces??
 
-                    assert model.action_noise is None, "not setup to deal with this yet"
-                    # if action_noise is not None:
-                    #     kwargs = dict(indices=[idx]) if self.env.num_envs > 1 else {}
-                    #     action_noise.reset(**kwargs)
+                    if model.action_noise is not None:
+                        kwargs = dict(indices=[idx]) if self.env.num_envs > 1 else {}
+                        model.action_noise.reset(**kwargs)
 
                     # Log training infos
                     if log_interval is not None and model._episode_num % log_interval == 0:

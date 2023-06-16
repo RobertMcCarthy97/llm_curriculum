@@ -146,7 +146,7 @@ class AgentConductor():
             raise NotImplementedError("resets not working")
         if 'grasp_cube_mini' in self.high_level_task_names:
             high_level_tasks += [GraspCubeMiniTask(use_dense_reward_lowest_level=dense_rew_lowest)]
-        if 'pickup_cube_mini' in self.high_level_task_names:
+        if 'pick_up_cube_mini' in self.high_level_task_names:
             high_level_tasks += [PickUpCubeMiniTask(use_dense_reward_lowest_level=dense_rew_lowest)]
         assert len(high_level_tasks) > 0
         return high_level_tasks
@@ -311,7 +311,7 @@ class AgentConductor():
                         # if high_level completed then just return self (nothing else to do!)
                         return task
                     else:
-                        assert task.parent_task is not None # if self is complete and hig-level is not, then task must have parent - more work to do!
+                        assert task.parent_task is not None # if self is complete and high-level is not, then task must have parent - more work to do!
                         # if no next but has parent, then go up to parent
                         return step_sub_task(task.parent_task)
             return step_sub_task(task)
