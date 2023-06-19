@@ -9,6 +9,7 @@ from stable_baselines3.common.type_aliases import (
     TrainFreq,
     TrainFrequencyUnit,
 )
+from stable_baselines3.common.noise import VectorizedActionNoise
 from stable_baselines3.common.utils import should_collect_more_steps
 from stable_baselines3.common.vec_env import (
     VecEnv,
@@ -75,10 +76,13 @@ class SequencedRolloutCollector:
             model.policy.set_training_mode(False)  # TODO: why is this False!!!!????
 
             # Vectorize action noise if needed
-            assert model.action_noise is None, "not setup to deal with this yet"
-            # if model.action_noise is not None and self.env.num_envs > 1 and not isinstance(model.action_noise, VectorizedActionNoise):
-            #     action_noise = VectorizedActionNoise(action_noise, self.env.num_envs)
-            #     assert False
+            if (
+                model.action_noise is not None
+                and self.env.num_envs > 1
+                and not isinstance(model.action_noise, VectorizedActionNoise)
+            ):
+                action_noise = VectorizedActionNoise(action_noise, self.env.num_envs)
+                assert False, "not setup to deal with this yet"
 
             assert not model.use_sde, "not setup to deal with this yet"
             # if self.use_sde:
@@ -178,10 +182,9 @@ class SequencedRolloutCollector:
                     num_collected_episodes += 1
                     # model._episode_num += 1 # TODO: record episode when model swithces??
 
-                    assert model.action_noise is None, "not setup to deal with this yet"
-                    # if action_noise is not None:
-                    #     kwargs = dict(indices=[idx]) if self.env.num_envs > 1 else {}
-                    #     action_noise.reset(**kwargs)
+                    if model.action_noise is not None:
+                        kwargs = dict(indices=[idx]) if self.env.num_envs > 1 else {}
+                        model.action_noise.reset(**kwargs)
 
                     # Log training infos
                     if (

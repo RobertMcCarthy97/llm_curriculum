@@ -224,7 +224,7 @@ valid_tasks = [
     "place_cube_at_target",
     "move_cube_towards_target_grasp",  # "move_gripper_to_target_grasp",
 ]
-# valid_tasks += ['grasp_cube_mini', 'pick_up_cube_mini', 'pick_place_mini']
+valid_tasks += ["grasp_cube_mini", "pick_up_cube_mini", "pick_place_mini"]
 
 
 class Task:

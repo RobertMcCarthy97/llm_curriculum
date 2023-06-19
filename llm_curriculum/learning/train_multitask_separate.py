@@ -413,6 +413,12 @@ def get_hparams():
     if hparams["action_noise"] is not None:
         assert hparams["algo"] == TD3
 
+    if hparams["curriculum_manager_cls"] is not None:
+        if hparams["manual_decompose_p"] is not None:
+            assert not isinstance(
+                hparams["curriculum_manager_cls"], SeperateEpisodesCM
+            ), "manual decompose_p overrides CM"
+
     return hparams
 
 

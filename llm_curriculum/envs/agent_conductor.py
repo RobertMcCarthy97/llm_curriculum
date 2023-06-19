@@ -176,7 +176,7 @@ class AgentConductor:
             high_level_tasks += [
                 GraspCubeMiniTask(use_dense_reward_lowest_level=dense_rew_lowest)
             ]
-        if "pickup_cube_mini" in self.high_level_task_names:
+        if "pick_up_cube_mini" in self.high_level_task_names:
             high_level_tasks += [
                 PickUpCubeMiniTask(use_dense_reward_lowest_level=dense_rew_lowest)
             ]
@@ -348,7 +348,7 @@ class AgentConductor:
                     else:
                         assert (
                             task.parent_task is not None
-                        )  # if self is complete and hig-level is not, then task must have parent - more work to do!
+                        )  # if self is complete and high-level is not, then task must have parent - more work to do!
                         # if no next but has parent, then go up to parent
                         return step_sub_task(task.parent_task)
 
