@@ -16,7 +16,7 @@ from stable_baselines3.common.vec_env import (
     sync_envs_normalization,
 )
 
-from llm_curriculum.envs.sequenced_rollouts import evaluate_sequenced_policy
+from llm_curriculum.learning.sb3.sequenced_rollouts import evaluate_sequenced_policy
 
 
 class VideoRecorderCallback(BaseCallback):
