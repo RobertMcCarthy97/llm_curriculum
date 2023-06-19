@@ -86,7 +86,13 @@ class VideoRecorderCallback(BaseCallback):
             screens.append(screen.transpose(2, 0, 1))
 
         if self.sequenced_rollouts:
-            raise NotImplementedError()
+            evaluate_sequenced_policy(
+                self.locals["models_dict"],
+                self._eval_env,
+                callback=grab_screens,
+                n_eval_episodes=self._n_eval_episodes,
+                deterministic=deterministic,
+            )
         else:
             evaluate_policy(
                 self.model,
