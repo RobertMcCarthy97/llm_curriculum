@@ -30,6 +30,16 @@ move_cube_to_target_tree = {
     }
 }
 
+open_drawer_tree = {
+    OpenDrawerTask: {
+        MoveGripperToDrawerTask: None,
+        GraspDrawerHandleTask: {
+            PullHandleToOpenTask: None,
+        },
+        PullHandleToOpenTask: None,
+    }
+}
+
 # TODO: create these trees
 # self.str_description = "grasp cube mini"
 # self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask]

@@ -3,19 +3,24 @@ import numpy as np
 class FetchPickPlaceStateParser():
     '''
     Takes in state observations and returns reward and success for different conditions.
+
+    # TODO: pass in obs space during init also...
     '''
     def __init__(self):
+        # position of info in observation vector
         self.gripper_pos_i = 0
         self.cube_pos_i = 3
         self.right_gripper_i = 9
         self.left_gripper_i = 10
-        self.target_i = 25
+        self.target_i = 25 # TODO: this will change if add drawer...
         self.gripper_vel_i = 20
         self.cube_rel_vel_i = 14 # velocity relative to gripper...
         
+        # additional env info
         self.cube_width = 0.025
         self.table_height = 0.425
         
+        # task related thresholds
         self.cube_height_offset = np.array([0, 0, 0.05]) # 0.05
         self.gripper_closed_cube_thresh = 0.05 # distance between grippers when grasping cube
         self.cube_lifted_thresh = (self.table_height + 2.5*self.cube_width)
