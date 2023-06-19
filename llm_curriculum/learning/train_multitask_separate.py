@@ -364,32 +364,30 @@ def get_hparams_exp2():
     return hparams
 
 
-def get_hparams():
+def get_hparams_exp3():
     hparams = {
         "seed": 0,
         # env
-        "manual_decompose_p": 1,
+        "manual_decompose_p": None,
         "dense_rew_lowest": False,
-        "dense_rew_tasks": [],  #
+        "dense_rew_tasks": ["move_gripper_to_cube"],  #
         "use_language_goals": False,
         "render_mode": "rgb_array",
         "use_oracle_at_warmup": False,  #
         "max_ep_len": 50,
         "use_baseline_env": False,
         # task
-        "single_task_names": ["move_gripper_to_cube"],  #
-        "high_level_task_names": ["move_cube_to_target"],
-        "curriculum_manager_cls": SeperateEpisodesCM,  # DummySeperateEpisodesCM, SeperateEpisodesCM
-        "sequenced_episodes": False,
+        "single_task_names": [],  #
+        "high_level_task_names": ["pick_up_cube_mini"],
+        "curriculum_manager_cls": SeperateEpisodesCM,  # DummySeperateEpisodesCM, SeperateEpisodesCM, None (CM decides 'decompose_p' based on success rates)
+        "sequenced_episodes": True,
         "contained_sequence": False,
         # algo
         "algo": TD3,  # DDPG/TD3/SAC
         "policy_type": "MlpPolicy",  # "MlpPolicy", "MultiInputPolicy"
         "learning_starts": 1e3,
-        "replay_buffer_class": SeparatePoliciesReplayBuffer,  # LLMBasicReplayBuffer, None, SeparatePoliciesReplayBuffer
-        "replay_buffer_kwargs": {
-            "child_p": 0.2
-        },  # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
+        "replay_buffer_class": SeparatePoliciesReplayBuffer,  # None, SeparatePoliciesReplayBuffer
+        "replay_buffer_kwargs": {"child_p": 0.2},  # None, {'child_p': 0.2}
         "total_timesteps": 1e6,
         "device": "cpu",
         "policy_kwargs": None,  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
@@ -397,8 +395,8 @@ def get_hparams():
         # logging
         "do_track": True,
         "log_path": "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        "exp_name": "move_gripper_to_cube-only-seperate_code-NO_action_noise1",
-        "exp_group": "sequential-iter_amp",
+        "exp_name": "pickup_mini-sequential-sep_policies-child_p0.2-curriculum-ROB",
+        "exp_group": "merge-validation",
         "info_keywords": ("is_success", "overall_task_success", "active_task_level"),
     }
 
@@ -429,15 +427,15 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--exp", type=int, default=None)
+    parser.add_argument("--exp", type=int, default=3)
     args = parser.parse_args()
 
-    if args.exp is None:
-        hparams = get_hparams()
-    elif args.exp == 1:
+    if args.exp == 1:
         hparams = get_hparams_exp1()
     elif args.exp == 2:
         hparams = get_hparams_exp2()
+    elif args.exp == 3:
+        hparams = get_hparams_exp3()
     else:
         raise ValueError("Hparams not recognized")
 
