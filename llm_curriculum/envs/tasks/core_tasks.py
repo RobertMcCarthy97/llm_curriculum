@@ -32,7 +32,7 @@ class Task:
         subtask_cls_seq=[],
         level=0,
         use_dense_reward_lowest_level=False,
-        use_incremental_reward=True,
+        use_incremental_reward=False,
         complete_thresh=3,
     ):
         self.parent_task = parent_task

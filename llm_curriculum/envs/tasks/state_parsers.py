@@ -22,6 +22,16 @@ class RectangularVolume:
     def get_center(self):
         return (self.min_point + self.max_point) / 2
 
+    def shift_volume(self, shift):
+        self.min_point += shift
+        self.max_point += shift
+        raise NotImplementedError
+
+    def scale_volume(self, scale):
+        self.min_point *= scale
+        self.max_point *= scale
+        raise NotImplementedError
+
 
 ################################
 # Core state parser
@@ -89,6 +99,16 @@ class CoreStateParser:
 
     def get_distance_grippers(self, state):
         return state[self.right_gripper_i] + state[self.left_gripper_i]
+
+    def get_gripper_min_max_pos(self, state):
+        distance_between_grippers = self.get_distance_grippers(state)
+        min_gripper_pos = self.get_gripper_pos(state) - np.array(
+            [0, distance_between_grippers / 2, 0]
+        )
+        max_gripper_pos = self.get_gripper_pos(state) + np.array(
+            [0, distance_between_grippers / 2, 0]
+        )
+        return min_gripper_pos, max_gripper_pos
 
     def get_gripper_vel(self, state):
         cartesian_vel = state[self.gripper_vel_i : self.gripper_vel_i + 3]
@@ -270,22 +290,22 @@ class DrawerStateParser(CoreStateParser):
         ## additional env info
         self.drawer_static_pos = np.array([None, None, None])  # TODO: Daniel
 
-        # drawer volume
-        """
-        "for this setup, when the cube is inside the drawer and the drawer is closed, the range is (1.21, 1.38), (0.83, 0.96) and (0.48, 0.55) respectively." 
-        """
-        self.drawer_min_point = np.array([1.21, 0.98, 0.48])
-        self.drawer_max_point = np.array([1.38, 1.11, 0.55])
+        # from mujoco initial state
+        self.drawer_handle_closed_pos = np.array([1.3, 0.992, 0.49])
+        self.drawer_volume_min_closed = np.array([1.21, 1.06, 0.43])
+        self.drawer_volume_max_closed = np.array([1.39, 1.22, 0.55])
+
         self.drawer_static_rect_volume = RectangularVolume(
-            self.drawer_min_point, self.drawer_max_point
+            self.drawer_volume_min_closed,
+            self.drawer_volume_max_closed,  # TODO: scale volume
         )
 
         self.open_along_dim = 1
         self.handle_length_dim = 0
 
         # handle
-        self.over_drawer_height_offset = 0.1
-        self.handle_offset_from_drawer_front = np.array([0, -0.03, 0])
+        self.over_drawer_height_offset = np.array([0, 0, 0.2])
+        # self.handle_offset_from_drawer_front = np.array([0, -0.03, 0])
         self.handle_length = 0.05
         self.handle_vol_buffer_offset = 0.01  # TODO: Daniel
         self.above_handle_height_offset = np.array([0, 0, 0.05])
@@ -295,14 +315,14 @@ class DrawerStateParser(CoreStateParser):
         self.drawer_closed_thresh = -0.04
         self.gripper_handle_height_thresh = None
 
-    def get_drawer_static_center(self, state):
-        return self.drawer_static_rect_volume.get_center().copy()
-
     def get_drawer_static_min_point(self, state):
-        return self.drawer_min_point.copy()
+        return self.drawer_volume_min_closed.copy()
 
     def get_drawer_static_max_point(self, state):
-        return self.drawer_max_point.copy()
+        return self.drawer_volume_max_closed.copy()
+
+    def get_drawer_static_center(self, state):
+        return self.drawer_static_rect_volume.get_center().copy()
 
     def get_drawer_dynamic_center(self, state):
         static_center = self.get_drawer_static_center(state)
@@ -336,29 +356,22 @@ class DrawerStateParser(CoreStateParser):
         """
         Note, currently includes volume in drawer aswell as above...
         """
-        dynamic_min_point = self.get_drawer_dynamic_min_point(state)
-        dynamic_max_point = self.get_drawer_dynamic_max_point(state)
-        dynamic_max_point[2] += self.over_drawer_height_offset
+        dynamic_min_point = (
+            self.get_drawer_dynamic_min_point(state) + self.over_drawer_height_offset
+        )
+        dynamic_max_point = (
+            self.get_drawer_dynamic_max_point(state) + self.over_drawer_height_offset
+        )
         dynamic_above_rect_volume = RectangularVolume(
             dynamic_min_point, dynamic_max_point
         )  # TODO: should be able to just copy and add offset??
         return dynamic_above_rect_volume
 
-    def get_drawer_front_center(self, state):
-        # drawer opens along y axis
-        x = self.get_drawer_static_center(state)[0]
-        y = self.get_drawer_dynamic_min_point(state)[1]
-        z = self.get_drawer_static_center(state)[2]
-        return np.array([x, y, z]).copy()
-
     def get_handle_pos(self, state):
-        import pdb
-
-        pdb.set_trace()
-        handle_pos = (
-            self.get_drawer_front_center(state) + self.handle_offset_from_drawer_front
-        )
-        return handle_pos.copy()
+        handle_static_pos = self.drawer_handle_closed_pos.copy()
+        handle_pos = handle_static_pos.copy()
+        handle_pos[self.open_along_dim] += self.get_drawer_open_magnitude(state)
+        return handle_pos
 
     def get_handle_length(self, state):
         return self.handle_length
@@ -405,16 +418,14 @@ class DrawerStateParser(CoreStateParser):
     def check_drawer_closed(self, state):
         open_pos = self.get_drawer_open_magnitude(state)
         success = open_pos > self.drawer_closed_thresh
-        reward = np.clip(open_pos, -1, 0)  # TODO
-        raise NotImplementedError
+        reward = None  # TODO
         return success, reward
 
     def check_cube_in_drawer(self, state):
         cube_pos = self.get_cube_pos(state)
         drawer_dynamic_rect_vol = self.get_drawer_dynamic_rect_volume(state)
         success = drawer_dynamic_rect_vol.contains(cube_pos)
-        reward = self.binary_reward(success)
-        raise NotImplementedError
+        reward = None
         return success, reward
 
     def check_cube_over_dynamic_drawer(self, state):
@@ -425,14 +436,16 @@ class DrawerStateParser(CoreStateParser):
         cube_pos = self.get_cube_pos(state)
         dynamic_above_rect_volume = self.get_over_drawer_dynamic_rect_volume(state)
         success = dynamic_above_rect_volume.contains(cube_pos)
-        reward = self.binary_reward(success)
-        raise NotImplementedError("Implement dense reward")
+        reward = None  # TODO
         return success, reward
 
     def get_static_above_rect_volume(self, state):
-        static_min = self.get_drawer_static_min_point(state)
-        static_max = self.get_drawer_static_max_point(state)
-        static_max[2] += self.over_drawer_height_offset
+        static_min = (
+            self.get_drawer_static_min_point(state) + self.over_drawer_height_offset
+        )
+        static_max = (
+            self.get_drawer_static_max_point(state) + self.over_drawer_height_offset
+        )
         static_above_rect_volume = RectangularVolume(static_min, static_max)
         return static_above_rect_volume
 
@@ -455,22 +468,19 @@ class DrawerStateParser(CoreStateParser):
         """
         check if handle axis is inside gripper
         """
-        # axis
-        gripper_left_x_pos, gripper_right_x_pos = self.get_gripper_left_right_x_pos(
+        min_gripper_pos, max_gripper_pos = self.get_gripper_min_max_pos(state)
+        # check if handle between grippers (along y axis)
+        handle_axis_y_pos = self.get_handle_pos(state)[1]
+        axis_success = (min_gripper_pos[1] < handle_axis_y_pos) and (
+            max_gripper_pos[1] > handle_axis_y_pos
+        )
+        # check if gripper pos within handle volume
+        handle_rect_vol = self.get_handle_rect_volume(
             state
-        )
-        handle_axis_x_pos = self.get_handle_axis_x_pos(state)
-        axis_success = (gripper_left_x_pos < handle_axis_x_pos) and (
-            handle_axis_x_pos < gripper_right_x_pos
-        )
-        # height
-        gripper_height = self.get_gripper_pos(state)[2]
-        handle_height = self.get_handle_pos(state)[2]
-        height_success = (
-            handle_height < gripper_height + self.gripper_handle_height_thresh
-        ) and (handle_height > gripper_height - self.gripper_handle_height_thresh)
-        # overall
-        success = axis_success and height_success
-        reward = self.binary_reward(success)
-        raise NotImplementedError
+        )  # TODO: check this volume is correct...
+        gripper_pos = self.get_gripper_pos(state)
+        volume_success = handle_rect_vol.contains(gripper_pos)
+        # overall success
+        success = axis_success and volume_success
+        reward = None  # TODO
         return success, reward

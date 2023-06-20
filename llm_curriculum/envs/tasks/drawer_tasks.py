@@ -28,6 +28,23 @@ class PlaceCubeDrawerTask(Task):
         return success, reward
 
 
+class PlaceGraspedCubeDrawerTask(Task):
+    """
+    The parent task for the FetchPickPlace environment
+    """
+
+    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+        self.name = "place_grasped_cube_drawer"
+        self.str_description = "Place grasped cube in drawer"
+
+        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+
+    def _check_success_reward(self, current_state):
+        success, _ = self.state_parser.check_cube_in_drawer(current_state)
+        reward = self.binary_reward(success)
+        return success, reward
+
+
 class MoveCubeOverDrawerTask(Task):
     def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
         self.name = "move_cube_over_drawer"
@@ -36,12 +53,13 @@ class MoveCubeOverDrawerTask(Task):
         super().__init__(parent_task, level, use_dense_reward_lowest_level)
 
     def _check_success_reward(self, current_state):
-        success, dense_reward = self.state_parser.check_cube_over_drawer(current_state)
+        success, dense_reward = self.state_parser.check_cube_over_dynamic_drawer(
+            current_state
+        )
         if self.use_dense_reward_lowest_level:
-            reward = dense_reward
+            reward = dense_reward  # TODO
         else:
             reward = self.binary_reward(success)
-            assert False, "use dense as sparse too difficult"
         return success, reward
 
     def get_oracle_action(self, state):
@@ -51,7 +69,7 @@ class MoveCubeOverDrawerTask(Task):
         # move gripper above handle
         drawer_pos = (
             self.state_parser.get_drawer_dynamic_center(state)
-            + self.state_parser.drawer_height_offset
+            + self.state_parser.over_drawer_height_offset
         )
         gripper_pos = self.state_parser.get_gripper_pos(state)
         direction = drawer_pos - gripper_pos
@@ -111,7 +129,7 @@ class CloseDrawerTask(Task):
         super().__init__(parent_task, level, use_dense_reward_lowest_level)
 
     def _check_success_reward(self, current_state):
-        success, _ = self.state_parser.check_drawer_open(current_state)
+        success, _ = self.state_parser.check_drawer_closed(current_state)
         reward = self.binary_reward(success)
         return success, reward
 
@@ -142,9 +160,11 @@ class MoveGripperToDrawerTask(Task):
 
     def get_oracle_action(self, state):
         # move gripper above handle
-        handle_pos = self.state_parser.get_handle_pos(state)
+        handle_pos = (
+            self.state_parser.get_handle_pos(state)
+            + self.state_parser.above_handle_height_offset
+        )
         gripper_pos = self.state_parser.get_gripper_pos(state)
-        print(f"handle_pos: {handle_pos},\ngripper_pos: {gripper_pos}")
         direction = handle_pos - gripper_pos
         gripper_open = False
         return direction, gripper_open
@@ -193,7 +213,11 @@ class PullHandleToOpenTask(Task):
         """
         Assumes handle already grasped - move gripper in direction drawer opens
         """
-        return np.array([1, 0, 0]), False
+        success, _ = self.state_parser.check_drawer_open(state)
+        if success:
+            return np.array([0, 0, 0]), False
+        else:
+            return np.array([0, -1, 0]), False
 
 
 class PushHandleToCloseTask(Task):
@@ -212,7 +236,11 @@ class PushHandleToCloseTask(Task):
         """
         Assumes handle already grasped - move gripper in direction drawer closes
         """
-        return np.array([-1, 0, 0]), False
+        success, _ = self.state_parser.check_drawer_closed(state)
+        if success:
+            return np.array([0, 0, 0]), False
+        else:
+            return np.array([0, 1, 0]), False
 
 
 ################### Place cube ON drawer

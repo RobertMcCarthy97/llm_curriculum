@@ -15,6 +15,12 @@ from llm_curriculum.envs.tasks.drawer_tasks import (
     MoveGripperToDrawerTask,
     GraspHandleTask,
     PullHandleToOpenTask,
+    CloseDrawerTask,
+    PushHandleToCloseTask,
+    PlaceCubeDrawerTask,
+    PlaceGraspedCubeDrawerTask,
+    MoveCubeOverDrawerTask,
+    ReleaseCubeInDrawerTask,
 )
 
 ######################
@@ -40,12 +46,36 @@ move_cube_to_target_tree = {
 open_drawer_tree = {
     OpenDrawerTask: {
         MoveGripperToDrawerTask: None,
-        GraspHandleTask: {
-            PullHandleToOpenTask: None,
-        },
+        GraspHandleTask: None,
         PullHandleToOpenTask: None,
     }
 }
+
+close_drawer_tree = {
+    CloseDrawerTask: {
+        MoveGripperToDrawerTask: None,
+        GraspHandleTask: None,
+        PushHandleToCloseTask: None,
+    }
+}
+
+place_cube_open_drawer_tree = {
+    PlaceCubeDrawerTask: {
+        PickUpCubeTask: {
+            MoveGripperToCubeTask: None,
+            GraspCubeTask: {
+                CubeBetweenGripperTask: None,
+                CloseGripperCubeTask: None,
+            },
+            LiftCubeTask: None,
+        },
+        PlaceGraspedCubeDrawerTask: {
+            MoveCubeOverDrawerTask: None,
+            ReleaseCubeInDrawerTask: None,
+        },
+    }
+}
+
 
 """
 TODO: create these trees
@@ -64,6 +94,8 @@ self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask, CloseGrip
 TASK_TREES = {
     "move_cube_to_target": move_cube_to_target_tree,
     "open_drawer": open_drawer_tree,
+    "close_drawer": close_drawer_tree,
+    "place_cube_open_drawer": place_cube_open_drawer_tree,
 }
 
 ######################
