@@ -1,12 +1,6 @@
 import numpy as np
 
-from llm_curriculum.envs.tasks import (
-    MoveCubeToTargetTask,
-    PickUpCubeTask,
-    GraspCubeTask,
-    GraspCubeMiniTask,
-    PickUpCubeMiniTask,
-)
+from llm_curriculum.envs.task_trees import TaskTreeBuilder
 
 
 class ExponentialDecayingMovingAverage:
@@ -158,29 +152,9 @@ class AgentConductor:
         # self.active_task_steps_active = 0
 
     def init_possible_tasks(self, env, dense_rew_lowest):
-        high_level_tasks = []
-        if "move_cube_to_target" in self.high_level_task_names:
-            high_level_tasks += [
-                MoveCubeToTargetTask(use_dense_reward_lowest_level=dense_rew_lowest)
-            ]
-        if "pick_up_cube" in self.high_level_task_names:
-            high_level_tasks += [
-                PickUpCubeTask(use_dense_reward_lowest_level=dense_rew_lowest)
-            ]
-        if "grasp_cube" in self.high_level_task_names:
-            high_level_tasks += [
-                GraspCubeTask(use_dense_reward_lowest_level=dense_rew_lowest)
-            ]
-            raise NotImplementedError("resets not working")
-        if "grasp_cube_mini" in self.high_level_task_names:
-            high_level_tasks += [
-                GraspCubeMiniTask(use_dense_reward_lowest_level=dense_rew_lowest)
-            ]
-        if "pick_up_cube_mini" in self.high_level_task_names:
-            high_level_tasks += [
-                PickUpCubeMiniTask(use_dense_reward_lowest_level=dense_rew_lowest)
-            ]
-        assert len(high_level_tasks) > 0
+        tree_builder = TaskTreeBuilder(use_dense_reward_lowest_level=dense_rew_lowest)
+        high_level_tasks = tree_builder.build_from_name_list(self.high_level_task_names)
+        assert len(high_level_tasks) == 1, "only set for 1 task currently"
         return high_level_tasks
 
     def init_task_embeddings(self):
@@ -329,14 +303,15 @@ class AgentConductor:
                     return task.next_task
             # single task logic
             return task
-        # normal logic
+        
+        # normal tree-traversal logic
         """
         Once gone down (via decompose_task), only ever come back up 1 level if finished a sub-task sequence
         """
         if task.complete:
 
             def step_sub_task(task):
-                assert task.complete
+                assert task.complete, f"Task {task.name} is not complete!" # TODO: shouldn't assume that child sequence completes parent!
                 if task.check_next_task_exists():
                     assert task.parent_task is not None
                     # If completed task, parent exists, and next exist - replan from next_task
