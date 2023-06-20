@@ -5,23 +5,29 @@ import warnings
 import gym
 import torch as th
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
-from stable_baselines3 import A2C
 from stable_baselines3.common.callbacks import BaseCallback, EventCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.logger import Video
+from stable_baselines3.common.vec_env import (
+    DummyVecEnv,
+    VecEnv,
+    sync_envs_normalization,
+)
 
-from stable_baselines3.common import base_class  # pytype: disable=pyi-error
-from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, sync_envs_normalization
-
-from llm_curriculum_algo.sequenced_rollouts import evaluate_sequenced_policy
-
+from llm_curriculum.learning.sb3.sequenced_rollouts import evaluate_sequenced_policy
 
 
 class VideoRecorderCallback(BaseCallback):
-    def __init__(self, eval_env: gym.Env, render_freq: int, n_eval_episodes: int = 1, add_text: bool = False, sequenced_rollouts: bool = False):
+    def __init__(
+        self,
+        eval_env: gym.Env,
+        render_freq: int,
+        n_eval_episodes: int = 1,
+        add_text: bool = False,
+        sequenced_rollouts: bool = False,
+    ):
         """
         Records a video of an agent's trajectory traversing ``eval_env`` and logs it to TensorBoard
 
@@ -45,8 +51,8 @@ class VideoRecorderCallback(BaseCallback):
 
     def _record_video(self, deterministic=True):
         screens = []
-        behaviour_str = 'deterministic' if deterministic else 'stochastic'
-        
+        behaviour_str = "deterministic" if deterministic else "stochastic"
+
         def overlay_text(rgb_array: np.array, info: Dict[str, Any] = None):
             # import pdb; pdb.set_trace()
             # Convert the RGB array to a PIL image
@@ -54,8 +60,12 @@ class VideoRecorderCallback(BaseCallback):
             # Call draw Method to add 2D graphics in an image
             I1 = ImageDraw.Draw(img)
             # Add Text to an image
-            if 'active_task_name' in info:
-                I1.text((28, 36), f"Active task: {info['active_task_name']}", fill=(255, 0, 0))
+            if "active_task_name" in info:
+                I1.text(
+                    (28, 36),
+                    f"Active task: {info['active_task_name']}",
+                    fill=(255, 0, 0),
+                )
             I1.text((28, 50), f"Success: {info['is_success']}", fill=(255, 0, 0))
             # Convert the PIL image back to an RGB array
             rgb_array_with_text = np.array(img).astype(np.uint8)
@@ -71,13 +81,13 @@ class VideoRecorderCallback(BaseCallback):
             screen = self._eval_env.render(mode="rgb_array")
             if self.add_text:
                 assert len(self._eval_env.envs) == 1, "not setup for more than 1 env!"
-                screen = overlay_text(screen, _locals['infos'][0])
+                screen = overlay_text(screen, _locals["infos"][0])
             # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
             screens.append(screen.transpose(2, 0, 1))
 
         if self.sequenced_rollouts:
             evaluate_sequenced_policy(
-                self.locals['models_dict'],
+                self.locals["models_dict"],
                 self._eval_env,
                 callback=grab_screens,
                 n_eval_episodes=self._n_eval_episodes,
@@ -96,10 +106,6 @@ class VideoRecorderCallback(BaseCallback):
             Video(th.ByteTensor(np.array([screens])), fps=25),
             exclude=("stdout", "log", "json", "csv"),
         )
-        
-# model = A2C("MlpPolicy", "CartPole-v1", tensorboard_log="runs/", verbose=1)
-# video_recorder = VideoRecorderCallback(gym.make("CartPole-v1"), render_freq=5000)
-# model.learn(total_timesteps=int(5e4), callback=video_recorder)
 
 
 class SuccessCallback(BaseCallback):
@@ -110,27 +116,34 @@ class SuccessCallback(BaseCallback):
     def __init__(self, verbose=0, log_freq=1000):
         super().__init__(verbose)
         self.log_freq = log_freq
-        
+
     def _on_step(self) -> bool:
         # Dump
         if self.num_timesteps % self.log_freq == 0:
-            assert len(self.locals['env'].envs) == 1, "not setup for more than 1 env!"
-            env = self.locals['env'].envs[0]
+            assert len(self.locals["env"].envs) == 1, "not setup for more than 1 env!"
+            env = self.locals["env"].envs[0]
             stats = env.agent_conductor.get_stats()
             # record averages
             for stat_key in stats.keys():
                 for time_key in stats[stat_key].keys():
                     for task_key in stats[stat_key][time_key].keys():
-                        self.logger.record(f"custom_rollout_{stat_key}_{time_key}/{task_key}", stats[stat_key][time_key][task_key])
+                        self.logger.record(
+                            f"custom_rollout_{stat_key}_{time_key}/{task_key}",
+                            stats[stat_key][time_key][task_key],
+                        )
             # record timestep
             self.logger.record("time/custom_timestep", self.num_timesteps)
-            self.logger.record("time/custom_timestep_multi_run", self.num_timesteps / len(env.agent_conductor.get_possible_task_names())) # just divide by n_tasks (assumes sampled equally)
+            self.logger.record(
+                "time/custom_timestep_multi_run",
+                self.num_timesteps / len(env.agent_conductor.get_possible_task_names()),
+            )  # just divide by n_tasks (assumes sampled equally)
             # dump and reset
             self.logger.dump(self.num_timesteps)
             env.agent_conductor.reset_epoch_stats()
-            
+
         return True
-    
+
+
 class SuccessCallbackSeperatePolicies(BaseCallback):
     """
     Custom callback for plotting additional values in tensorboard.
@@ -140,42 +153,59 @@ class SuccessCallbackSeperatePolicies(BaseCallback):
         super().__init__(verbose)
         self.log_freq = log_freq
         self.num_timesteps_multi_run = 0
-        
+
     def _on_step(self) -> bool:
         # Dump
         if self.num_timesteps_multi_run % self.log_freq == 0:
-            assert len(self.locals['env'].envs) == 1, "not setup for more than 1 env!"
-            env = self.locals['env'].envs[0]
-            
+            assert len(self.locals["env"].envs) == 1, "not setup for more than 1 env!"
+            env = self.locals["env"].envs[0]
+
             # record average stats from agent conductor
             stats = env.agent_conductor.get_stats()
             for stat_key in stats.keys():
                 for time_key in stats[stat_key].keys():
                     for task_key in stats[stat_key][time_key].keys():
-                        self.logger.record(f"custom_rollout_{stat_key}_{time_key}/{task_key}", stats[stat_key][time_key][task_key])
-            
+                        self.logger.record(
+                            f"custom_rollout_{stat_key}_{time_key}/{task_key}",
+                            stats[stat_key][time_key][task_key],
+                        )
+
             # record timesteps
-            self.logger.record("time/custom_timestep", self.num_timesteps_multi_run / len(self.locals['models_dict'].keys())) # average per task
-            self.logger.record("time/custom_timestep_multi-run", self.num_timesteps_multi_run) # overall
-            for task_key, model in self.locals['models_dict'].items():
-                self.logger.record(f"time/{task_key}_steps", model.num_timesteps) # task n_steps
-            
+            self.logger.record(
+                "time/custom_timestep",
+                self.num_timesteps_multi_run / len(self.locals["models_dict"].keys()),
+            )  # average per task
+            self.logger.record(
+                "time/custom_timestep_multi-run", self.num_timesteps_multi_run
+            )  # overall
+            for task_key, model in self.locals["models_dict"].items():
+                self.logger.record(
+                    f"time/{task_key}_steps", model.num_timesteps
+                )  # task n_steps
+
             # record curriculum manager task probabilities
             cm = env.agent_conductor.curriculum_manager
             p_agg_stats = cm.get_agg_stats()
-            for task_key, model in self.locals['models_dict'].items():
-                self.logger.record(f"curriculum/{task_key}_p", p_agg_stats['epoch'][task_key])
-                self.logger.record(f"curriculum/{task_key}_ema_success", env.agent_conductor.task_stats['success'].get_task_edma(task_key))
-            
+            for task_key, model in self.locals["models_dict"].items():
+                self.logger.record(
+                    f"curriculum/{task_key}_p", p_agg_stats["epoch"][task_key]
+                )
+                self.logger.record(
+                    f"curriculum/{task_key}_ema_success",
+                    env.agent_conductor.task_stats["success"].get_task_edma(task_key),
+                )
+
             # dump and reset
-            self.logger.dump(self.num_timesteps) # very dodgy, but curreently using num_timesteps of whatever model is assigned to the callback as anchor timestep for logging...??
+            self.logger.dump(
+                self.num_timesteps
+            )  # very dodgy, but curreently using num_timesteps of whatever model is assigned to the callback as anchor timestep for logging...??
             env.agent_conductor.reset_epoch_stats()
             cm.reset_epoch_stats()
-        
+
         # iter counter
         self.num_timesteps_multi_run += 1
-            
-        return True  
+
+        return True
 
 
 class GradientCallback(BaseCallback):
@@ -188,7 +218,7 @@ class GradientCallback(BaseCallback):
     def __init__(self, verbose=0, log_freq=1000):
         super().__init__(verbose)
         self.log_freq = log_freq
-        
+
     def _on_step(self) -> bool:
         # Dump
         if self.num_timesteps % self.log_freq == 0:
@@ -196,17 +226,19 @@ class GradientCallback(BaseCallback):
             for key in grads.keys():
                 self.logger.record(f"grads/{key}", grads[key])
         return True
-    
+
     def report_grad_norm(self):
         # may add qf1, policy, etc.
-        policy = self.locals['self'].policy
+        policy = self.locals["self"].policy
         grads = {}
         grads["actor"] = self.get_grad_norm(policy.actor)
         grads["critic"] = self.get_grad_norm(policy.critic)
         grads["critic_target"] = self.get_grad_norm(policy.critic_target)
         if policy.features_extractor_class is not None:
             grads["actor_encoder"] = self.get_grad_norm(policy.actor.features_extractor)
-            grads["critic_encoder"] = self.get_grad_norm(policy.critic.features_extractor)
+            grads["critic_encoder"] = self.get_grad_norm(
+                policy.critic.features_extractor
+            )
         return grads
 
     def get_grad_norm(self, model):
@@ -308,7 +340,10 @@ class EvalCallbackMultiTask(EventCallback):
         for env in [self.eval_env, self.eval_env_sequenced]:
             if env is not None:
                 if not isinstance(self.training_env, type(env)):
-                    warnings.warn("Training and eval env are not of the same type" f"{self.training_env} != {env}")
+                    warnings.warn(
+                        "Training and eval env are not of the same type"
+                        f"{self.training_env} != {env}"
+                    )
 
         # Create folders if needed
         if self.best_model_save_path is not None:
@@ -320,7 +355,9 @@ class EvalCallbackMultiTask(EventCallback):
         if self.callback_on_new_best is not None:
             self.callback_on_new_best.init_callback(self.model)
 
-    def _log_success_callback(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+    def _log_success_callback(
+        self, locals_: Dict[str, Any], globals_: Dict[str, Any]
+    ) -> None:
         """
         Callback passed to the  ``evaluate_policy`` function
         in order to log the success rate (when applicable),
@@ -340,7 +377,7 @@ class EvalCallbackMultiTask(EventCallback):
         continue_training = True
 
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
-            
+
             for env in [self.eval_env, self.eval_env_sequenced]:
                 # Sync training and eval env if there is VecNormalize
                 if self.model.get_vec_normalize_env() is not None and env is not None:
@@ -352,17 +389,21 @@ class EvalCallbackMultiTask(EventCallback):
                             "see https://stable-baselines3.readthedocs.io/en/master/guide/callbacks.html#evalcallback "
                             "and warning above."
                         ) from e
-                    assert len(env.envs) == 1, "Not checked if can handle more than 1 env"
-            
+                    assert (
+                        len(env.envs) == 1
+                    ), "Not checked if can handle more than 1 env"
+
             # Test on each task individually
             for task in self.single_task_names:
                 # set env eval task
-                self.eval_env.envs[0].agent_conductor.set_single_task_names([task]) # very hacky, but this ensures the task is always chosen
+                self.eval_env.envs[0].agent_conductor.set_single_task_names(
+                    [task]
+                )  # very hacky, but this ensures the task is always chosen
                 # Reset success rate buffer
                 self._is_success_buffer = []
                 # set model
                 if self.seperate_policies:
-                    model = self.locals['models_dict'][task]
+                    model = self.locals["models_dict"][task]
                 else:
                     model = self.model
                 # collect episodes
@@ -377,8 +418,8 @@ class EvalCallbackMultiTask(EventCallback):
                     callback=self._log_success_callback,
                 )
                 # calc stats
-                mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
-                mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
+                mean_reward, _ = np.mean(episode_rewards), np.std(episode_rewards)
+                mean_ep_length, _ = np.mean(episode_lengths), np.std(episode_lengths)
                 # Add to current Logger
                 self.logger.record(f"eval/{task}_mean_reward", float(mean_reward))
                 self.logger.record(f"eval/{task}_mean_ep_length", mean_ep_length)
@@ -386,14 +427,16 @@ class EvalCallbackMultiTask(EventCallback):
                     success_rate = np.mean(self._is_success_buffer)
                     # if self.verbose >= 1:
                     #     print(f"Success rate: {100 * success_rate:.2f}%")
-                    self.logger.record(f"eval_success/{task}_success_rate", success_rate)
-                
+                    self.logger.record(
+                        f"eval_success/{task}_success_rate", success_rate
+                    )
+
             if self.eval_env_sequenced is not None:
                 # Reset success rate buffer
                 self._is_success_buffer = []
                 # collect episodes
                 episode_rewards, episode_lengths = evaluate_sequenced_policy(
-                    self.locals['models_dict'],
+                    self.locals["models_dict"],
                     self.eval_env_sequenced,
                     n_eval_episodes=self.n_eval_episodes,
                     render=self.render,
@@ -403,19 +446,23 @@ class EvalCallbackMultiTask(EventCallback):
                     callback=self._log_success_callback,
                 )
                 # calc stats
-                mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
-                mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
+                mean_reward, _ = np.mean(episode_rewards), np.std(episode_rewards)
+                mean_ep_length, _ = np.mean(episode_lengths), np.std(episode_lengths)
                 # Add to current Logger
-                self.logger.record(f"eval/sequenced_mean_reward", float(mean_reward))
-                self.logger.record(f"eval/sequenced_mean_ep_length", mean_ep_length)
+                self.logger.record("eval/sequenced_mean_reward", float(mean_reward))
+                self.logger.record("eval/sequenced_mean_ep_length", mean_ep_length)
                 if len(self._is_success_buffer) > 0:
                     success_rate = np.mean(self._is_success_buffer)
                     # if self.verbose >= 1:
                     #     print(f"Success rate: {100 * success_rate:.2f}%")
-                    self.logger.record(f"eval_success/sequenced_success_rate", success_rate)
-                
+                    self.logger.record(
+                        "eval_success/sequenced_success_rate", success_rate
+                    )
+
             # Dump log so the evaluation results are printed with the correct timestep
-            self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
+            self.logger.record(
+                "time/total_timesteps", self.num_timesteps, exclude="tensorboard"
+            )
             self.logger.dump(self.num_timesteps)
 
             # Trigger callback after every evaluation, if needed

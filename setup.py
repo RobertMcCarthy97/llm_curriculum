@@ -1,12 +1,10 @@
-# llm_envs/setup.py
-from setuptools import setup, find_packages
+from distutils.core import setup
 
 setup(
-    name="llm_curriculum_algo",
+    name="llm-curriculum",
     version="0.1.0",
-    packages=find_packages(),
-    install_requires=[
-        'mujoco==2.3.3',
-        'gymnasium==0.28.1',
-    ],
+    description="",
+    author="Daniel Tan",
+    author_email="dtch1997@users.noreply.github.com",
+    packages=["llm_curriculum"],
 )
