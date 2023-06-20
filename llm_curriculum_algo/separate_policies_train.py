@@ -224,7 +224,7 @@ def get_hparams():
         # env
         'manual_decompose_p': None,
         'dense_rew_lowest': False,
-        'dense_rew_tasks': ['move_gripper_to_cube'], #
+        'dense_rew_tasks': ['move_gripper_to_cube', 'move_cube_towards_target_grasp'], #
         'use_language_goals': False,
         'render_mode': 'rgb_array',
         'use_oracle_at_warmup': False, #
@@ -232,7 +232,7 @@ def get_hparams():
         'use_baseline_env': False,
         # task
         'single_task_names': [], #
-        'high_level_task_names': ['pick_up_cube_mini'],
+        'high_level_task_names': ['move_cube_to_target'],
         'curriculum_manager_cls': SeperateEpisodesCM, # DummySeperateEpisodesCM, SeperateEpisodesCM, None (CM decides 'decompose_p' based on success rates)
         'sequenced_episodes': True,
         'contained_sequence': False,
@@ -249,7 +249,7 @@ def get_hparams():
         # logging
         'do_track': True,
         'log_path': "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        'exp_name': 'pickup_mini-sequential-sep_policies-child_p0.2-curriculum-ROB',
+        'exp_name': 'pick_place_full-auto_p-seperate-sequential-2-ROB',
         'exp_group': 'merge-validation',
         'info_keywords': ('is_success', 'overall_task_success', 'active_task_level'),
     }

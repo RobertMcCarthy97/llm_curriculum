@@ -1,3 +1,5 @@
+import numpy as np
+
 #######################
 # State parser
 #######################
@@ -37,15 +39,15 @@ class TempDemoDrawerStateParser():
         '''
         "for this setup, when the cube is inside the drawer and the drawer is closed, the range is (1.21, 1.38), (0.83, 0.96) and (0.48, 0.55) respectively." 
         '''
-        self.drawer_min_point = np.array([1.21, 0.83, 0.48])
-        self.drawer_max_point = np.array([1.38, 0.96, 0.55])
+        self.drawer_min_point = np.array([1.21, 0.98, 0.48])
+        self.drawer_max_point = np.array([1.38, 1.11, 0.55])
         self.drawer_static_rect_volume = RectangularVolume(self.drawer_min_point, self.drawer_max_point)
         # which of x, y, z does drawer open along?
         self.open_along_dim = 1
         self.handle_length_dim = 0
         self.over_drawer_height_offset = None # TODO: Daniel
-        self.handle_offset_from_drawer_pos = np.array([None, None, None]) # TODO: Daniel
-        self.handle_length = None # TODO: Daniel
+        self.handle_offset_from_drawer_pos = np.array([0, -0.03, 0]) # TODO: this is incorrect
+        self.handle_length = 0.05
         self.handle_offset_vol = None # TODO: Daniel
         self.above_handle_height_offset = None
 
