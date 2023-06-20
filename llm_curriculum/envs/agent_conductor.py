@@ -1,6 +1,6 @@
 import numpy as np
 
-from llm_curriculum.envs.task_trees import TaskTreeBuilder
+from llm_curriculum.envs.tasks.task_trees import TaskTreeBuilder
 
 
 class ExponentialDecayingMovingAverage:
@@ -94,7 +94,7 @@ class AgentConductor:
         use_language_goals=False,
         dense_rew_tasks=[],
     ):
-        self.env = env
+        self.env = env  # TODO: unclear what this is doing
         self.manual_decompose_p = manual_decompose_p
 
         self.single_task_names = single_task_names
@@ -303,7 +303,7 @@ class AgentConductor:
                     return task.next_task
             # single task logic
             return task
-        
+
         # normal tree-traversal logic
         """
         Once gone down (via decompose_task), only ever come back up 1 level if finished a sub-task sequence
@@ -311,7 +311,9 @@ class AgentConductor:
         if task.complete:
 
             def step_sub_task(task):
-                assert task.complete, f"Task {task.name} is not complete!" # TODO: shouldn't assume that child sequence completes parent!
+                assert (
+                    task.complete
+                ), f"Task {task.name} is not complete!"  # TODO: shouldn't assume that child sequence completes parent!
                 if task.check_next_task_exists():
                     assert task.parent_task is not None
                     # If completed task, parent exists, and next exist - replan from next_task

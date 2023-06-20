@@ -2,7 +2,7 @@ import gymnasium as gym
 
 from llm_curriculum.envs.agent_conductor import AgentConductor
 from llm_curriculum.envs.wrappers import (
-    AddTargetToObsWrapper,
+    AddExtraObjectsToObsWrapper,
     CurriculumEnvWrapper,
     NonGoalNonDictObsWrapper,
     OldGymAPIWrapper,
@@ -15,6 +15,7 @@ from typing import Optional
 
 
 def make_env(
+    drawer_env=False,
     manual_decompose_p=1,
     dense_rew_lowest=False,
     dense_rew_tasks=[],
@@ -30,8 +31,16 @@ def make_env(
     curriculum_manager_cls=None,
 ):
 
-    env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
-    env = AddTargetToObsWrapper(env)
+    if drawer_env:
+        env = gym.make(
+            "FetchPickAndPlaceDrawer-v2",
+            render_mode=render_mode,
+            is_closed_on_reset=False,  # Default: True
+        )
+    else:
+        env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
+
+    env = AddExtraObjectsToObsWrapper(env, add_target=True, add_drawer=drawer_env)
 
     agent_conductor = AgentConductor(
         env,
@@ -48,6 +57,7 @@ def make_env(
         agent_conductor,
         use_language_goals=use_language_goals,
         max_ep_len=max_ep_len,
+        drawer_env=drawer_env,
     )
     if curriculum_manager_cls is not None:
         curriculum_manager = curriculum_manager_cls(
