@@ -46,6 +46,7 @@ class PlaceGraspedCubeDrawerTask(Task):
 
 
 class MoveCubeOverDrawerTask(Task):
+    # TODO: change success condition so checks for over open drawer area only???
     def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
         self.name = "move_cube_over_drawer"
         self.str_description = "Move cube over drawer"
@@ -56,8 +57,11 @@ class MoveCubeOverDrawerTask(Task):
         success, dense_reward = self.state_parser.check_cube_over_dynamic_drawer(
             current_state
         )
-        if self.use_dense_reward_lowest_level:
-            reward = dense_reward  # TODO
+        if self.use_dense_reward:
+            if success:
+                reward = 0
+            else:
+                reward = np.clip(dense_reward, -1, 0)
         else:
             reward = self.binary_reward(success)
         return success, reward
@@ -153,7 +157,7 @@ class MoveGripperToDrawerTask(Task):
             if success:
                 reward = 0
             else:
-                reward = np.clip(dense_reward * 6, -1, 0)
+                reward = np.clip(dense_reward, -1, 0)
         else:
             reward = self.binary_reward(success)
         return success, reward
@@ -254,7 +258,20 @@ class PlaceCubeOnDrawerTopTask(Task):
         super().__init__(parent_task, level, use_dense_reward_lowest_level)
 
     def _check_success_reward(self, current_state):
-        success, _ = self.state_parser.check_cube_on_drawer(current_state)
+        success, _ = self.state_parser.check_cube_on_drawer_top(current_state)
+        reward = self.binary_reward(success)
+        return success, reward
+
+
+class PlaceGraspedCubeOnDrawerTopTask(Task):
+    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+        self.name = "place_grasped_cube_on_drawer_top"
+        self.str_description = "Place grasped cube on drawer top"
+
+        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+
+    def _check_success_reward(self, current_state):
+        success, _ = self.state_parser.check_cube_on_drawer_top(current_state)
         reward = self.binary_reward(success)
         return success, reward
 
@@ -271,10 +288,12 @@ class MoveCubeOverDrawerTopTask(Task):
             current_state
         )
         if self.use_dense_reward:
-            reward = dense_reward
+            if success:
+                reward = 0
+            else:
+                reward = np.clip(dense_reward, -1, 0)
         else:
             reward = self.binary_reward(success)
-            assert False, "use dense as sparse too difficult"
         return success, reward
 
     def get_oracle_action(self, state):
@@ -296,7 +315,7 @@ class ReleaseCubeOnDrawerTopTask(Task):
         super().__init__(parent_task, level, use_dense_reward_lowest_level)
 
     def _check_success_reward(self, current_state):
-        success, _ = self.state_parser.check_cube_on_drawer(current_state)
+        success, _ = self.state_parser.check_cube_on_drawer_top(current_state)
         reward = self.binary_reward(success)
         return success, reward
 

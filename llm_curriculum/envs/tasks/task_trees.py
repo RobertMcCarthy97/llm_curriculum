@@ -21,6 +21,10 @@ from llm_curriculum.envs.tasks.drawer_tasks import (
     PlaceGraspedCubeDrawerTask,
     MoveCubeOverDrawerTask,
     ReleaseCubeInDrawerTask,
+    PlaceCubeOnDrawerTopTask,
+    PlaceGraspedCubeOnDrawerTopTask,
+    MoveCubeOverDrawerTopTask,
+    ReleaseCubeOnDrawerTopTask,
 )
 
 ######################
@@ -76,6 +80,23 @@ place_cube_open_drawer_tree = {
     }
 }
 
+place_cube_drawer_top_tree = {
+    PlaceCubeOnDrawerTopTask: {
+        PickUpCubeTask: {
+            MoveGripperToCubeTask: None,
+            GraspCubeTask: {
+                CubeBetweenGripperTask: None,
+                CloseGripperCubeTask: None,
+            },
+            LiftCubeTask: None,
+        },
+        PlaceGraspedCubeOnDrawerTopTask: {
+            MoveCubeOverDrawerTopTask: None,
+            ReleaseCubeOnDrawerTopTask: None,
+        },
+    }
+}
+
 
 """
 TODO: create these trees
@@ -96,6 +117,7 @@ TASK_TREES = {
     "open_drawer": open_drawer_tree,
     "close_drawer": close_drawer_tree,
     "place_cube_open_drawer": place_cube_open_drawer_tree,
+    "place_cube_drawer_top": place_cube_drawer_top_tree,
 }
 
 ######################

@@ -306,8 +306,8 @@ class DrawerStateParser(CoreStateParser):
         # handle
         self.over_drawer_height_offset = np.array([0, 0, 0.2])
         # self.handle_offset_from_drawer_front = np.array([0, -0.03, 0])
-        self.handle_length = 0.05
-        self.handle_vol_buffer_offset = 0.01  # TODO: Daniel
+        self.handle_length = 0.06
+        self.near_handle_offset = 0.025
         self.above_handle_height_offset = np.array([0, 0, 0.05])
 
         ## task related thresholds
@@ -383,12 +383,12 @@ class DrawerStateParser(CoreStateParser):
         handle_min_point = handle_pos.copy()
         handle_min_point[self.handle_length_dim] -= handle_length / 2
         mask = np.arange(3) != self.handle_length_dim
-        handle_min_point[mask] -= self.handle_vol_buffer_offset
+        handle_min_point[mask] -= self.near_handle_offset
         # max
         handle_max_point = handle_pos.copy()
         handle_max_point[self.handle_length_dim] += handle_length / 2
         mask = np.arange(3) != self.handle_length_dim
-        handle_max_point[mask] += self.handle_vol_buffer_offset
+        handle_max_point[mask] += self.near_handle_offset
         return handle_min_point, handle_max_point
 
     def get_handle_rect_volume(self, state):
@@ -436,7 +436,9 @@ class DrawerStateParser(CoreStateParser):
         cube_pos = self.get_cube_pos(state)
         dynamic_above_rect_volume = self.get_over_drawer_dynamic_rect_volume(state)
         success = dynamic_above_rect_volume.contains(cube_pos)
-        reward = None  # TODO
+        # dense reward
+        dist = self.distance(cube_pos, dynamic_above_rect_volume.get_center())
+        reward = np.clip(-dist, -1.0, 0.0)
         return success, reward
 
     def get_static_above_rect_volume(self, state):
@@ -450,37 +452,63 @@ class DrawerStateParser(CoreStateParser):
         return static_above_rect_volume
 
     def check_cube_over_drawer_top(self, state):
+        # TODO: this is a dodgy check
         cube_pos = self.get_cube_pos(state)
         static_above_rect_volume = self.get_static_above_rect_volume(state)
         success = static_above_rect_volume.contains(cube_pos)
-        reward = self.binary_reward(success)
-        raise NotImplementedError("Implement dense reward")
+        # dense reward
+        dist = self.distance(cube_pos, static_above_rect_volume.get_center())
+        reward = np.clip(-dist, -1.0, 0.0)
+        return success, reward
+
+    def check_cube_on_drawer_top(self, state):
+        # TODO: this is a poorly defined check
+        cube_pos = self.get_cube_pos(state)
+        # define volume for cube to be in
+        static_min = self.get_drawer_static_min_point(state)
+        static_max = self.get_drawer_static_max_point(state)
+        static_min[2] = static_max[2]
+        static_max[2] += 0.06  # TODO: make hparam
+        static_above_rect_volume = RectangularVolume(static_min, static_max)
+        # check if cube in volume
+        success = static_above_rect_volume.contains(cube_pos)
+        reward = None
         return success, reward
 
     def check_gripper_above_handle(self, state):
         gripper_pos = self.get_gripper_pos(state)
         above_handle_rect_vol = self.get_above_handle_rect_volume(state)
         success = above_handle_rect_vol.contains(gripper_pos)
-        reward = None  # TODO
+        # dense reward
+        dist = self.distance(gripper_pos, above_handle_rect_vol.get_center())
+        reward = np.clip(-dist, -1.0, 0.0)
         return success, reward
 
     def check_handle_grasped(self, state):
         """
         check if handle axis is inside gripper
         """
+        gripper_pos = self.get_gripper_pos(state)
         min_gripper_pos, max_gripper_pos = self.get_gripper_min_max_pos(state)
+        handle_pos = self.get_handle_pos(state)
         # check if handle between grippers (along y axis)
-        handle_axis_y_pos = self.get_handle_pos(state)[1]
-        axis_success = (min_gripper_pos[1] < handle_axis_y_pos) and (
+        handle_axis_y_pos = handle_pos[1]
+        between_success = (min_gripper_pos[1] < handle_axis_y_pos) and (
             max_gripper_pos[1] > handle_axis_y_pos
         )
-        # check if gripper pos within handle volume
-        handle_rect_vol = self.get_handle_rect_volume(
-            state
-        )  # TODO: check this volume is correct...
-        gripper_pos = self.get_gripper_pos(state)
-        volume_success = handle_rect_vol.contains(gripper_pos)
+        # check if gripper within handle length
+        handle_length = self.get_handle_length(state)
+        handle_x_min = handle_pos[0] - handle_length / 2
+        handle_x_max = handle_pos[0] + handle_length / 2
+        length_success = (gripper_pos[0] > handle_x_min) and (
+            gripper_pos[0] < handle_x_max
+        )
+        # check if gripper within reasonable height
+        handle_height = handle_pos[2]
+        height_min = handle_height - self.near_handle_offset - 0.1
+        height_max = handle_height + self.near_handle_offset
+        height_success = (gripper_pos[2] > height_min) and (gripper_pos[2] < height_max)
         # overall success
-        success = axis_success and volume_success
+        success = between_success and length_success and height_success
         reward = None  # TODO
         return success, reward

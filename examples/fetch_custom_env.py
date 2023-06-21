@@ -2,18 +2,19 @@ from llm_curriculum.envs.make_env import make_env
 from llm_curriculum.envs.curriculum_manager import (
     SeperateEpisodesCM,
 )
+from llm_curriculum.envs.cli import get_user_action
 
 if __name__ == "__main__":
 
     env = make_env(
-        drawer_env=False,
+        drawer_env=True,
         manual_decompose_p=1,
         dense_rew_lowest=False,
-        dense_rew_tasks=[],
+        dense_rew_tasks=["move_cube_over_drawer_top"],
         use_language_goals=False,
         render_mode="human",
-        single_task_names=["pick_up_cube"],
-        high_level_task_names=["move_cube_to_target"],
+        single_task_names=["move_cube_over_drawer_top"],
+        high_level_task_names=["place_cube_drawer_top"],
         contained_sequence=False,
         curriculum_manager_cls=None,
     )
