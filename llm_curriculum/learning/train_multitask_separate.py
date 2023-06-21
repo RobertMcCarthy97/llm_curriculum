@@ -33,6 +33,13 @@ from llm_curriculum.learning.sb3.callback import (
     SuccessCallbackSeperatePolicies,
 )
 
+from absl import app
+from absl import flags
+from ml_collections import config_flags
+
+_CONFIG = config_flags.DEFINE_config_file("config", None)
+flags.mark_flag_as_required("config")
+
 
 def create_env(hparams):
     # Create env
@@ -281,124 +288,9 @@ def training_loop_sequential(
                     )
 
 
-def get_hparams_exp1():
-    hparams = {
-        "seed": 0,
-        # env
-        "manual_decompose_p": 1,
-        "dense_rew_lowest": False,
-        "dense_rew_tasks": ["move_cube_towards_target_grasp"],  #
-        "use_language_goals": False,
-        "render_mode": "rgb_array",
-        "use_oracle_at_warmup": False,  #
-        "max_ep_len": 50,
-        "use_baseline_env": False,
-        # task
-        "single_task_names": ["move_cube_towards_target_grasp"],  #
-        "high_level_task_names": ["move_cube_to_target"],
-        "curriculum_manager_cls": DummySeperateEpisodesCM,  # DummySeperateEpisodesCM, SeperateEpisodesCM
-        "sequenced_episodes": False,
-        "contained_sequence": False,
-        # algo
-        "algo": TD3,  # DDPG/TD3/SAC
-        "policy_type": "MlpPolicy",  # "MlpPolicy", "MultiInputPolicy"
-        "learning_starts": 1e3,
-        "replay_buffer_class": SeparatePoliciesReplayBuffer,  # LLMBasicReplayBuffer, None, SeparatePoliciesReplayBuffer
-        "replay_buffer_kwargs": {
-            "child_p": 0.2
-        },  # None, {'keep_goals_same': True, 'do_parent_relabel': True, 'parent_relabel_p': 0.2}, {'child_p': 0.2}
-        "total_timesteps": 1e6,
-        "device": "cpu",
-        "policy_kwargs": None,  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
-        "action_noise": NormalActionNoise,  # NormalActionNoise, None
-        # logging
-        "do_track": True,
-        "log_path": "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        "exp_name": "cube2target-single-dense-ROB",
-        "exp_group": "merge-validation",
-        "info_keywords": ("is_success", "overall_task_success", "active_task_level"),
-    }
-    return hparams
+def get_hparams():
 
-
-def get_hparams_exp2():
-    hparams = {
-        "seed": 0,
-        # env
-        "manual_decompose_p": 1,
-        "dense_rew_lowest": False,
-        "dense_rew_tasks": ["move_gripper_to_cube"],  #
-        "use_language_goals": False,
-        "render_mode": "rgb_array",
-        "use_oracle_at_warmup": False,  #
-        "max_ep_len": 50,
-        "use_baseline_env": False,
-        # task
-        "single_task_names": [
-            "move_gripper_to_cube",
-            "cube_between_grippers",
-            "lift_cube",
-            "pick_up_cube",
-        ],  #
-        "high_level_task_names": ["move_cube_to_target"],
-        "curriculum_manager_cls": DummySeperateEpisodesCM,  # DummySeperateEpisodesCM, SeperateEpisodesCM, None
-        "sequenced_episodes": False,
-        "contained_sequence": False,
-        # algo
-        "algo": TD3,  # DDPG/TD3/SAC
-        "policy_type": "MlpPolicy",  # "MlpPolicy", "MultiInputPolicy"
-        "learning_starts": 1e3,
-        "replay_buffer_class": SeparatePoliciesReplayBuffer,  # None, SeparatePoliciesReplayBuffer
-        "replay_buffer_kwargs": {"child_p": 0.2},  # None, {'child_p': 0.2}
-        "total_timesteps": 1e6,
-        "device": "cpu",
-        "policy_kwargs": None,  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
-        "action_noise": NormalActionNoise,  # NormalActionNoise, None
-        # logging
-        "do_track": True,
-        "log_path": "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        "exp_name": "2cube-between-lift-pick-seperate_eps-sep_policies-child_p0.2-ROB",
-        "exp_group": "merge-validation",
-        "info_keywords": ("is_success", "overall_task_success", "active_task_level"),
-    }
-    return hparams
-
-
-def get_hparams_exp3():
-    hparams = {
-        "seed": 0,
-        # env
-        "manual_decompose_p": None,
-        "dense_rew_lowest": False,
-        "dense_rew_tasks": ["move_gripper_to_cube"],  #
-        "use_language_goals": False,
-        "render_mode": "rgb_array",
-        "use_oracle_at_warmup": False,  #
-        "max_ep_len": 50,
-        "use_baseline_env": False,
-        # task
-        "single_task_names": [],  #
-        "high_level_task_names": ["pick_up_cube_mini"],
-        "curriculum_manager_cls": SeperateEpisodesCM,  # DummySeperateEpisodesCM, SeperateEpisodesCM, None (CM decides 'decompose_p' based on success rates)
-        "sequenced_episodes": True,
-        "contained_sequence": False,
-        # algo
-        "algo": TD3,  # DDPG/TD3/SAC
-        "policy_type": "MlpPolicy",  # "MlpPolicy", "MultiInputPolicy"
-        "learning_starts": 1e3,
-        "replay_buffer_class": SeparatePoliciesReplayBuffer,  # None, SeparatePoliciesReplayBuffer
-        "replay_buffer_kwargs": {"child_p": 0.2},  # None, {'child_p': 0.2}
-        "total_timesteps": 1e6,
-        "device": "cpu",
-        "policy_kwargs": None,  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
-        "action_noise": NormalActionNoise,  # NormalActionNoise, None
-        # logging
-        "do_track": True,
-        "log_path": "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        "exp_name": "pickup_mini-sequential-sep_policies-child_p0.2-curriculum-ROB",
-        "exp_group": "merge-validation",
-        "info_keywords": ("is_success", "overall_task_success", "active_task_level"),
-    }
+    hparams = _CONFIG.value
 
     ##### Checks
     if hparams["contained_sequence"]:
@@ -420,24 +312,14 @@ def get_hparams_exp3():
     return hparams
 
 
-if __name__ == "__main__":
+def main(argv):
     """
     TODO: implement W&B sweep?
     """
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--exp", type=int, default=3)
-    args = parser.parse_args()
-
-    if args.exp == 1:
-        hparams = get_hparams_exp1()
-    elif args.exp == 2:
-        hparams = get_hparams_exp2()
-    elif args.exp == 3:
-        hparams = get_hparams_exp3()
-    else:
-        raise ValueError("Hparams not recognized")
+    hparams = get_hparams()
+    if hparams["help"]:
+        print(hparams)
+        return
 
     # W&B
     if hparams["do_track"]:
@@ -476,3 +358,7 @@ if __name__ == "__main__":
 
     if hparams["do_track"]:
         run.finish()
+
+
+if __name__ == "__main__":
+    app.run(main)
