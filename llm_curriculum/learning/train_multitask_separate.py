@@ -211,7 +211,7 @@ def init_training(
         callback.on_training_start(locals(), globals())
 
 
-def training_loop(models_dict, env, total_timesteps, log_interval=4):
+def training_loop(models_dict, env, total_timesteps, log_interval=4, callback=None):
 
     for task_name in env.envs[0].agent_conductor.curriculum_manager:
         assert len(env.envs) == 1
@@ -254,7 +254,7 @@ def training_loop(models_dict, env, total_timesteps, log_interval=4):
 
 
 def training_loop_sequential(
-    models_dict, env, total_timesteps, logger, log_interval=4
+    models_dict, env, total_timesteps, logger, log_interval=4, callback=None
 ):  # TODO: log interval
 
     rollout_collector = SequencedRolloutCollector(env, models_dict)
@@ -317,9 +317,11 @@ def main(argv):
     TODO: implement W&B sweep?
     """
     hparams = get_hparams()
+    print(hparams)
     if hparams["help"]:
-        print(hparams)
+        # Exit after printing hparams
         return
+    hparams = hparams.to_dict()
 
     # W&B
     if hparams["do_track"]:
@@ -352,9 +354,11 @@ def main(argv):
     # Train
     init_training(models_dict, hparams["total_timesteps"], callback=callback)
     if hparams["sequenced_episodes"]:
-        training_loop_sequential(models_dict, env, hparams["total_timesteps"], logger)
+        training_loop_sequential(
+            models_dict, env, hparams["total_timesteps"], logger, callback=callback
+        )
     else:
-        training_loop(models_dict, env, hparams["total_timesteps"])
+        training_loop(models_dict, env, hparams["total_timesteps"], callback=callback)
 
     if hparams["do_track"]:
         run.finish()

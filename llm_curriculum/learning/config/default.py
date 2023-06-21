@@ -26,7 +26,7 @@ def get_config():
     config.use_baseline_env = False
     # task
     config.single_task_names = []
-    config.high_level_task_names = ["pick_up_cube_mini"]
+    config.high_level_task_names = ["move_cube_to_target"]
     config.curriculum_manager_cls = SeperateEpisodesCM
     config.sequenced_episodes = True
     config.contained_sequence = False
