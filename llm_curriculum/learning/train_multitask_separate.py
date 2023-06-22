@@ -33,6 +33,13 @@ from llm_curriculum.learning.sb3.callback import (
     SuccessCallbackSeperatePolicies,
 )
 
+from absl import app
+from absl import flags
+from ml_collections import config_flags
+
+_CONFIG = config_flags.DEFINE_config_file("config", None)
+flags.mark_flag_as_required("config")
+
 
 def create_env(hparams):
     # Create env
@@ -206,7 +213,7 @@ def init_training(
         callback.on_training_start(locals(), globals())
 
 
-def training_loop(models_dict, env, total_timesteps, log_interval=4):
+def training_loop(models_dict, env, total_timesteps, log_interval=4, callback=None):
 
     for task_name in env.envs[0].agent_conductor.curriculum_manager:
         assert len(env.envs) == 1
@@ -249,7 +256,7 @@ def training_loop(models_dict, env, total_timesteps, log_interval=4):
 
 
 def training_loop_sequential(
-    models_dict, env, total_timesteps, logger, log_interval=4
+    models_dict, env, total_timesteps, logger, log_interval=4, callback=None
 ):  # TODO: log interval
 
     rollout_collector = SequencedRolloutCollector(env, models_dict)
@@ -284,42 +291,7 @@ def training_loop_sequential(
 
 
 def get_hparams():
-    hparams = {
-        "seed": 0,
-        # env
-        "manual_decompose_p": 1,
-        "dense_rew_lowest": False,
-        "use_language_goals": False,
-        "render_mode": "rgb_array",
-        "use_oracle_at_warmup": False,  #
-        "max_ep_len": 50,
-        "use_baseline_env": False,
-        # task
-        "drawer_env": False,
-        "single_task_names": ["pick_up_cube"],  #
-        "high_level_task_names": ["move_cube_to_target"],
-        "curriculum_manager_cls": DummySeperateEpisodesCM,  # DummySeperateEpisodesCM, SeperateEpisodesCM, None (CM decides 'decompose_p' based on success rates)
-        "sequenced_episodes": False,
-        "contained_sequence": False,
-        "dense_rew_tasks": ["move_gripper_to_cube"],  #
-        "incremental_reward": True,
-        # algo
-        "algo": TD3,  # DDPG/TD3/SAC
-        "policy_type": "MlpPolicy",  # "MlpPolicy", "MultiInputPolicy"
-        "learning_starts": 1e3,
-        "replay_buffer_class": None,  # None, SeparatePoliciesReplayBuffer
-        "replay_buffer_kwargs": None,  # None, {'child_p': 0.2}
-        "total_timesteps": 1e6,
-        "device": "cpu",
-        "policy_kwargs": None,  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
-        "action_noise": NormalActionNoise,  # NormalActionNoise, None
-        # logging
-        "do_track": True,
-        "log_path": "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        "exp_name": "pick_up_cube-single-incremental_rew",
-        "exp_group": "incremental_rew-testing",
-        "info_keywords": ("is_success", "overall_task_success", "active_task_level"),
-    }
+    hparams = _CONFIG.value
 
     ##### Checks
     if hparams["contained_sequence"]:
@@ -341,11 +313,16 @@ def get_hparams():
     return hparams
 
 
-if __name__ == "__main__":
+def main(argv):
     """
     TODO: implement W&B sweep?
     """
     hparams = get_hparams()
+    print(hparams)
+    if hparams["help"]:
+        # Exit after printing hparams
+        return
+    hparams = hparams.to_dict()
 
     # W&B
     if hparams["do_track"]:
@@ -378,9 +355,15 @@ if __name__ == "__main__":
     # Train
     init_training(models_dict, hparams["total_timesteps"], callback=callback)
     if hparams["sequenced_episodes"]:
-        training_loop_sequential(models_dict, env, hparams["total_timesteps"], logger)
+        training_loop_sequential(
+            models_dict, env, hparams["total_timesteps"], logger, callback=callback
+        )
     else:
-        training_loop(models_dict, env, hparams["total_timesteps"])
+        training_loop(models_dict, env, hparams["total_timesteps"], callback=callback)
 
     if hparams["do_track"]:
         run.finish()
+
+
+if __name__ == "__main__":
+    app.run(main)
