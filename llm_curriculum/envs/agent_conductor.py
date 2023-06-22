@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 from llm_curriculum.envs.tasks.task_trees import TaskTreeBuilder
 
@@ -94,6 +95,7 @@ class AgentConductor:
         use_language_goals=False,
         dense_rew_tasks=[],
         use_incremental_reward=False,
+        initial_state_curriculum_p=0.0,
     ):
         self.env = env  # TODO: unclear what this is doing
         self.manual_decompose_p = manual_decompose_p
@@ -113,6 +115,7 @@ class AgentConductor:
         self.dense_reward_tasks = dense_rew_tasks
 
         self.use_incremental_reward = use_incremental_reward
+        self.initial_state_curriculum_p = initial_state_curriculum_p
 
         # logger
         self.logger = None
@@ -339,6 +342,28 @@ class AgentConductor:
         else:
             # If task not complete, then keep trying!
             return task
+
+    def decide_initial_state_curriculum_task(self, task):
+        """
+        - Decides whether do curriculum according to initial_state_curriculum_p
+        - If so, choose a random child task to reset to (excluding first child)
+
+        TODO:
+        - Move this into a curriculum manager
+        - Use success-rate-based curriculum_p
+        - More princpiled choice of child
+        """
+        do_curriculum_p = self.initial_state_curriculum_p
+        do_curriculum = np.random.choice(
+            [True, False], p=[do_curriculum_p, 1 - do_curriculum_p]
+        )
+        if do_curriculum:
+            n_children = len(task.subtask_sequence)
+            if n_children > 1:
+                reset_to_child_i = random.randrange(1, n_children)
+                reset_child = task.subtask_sequence[reset_to_child_i]
+                return reset_child
+        return task
 
     def get_oracle_action(self, state, task):
         # assert self.chosen_high_level_task != 'grasp_cube', "oracle actions don't work well here!!"

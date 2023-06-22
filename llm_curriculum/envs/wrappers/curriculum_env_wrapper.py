@@ -105,17 +105,20 @@ class CurriculumEnvWrapper(gym.Wrapper):
         - 'task_to_reset_to' can just be high_level_task_name if no single tasks???
         """
         for _ in range(50):
+            # reset env
             obs, info = self.reset_normal(**kwargs)
-            self.reset_conductor.set_single_task_names(
-                [self.agent_conductor.active_single_task_name]
+            # decide task to reset to
+            single_task_name = self.agent_conductor.get_active_single_task_name()
+            single_task = self.agent_conductor.get_task_from_name(single_task_name)
+            reset_task = self.agent_conductor.decide_initial_state_curriculum_task(
+                single_task
             )
+            # reset reset_conductor
+            self.reset_conductor.set_single_task_names([reset_task.name])
             self.reset_conductor.reset()
             for _ in range(50):
                 # check if reached desired task
-                if (
-                    self.reset_conductor.get_active_task().name
-                    == self.agent_conductor.get_active_single_task_name()
-                ):
+                if self.reset_conductor.get_active_task().name == reset_task.name:
                     # if so, return
                     return obs, info
                 reset_prev_active_task = self.reset_conductor.get_active_task()

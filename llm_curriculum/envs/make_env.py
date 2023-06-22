@@ -30,6 +30,7 @@ def make_env(
     mtenv_task_idx=None,
     curriculum_manager_cls=None,
     use_incremental_reward=False,
+    initial_state_curriculum_p=0.0,
 ):
 
     if drawer_env:
@@ -53,6 +54,7 @@ def make_env(
         contained_sequence=contained_sequence,
         use_language_goals=use_language_goals,
         use_incremental_reward=use_incremental_reward,
+        initial_state_curriculum_p=initial_state_curriculum_p,
     )
     env = CurriculumEnvWrapper(
         env,

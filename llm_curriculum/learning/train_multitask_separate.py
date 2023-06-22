@@ -34,7 +34,10 @@ from llm_curriculum.learning.sb3.callback import (
 )
 
 
-def create_env(hparams):
+def create_env(hparams, eval=False):
+    hparams = hparams.copy()
+    if eval:
+        hparams["initial_state_curriculum_p"] = 0.0
     # Create env
     if hparams["use_baseline_env"]:
         env = make_env_baseline(
@@ -59,6 +62,7 @@ def create_env(hparams):
             state_obs_only=True,
             curriculum_manager_cls=hparams["curriculum_manager_cls"],
             use_incremental_reward=hparams["incremental_reward"],
+            initial_state_curriculum_p=hparams["initial_state_curriculum_p"],
         )
 
     # Vec Env
@@ -80,7 +84,7 @@ def setup_logging(hparams, train_env, base_freq=1000):
 
     # create eval envs
     if hparams["sequenced_episodes"]:
-        eval_env_sequenced = create_env(hparams)
+        eval_env_sequenced = create_env(hparams)  # TODO: also set to eval=True??
         non_seq_params = hparams.copy()
         non_seq_params.update(
             {
@@ -93,7 +97,7 @@ def setup_logging(hparams, train_env, base_freq=1000):
         eval_env_non_seq = create_env(non_seq_params)
         video_env = eval_env_sequenced
     else:
-        eval_env_non_seq = create_env(hparams)
+        eval_env_non_seq = create_env(hparams, eval=True)
         eval_env_sequenced = None
         video_env = eval_env_non_seq
     # TODO: link train curriculum manager + agent_conductor to eval envs?? (so can get same decompositions in eval...)
@@ -302,7 +306,8 @@ def get_hparams():
         "sequenced_episodes": False,
         "contained_sequence": False,
         "dense_rew_tasks": ["move_gripper_to_cube"],  #
-        "incremental_reward": True,
+        "incremental_reward": False,
+        "initial_state_curriculum_p": 0.5,
         # algo
         "algo": TD3,  # DDPG/TD3/SAC
         "policy_type": "MlpPolicy",  # "MlpPolicy", "MultiInputPolicy"
@@ -316,8 +321,8 @@ def get_hparams():
         # logging
         "do_track": True,
         "log_path": "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        "exp_name": "pick_up_cube-single-incremental_rew",
-        "exp_group": "incremental_rew-testing",
+        "exp_name": "pick_up_cube-single-initial_state_curriculum_p=0.5",
+        "exp_group": "initial_state_curriculum-testing",
         "info_keywords": ("is_success", "overall_task_success", "active_task_level"),
     }
 

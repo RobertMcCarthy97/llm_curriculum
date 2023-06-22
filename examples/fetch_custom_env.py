@@ -13,11 +13,12 @@ if __name__ == "__main__":
         dense_rew_tasks=[],
         use_language_goals=False,
         render_mode="human",
-        single_task_names=["move_cube_to_target"],
+        single_task_names=["pick_up_cube"],
         high_level_task_names=["move_cube_to_target"],
         contained_sequence=False,
         curriculum_manager_cls=None,
-        use_incremental_reward=True,
+        use_incremental_reward=False,
+        initial_state_curriculum_p=0.5,
     )
 
     for _ in range(5):
@@ -25,7 +26,7 @@ if __name__ == "__main__":
         obs = env.reset()
         print("env reset")
 
-        for _ in range(35):
+        for _ in range(15):
             ## Actions
             # action = env.action_space.sample()
             # action = get_user_action()
