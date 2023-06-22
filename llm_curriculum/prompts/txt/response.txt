@@ -1,0 +1,35 @@
+<goal name='Cube is at the target'>
+    <goal name='Gripper is opened'>
+        <goal name='Gripper is positioned over the block'>
+            <goal name='Gripper is close to the block' />
+            <goal name='Gripper is above the block' />
+        </goal>
+        <goal name='Displace gripper fingers to fully open' />
+    </goal>
+    <goal name='Gripper is closed with block'>
+        <goal name='Gripper descends to block'>
+            <goal name='Gripper moves towards the block along the z-axis' />
+        </goal>
+        <goal name='Gripper grasps the block'>
+            <goal name='Displace gripper fingers to fully close' />
+        </goal>
+    </goal>
+    <goal name='Block is lifted'>
+        <goal name='Gripper ascends with block'>
+            <goal name='Gripper moves away from the table along the z-axis' />
+        </goal>
+    </goal>
+    <goal name='Block is above the target'>
+        <goal name='Gripper moves to target with block'>
+            <goal name='Gripper moves towards target in the x-y plane' />
+        </goal>
+    </goal>
+    <goal name='Block is at the target'>
+        <goal name='Gripper releases the block'>
+            <goal name='Displace gripper fingers to fully open' />
+        </goal>
+        <goal name='Gripper ascends without block'>
+            <goal name='Gripper moves away from the block along the z-axis' />
+        </goal>
+    </goal>
+</goal>
