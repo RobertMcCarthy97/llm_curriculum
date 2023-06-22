@@ -126,8 +126,9 @@ TASK_TREES = {
 
 
 class TaskTreeBuilder:
-    def __init__(self, use_dense_reward_lowest_level=False):
+    def __init__(self, use_dense_reward_lowest_level=False, **kwargs):
         self.hparams = {"use_dense_reward_lowest_level": use_dense_reward_lowest_level}
+        self.hparams.update(kwargs)
 
     def build_from_name_list(self, tree_name_list):
         high_level_tasks = []

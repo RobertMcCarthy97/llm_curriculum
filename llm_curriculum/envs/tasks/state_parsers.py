@@ -505,7 +505,7 @@ class DrawerStateParser(CoreStateParser):
         )
         # check if gripper within reasonable height
         handle_height = handle_pos[2]
-        height_min = handle_height - self.near_handle_offset - 0.1
+        height_min = handle_height - self.near_handle_offset - 0.01
         height_max = handle_height + self.near_handle_offset
         height_success = (gripper_pos[2] > height_min) and (gripper_pos[2] < height_max)
         # overall success

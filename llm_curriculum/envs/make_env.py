@@ -29,13 +29,14 @@ def make_env(
     mtenv_wrapper=False,
     mtenv_task_idx=None,
     curriculum_manager_cls=None,
+    use_incremental_reward=False,
 ):
 
     if drawer_env:
         env = gym.make(
             "FetchPickAndPlaceDrawer-v2",
             render_mode=render_mode,
-            is_closed_on_reset=False,  # Default: True
+            is_closed_on_reset=False,  # Default: True # TODO: make param
         )
     else:
         env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
@@ -51,6 +52,7 @@ def make_env(
         high_level_task_names=high_level_task_names,
         contained_sequence=contained_sequence,
         use_language_goals=use_language_goals,
+        use_incremental_reward=use_incremental_reward,
     )
     env = CurriculumEnvWrapper(
         env,

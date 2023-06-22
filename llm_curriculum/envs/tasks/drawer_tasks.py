@@ -16,11 +16,13 @@ class PlaceCubeDrawerTask(Task):
     The parent task for the FetchPickPlace environment
     """
 
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "place_cube_drawer"
         self.str_description = "Place cube in drawer"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_cube_in_drawer(current_state)
@@ -33,11 +35,13 @@ class PlaceGraspedCubeDrawerTask(Task):
     The parent task for the FetchPickPlace environment
     """
 
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "place_grasped_cube_drawer"
         self.str_description = "Place grasped cube in drawer"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_cube_in_drawer(current_state)
@@ -47,11 +51,13 @@ class PlaceGraspedCubeDrawerTask(Task):
 
 class MoveCubeOverDrawerTask(Task):
     # TODO: change success condition so checks for over open drawer area only???
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "move_cube_over_drawer"
         self.str_description = "Move cube over drawer"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_cube_over_dynamic_drawer(
@@ -82,11 +88,13 @@ class MoveCubeOverDrawerTask(Task):
 
 
 class ReleaseCubeInDrawerTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "release_cube_in_drawer"
         self.str_description = "Release cube in drawer"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_cube_in_drawer(current_state)
@@ -109,11 +117,13 @@ class OpenDrawerTask(Task):
     The parent task for the FetchPickPlace environment
     """
 
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "open_drawer"
         self.str_description = "Open drawer"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_drawer_open(current_state)
@@ -126,11 +136,13 @@ class CloseDrawerTask(Task):
     The parent task for the FetchPickPlace environment
     """
 
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "close_drawer"
         self.str_description = "Close drawer"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_drawer_closed(current_state)
@@ -143,11 +155,13 @@ class MoveGripperToDrawerTask(Task):
     TODO: refactor as MoveGripperToObjectTask - takes the object as input (so can deal with different objects...)
     """
 
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "move_gripper_to_drawer"
         self.str_description = "Go to drawer"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_gripper_above_handle(
@@ -176,11 +190,13 @@ class MoveGripperToDrawerTask(Task):
 
 class GraspHandleTask(Task):
     # TODO: implement between and close?
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "grasp_handle"
         self.str_description = "Grasp handle"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_handle_grasped(current_state)
@@ -202,11 +218,13 @@ class GraspHandleTask(Task):
 
 
 class PullHandleToOpenTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "pull_handle_to_open"
         self.str_description = "Pull handle to open drawer"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_drawer_open(current_state)
@@ -225,11 +243,13 @@ class PullHandleToOpenTask(Task):
 
 
 class PushHandleToCloseTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "push_handle_to_close"
         self.str_description = "Push handle to close drawer"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_drawer_closed(current_state)
@@ -251,11 +271,13 @@ class PushHandleToCloseTask(Task):
 
 
 class PlaceCubeOnDrawerTopTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "place_cube_on_drawer_top"
         self.str_description = "Place cube on drawer top"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_cube_on_drawer_top(current_state)
@@ -264,11 +286,13 @@ class PlaceCubeOnDrawerTopTask(Task):
 
 
 class PlaceGraspedCubeOnDrawerTopTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "place_grasped_cube_on_drawer_top"
         self.str_description = "Place grasped cube on drawer top"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_cube_on_drawer_top(current_state)
@@ -277,11 +301,13 @@ class PlaceGraspedCubeOnDrawerTopTask(Task):
 
 
 class MoveCubeOverDrawerTopTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "move_cube_over_drawer_top"
         self.str_description = "Move cube over drawer top"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_cube_over_drawer_top(
@@ -308,11 +334,13 @@ class MoveCubeOverDrawerTopTask(Task):
 
 
 class ReleaseCubeOnDrawerTopTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "release_cube_on_drawer_top"
         self.str_description = "Release cube on drawer top"
 
-        super().__init__(parent_task, level, use_dense_reward_lowest_level)
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
     def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_cube_on_drawer_top(current_state)

@@ -93,6 +93,7 @@ class AgentConductor:
         contained_sequence=False,
         use_language_goals=False,
         dense_rew_tasks=[],
+        use_incremental_reward=False,
     ):
         self.env = env  # TODO: unclear what this is doing
         self.manual_decompose_p = manual_decompose_p
@@ -111,11 +112,13 @@ class AgentConductor:
         self.dense_rew_lowest = dense_rew_lowest
         self.dense_reward_tasks = dense_rew_tasks
 
+        self.use_incremental_reward = use_incremental_reward
+
         # logger
         self.logger = None
 
         # tasks
-        self.high_level_task_list = self.init_possible_tasks(env, dense_rew_lowest)
+        self.high_level_task_list = self.init_possible_tasks(env)
         self.task_names = self.get_task_names()
         self.task_idx_dict, self.n_tasks = self.init_oracle_goals()
         self.task_name2obj_dict = self.set_task_name2obj_dict()
@@ -151,8 +154,11 @@ class AgentConductor:
         self.active_task = self.high_level_task_list[0]
         # self.active_task_steps_active = 0
 
-    def init_possible_tasks(self, env, dense_rew_lowest):
-        tree_builder = TaskTreeBuilder(use_dense_reward_lowest_level=dense_rew_lowest)
+    def init_possible_tasks(self, env):
+        tree_builder = TaskTreeBuilder(
+            use_dense_reward_lowest_level=self.dense_rew_lowest,
+            use_incremental_reward=self.use_incremental_reward,
+        )
         high_level_tasks = tree_builder.build_from_name_list(self.high_level_task_names)
         assert len(high_level_tasks) == 1, "only set for 1 task currently"
         return high_level_tasks
