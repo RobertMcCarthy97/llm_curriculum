@@ -9,12 +9,20 @@ class CurriculumEnvWrapper(gym.Wrapper):
     - Goals are specified in language, and decomposed by agent_conductor
     """
 
-    def __init__(self, env, agent_conductor, use_language_goals=False, max_ep_len=50):
+    def __init__(
+        self,
+        env,
+        agent_conductor,
+        use_language_goals=False,
+        max_ep_len=50,
+        drawer_env=False,
+    ):
         super().__init__(env)
         self._env = env
         self.use_language_goals = use_language_goals
         self.agent_conductor = agent_conductor
         self.max_ep_len = max_ep_len
+        self.drawer_env = drawer_env
 
         self.init_obs_space()
         self.reset_conductor = AgentConductor(
@@ -22,6 +30,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
             manual_decompose_p=1,
             high_level_task_names=agent_conductor.high_level_task_names,
         )  # TODO: what if using different high-level task
+        self.set_state_parsers()
 
         # begin counter
         self.active_task_steps = 0
@@ -46,6 +55,15 @@ class CurriculumEnvWrapper(gym.Wrapper):
                 "desired_goal": goal_space,
             }
         )
+
+    def set_state_parsers(self):
+        # TODO: this should just be done when state_parsers are initted
+        for conductor in [self.agent_conductor, self.reset_conductor]:
+            for task in conductor.high_level_task_list:
+                # init parsers
+                task.set_state_parser_full_tree("drawer" if self.drawer_env else "core")
+                # check shapes
+                task.state_parser.check_obs_space(self.observation_space["observation"])
 
     def reset(self, **kwargs):
         prev_task = self.agent_conductor.get_active_task()
