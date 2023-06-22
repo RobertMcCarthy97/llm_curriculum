@@ -1,213 +1,6 @@
 import numpy as np
 
-
-class FetchPickPlaceStateParser:
-    """
-    Takes in state observations and returns reward and success for different conditions.
-    """
-
-    def __init__(self):
-        # Define indices of state vector
-        self.gripper_pos_i = 0
-        self.cube_pos_i = 3
-        self.right_gripper_i = 9
-        self.left_gripper_i = 10
-        self.target_i = 25
-        self.gripper_vel_i = 20
-        self.cube_rel_vel_i = 14  # velocity relative to gripper...
-
-        # Define constants
-        self.cube_width = 0.025
-        self.table_height = 0.425
-
-        # Define thresholds
-        self.cube_height_offset = np.array([0, 0, 0.05])  # 0.05
-        self.gripper_closed_cube_thresh = (
-            0.05  # distance between grippers when grasping cube
-        )
-        self.cube_lifted_thresh = self.table_height + 2.5 * self.cube_width
-        self.cube_between_gripper_dist_thresh = self.cube_width
-        self.gripper_open_thresh = 1.8 * self.cube_width
-        self.gripper_stationary_thresh = 0.001
-        self.cube_moving_vel_threshold = 0.005
-        self.cube_target_dist_threshold = 0.05
-        self.gripper_target_dist_threshold = 0.05
-        self.gripper_cube_dist_thresh = 0.05
-        self.velocity_angle_thresh = 45  # degrees
-
-        # Define scales
-        self.scale_cube_between = 10
-        self.scale_cube_lifted = 10
-
-    def get_gripper_pos(self, state):
-        return state[self.gripper_pos_i : self.gripper_pos_i + 3]
-
-    def get_cube_pos(self, state):
-        if state.shape[0] < 28:
-            assert False
-        return state[self.cube_pos_i : self.cube_pos_i + 3]
-
-    def get_target_pos(self, state):
-        return state[self.target_i : self.target_i + 3]
-
-    def get_distance_grippers(self, state):
-        return state[self.right_gripper_i] + state[self.left_gripper_i]
-
-    def get_gripper_vel(self, state):
-        cartesian_vel = state[self.gripper_vel_i : self.gripper_vel_i + 3]
-        return cartesian_vel
-
-    def get_cube_vel(self, state):
-        gripper_vel = self.get_gripper_vel(state)
-        cube_relative_vel = state[self.cube_rel_vel_i : self.cube_rel_vel_i + 3]
-        cartesian_vel = gripper_vel + cube_relative_vel
-        return cartesian_vel
-
-    def check_gripper_open(self, state):
-        thresh = self.gripper_open_thresh
-        distance_between_grippers = self.get_distance_grippers(state)
-        success = distance_between_grippers > self.gripper_open_thresh
-        dist_clipped = np.clip(distance_between_grippers, 0, thresh)
-        reward = np.clip(-(0.1 - dist_clipped), -1, -thresh)
-        return success, reward
-
-    def check_cube_between_grippers(self, state):
-        thresh = self.cube_between_gripper_dist_thresh
-        dist_gripper_cube = np.linalg.norm(
-            self.get_gripper_pos(state) - self.get_cube_pos(state)
-        )
-        success = dist_gripper_cube < thresh
-        reward = np.clip(-self.scale_cube_between * dist_gripper_cube, -1, 0)
-        return success, reward
-
-    def check_cube_between_grippers_easy(self, state):
-        # TODO: proper thresholds, check works....
-        # check gripper open
-        open_success, open_rew = self.check_gripper_open(state)
-        # print("gripper_open_success: ", open_success)
-        # x dist
-        x_dist = np.abs(self.get_gripper_pos(state)[0] - self.get_cube_pos(state)[0])
-        # print("x_dist: ", x_dist)
-        x_pass = x_dist < 0.03
-        # y dist
-        y_dist = np.abs(self.get_gripper_pos(state)[1] - self.get_cube_pos(state)[1])
-        # print("y_dist: ", y_dist)
-        y_pass = y_dist < 0.025
-        # z_dist
-        z_dist = np.abs(self.get_gripper_pos(state)[2] - self.get_cube_pos(state)[2])
-        # print("z_dist: ", z_dist)
-        z_pass = z_dist < 0.03
-        # overall
-        success = open_success and x_pass and y_pass and z_pass
-        return success, None
-
-    def check_grippers_closed_cube_width(self, state):
-        thresh = self.gripper_closed_cube_thresh
-        distance_between_grippers = self.get_distance_grippers(state)
-        success = distance_between_grippers <= self.gripper_closed_cube_thresh
-        reward = np.clip(-distance_between_grippers, -1, -thresh)
-        return success, reward
-
-    def check_cube_lifted(self, state):
-        thresh = self.cube_lifted_thresh
-        cube_z = self.get_cube_pos(state)[2]
-        success = cube_z > thresh
-        reward = np.clip(-self.scale_cube_lifted * (thresh - cube_z), -1, 0)
-        return success, reward
-
-    def check_cube_at_target(self, state):
-        cube_pos = self.get_cube_pos(state)
-        target_pos = self.get_target_pos(state)
-        dist = self.distance(cube_pos, target_pos)
-        thresh = self.cube_target_dist_threshold
-        success = dist < thresh
-        reward = np.clip(-dist, -1, 0)
-        return success, reward
-
-    def check_grasped(self, state):
-        cube_between_success, cube_between_rew = self.check_cube_between_grippers(state)
-        (
-            grip_closed_cube_success,
-            grip_closed_cube_rew,
-        ) = self.check_grippers_closed_cube_width(state)
-        success = cube_between_success and grip_closed_cube_success
-        reward = np.clip(cube_between_rew + grip_closed_cube_rew, -1, 0)
-        return success, reward
-
-    def check_cube_lifted_and_grasped(self, state):
-        cube_lifted_success, cube_lifted_rew = self.check_cube_lifted(state)
-        grasped_success, grasped_rew = self.check_grasped(state)
-        success = cube_lifted_success and grasped_success
-        reward = np.clip(cube_lifted_rew + grasped_rew, -1, 0)
-        return success, reward
-
-    def check_cube_at_target_and_grasped(self, state):
-        # TODO: scale??
-        cube_at_target_success, cube_at_target_rew = self.check_cube_at_target(state)
-        cube_grasped_success, cube_grasped_rew = self.check_grasped(state)
-        success = cube_at_target_success and cube_grasped_success
-        reward = np.clip(cube_at_target_rew + cube_grasped_rew, -1, 0)
-        return success, reward
-
-    def check_gripper_above_cube(self, state):
-        gripper_pos = self.get_gripper_pos(state)
-        cube_pos = self.get_cube_pos(state) + self.cube_height_offset
-        dist = self.distance(gripper_pos, cube_pos)
-        success = dist < self.gripper_cube_dist_thresh
-        # reward
-        # encourage gripper above cube
-        reward = np.clip(-dist, -1.0, 0.0)
-        # # also encourage open grippers
-        # distance_between_grippers = self.state_parser.get_distance_grippers(state)
-        # dist_grippers_rew = np.clip(distance_between_grippers - 0.1, -1.0, 0.0)
-        return success, reward
-
-    def check_gripper_at_target(self, state):
-        gripper_pos = self.get_gripper_pos(state)
-        target_pos = self.get_target_pos(state)
-        dist = self.distance(gripper_pos, target_pos)
-        success = dist < self.gripper_target_dist_thresh
-        reward = np.clip(-dist, -1.0, 0.0)
-        return success, reward
-
-    def check_gripper_stationary(self, state):
-        gripper_vel = self.get_gripper_vel(state)
-        stationary = np.linalg.norm(gripper_vel) < self.gripper_stationary_thresh
-        success = stationary
-        reward = -1 + stationary
-        return success, reward
-
-    def check_gripper_open_stationary(self, state):
-        open_success, open_rew = self.check_gripper_open(state)
-        stationary_success, stationary_rew = self.check_gripper_stationary(state)
-        success = open_success and stationary_success
-        reward = np.clip(open_rew + stationary_rew, -1, 0)
-        return success, reward
-
-    def check_cube_moving_to_target(self, state):
-        cube_pos = self.get_cube_pos(state)
-        target_pos = self.get_target_pos(state)
-        direction_to_target = target_pos - cube_pos
-        cube_vel = self.get_cube_vel(state)
-        # check velocity sufficiently high
-        cube_moving_success = np.linalg.norm(cube_vel) > self.cube_moving_vel_threshold
-        # check angle
-        v1_u = direction_to_target / np.linalg.norm(direction_to_target)
-        v2_u = cube_vel / np.linalg.norm(cube_vel)
-        angle = np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
-        # check velocity success
-        direction_success = angle <= self.velocity_angle_thresh
-        vel_success = direction_success and cube_moving_success
-        # check cube at target
-        cube_at_target_success, _ = self.check_cube_at_target(state)
-        # overall success
-        success = vel_success or cube_at_target_success
-        reward = np.clip(-angle, -1, 0)
-        return success, reward
-
-    def distance(self, pos1, pos2):
-        return np.linalg.norm(pos1 - pos2)
-
+from llm_curriculum.envs.tasks.state_parsers import CoreStateParser, DrawerStateParser
 
 # TODO: add velocity penalty??? Arm should be still when task complete??
 
@@ -224,7 +17,7 @@ valid_tasks = [
     "place_cube_at_target",
     "move_cube_towards_target_grasp",  # "move_gripper_to_target_grasp",
 ]
-# valid_tasks += ["grasp_cube_mini", "pick_up_cube_mini", "pick_place_mini"]
+# TODO: not in use anymore... (comment but still use to copy task names quickly)
 
 
 class Task:
@@ -239,40 +32,44 @@ class Task:
         subtask_cls_seq=[],
         level=0,
         use_dense_reward_lowest_level=False,
+        use_incremental_reward=False,
         complete_thresh=3,
     ):
-        assert self.name in valid_tasks
         self.parent_task = parent_task
         self.level = level
-        self.next_task = None
+        self.use_dense_reward_lowest_level = use_dense_reward_lowest_level
         self.complete_thresh = complete_thresh
+        self.use_incremental_reward = use_incremental_reward
 
-        # init subtasks
-        self.subtask_sequence = []
-        if len(subtask_cls_seq) > 0:
-            # init sequence
-            for subtask_cls in subtask_cls_seq:
-                subtask = subtask_cls(
-                    parent_task=self,
-                    level=level + 1,
-                    use_dense_reward_lowest_level=use_dense_reward_lowest_level,
-                )
-                self.subtask_sequence.append(subtask)
-            # set next tasks
-            for i in range(len(self.subtask_sequence) - 1):
-                self.subtask_sequence[i].set_next_task(self.subtask_sequence[i + 1])
-
-        if len(self.subtask_sequence) == 0 and use_dense_reward_lowest_level:
-            self.use_dense_reward = True
-        else:
-            self.use_dense_reward = False
-
-        # state parser
-        self.state_parser = FetchPickPlaceStateParser()
+        self.next_task = None
 
         # completion tracking - within episode stats!!
         self.complete = False
         self.success_count = 0
+
+    def set_state_parser_full_tree(self, env_type):
+        assert env_type in ["core", "drawer"]
+        if env_type == "core":
+            self.state_parser = CoreStateParser()
+        elif env_type == "drawer":
+            self.state_parser = DrawerStateParser()
+        # set children
+        if len(self.subtask_sequence) > 0:
+            for subtask in self.subtask_sequence:
+                subtask.set_state_parser_full_tree(env_type)
+
+    def set_subtask_sequence(self, subtask_sequence):
+        # init subtasks
+        self.subtask_sequence = subtask_sequence
+        # set next tasks
+        if len(self.subtask_sequence) > 1:
+            for i in range(len(self.subtask_sequence) - 1):
+                self.subtask_sequence[i].set_next_task(self.subtask_sequence[i + 1])
+        # set dense rewards
+        if len(self.subtask_sequence) == 0 and self.use_dense_reward_lowest_level:
+            self.use_dense_reward = True
+        else:
+            self.use_dense_reward = False
 
     def get_str_description(self):
         return self.str_description
@@ -331,6 +128,13 @@ class Task:
                     return
 
     def check_success_reward(self, current_state):
+        success, reward = self._check_success_reward(current_state)
+        if self.use_incremental_reward:
+            reward += self.get_incremental_reward(self)
+            reward = np.clip(reward, -1, 0)
+        return success, reward
+
+    def _check_success_reward(self, current_state):
         raise NotImplementedError("Subclass must implement abstract method")
 
     def get_oracle_action(self, state):
@@ -341,23 +145,27 @@ class Task:
                 return task.get_oracle_action(state)
         return task.get_oracle_action(state)
 
-    def get_incremental_reward(self):
-        raise NotImplementedError("Subclass must implement abstract method")
+    def get_incremental_reward(self, task, inc_rew_mag=0.1):
+        """
+        Currently just add 0.1 to reward for each child complete
+        - and recursively go down tree
 
-        def recursive_incremental_reward(task, lower_level_perc_complete=1.0):
-            if task.parent_task is None:
-                assert self.next_task is None
-                return lower_level_perc_complete
-            else:
-                n_tasks = len(task.parent_task.subtask_sequence)
-                task_pos = task.parent_task.subtask_sequence.index(self)
-                current_level_perc_complete = task_pos / n_tasks
-                return recursive_incremental_reward(
-                    task.parent_task, current_level_perc_complete
-                )
+        TODO: instead do inc_rew = 0.1 * subtask reward?
 
-        perc_complete = recursive_incremental_reward(self)
-        return perc_complete
+        """
+        inc_rew = 0
+        if len(task.subtask_sequence) > 0:
+            assert len(task.subtask_sequence) <= 3
+            for subtask in task.subtask_sequence:
+                if subtask.success_count > 0:
+                    inc_rew += inc_rew_mag
+                else:
+                    subtask_n_childs = len(subtask.subtask_sequence)
+                    if subtask_n_childs > 0:
+                        child_inc_rew = self.get_incremental_reward(subtask)
+                        inc_rew += child_inc_rew / subtask_n_childs
+                    break
+        return inc_rew
 
     def record_relations(self):
         """
@@ -441,92 +249,6 @@ class Task:
 
 
 """
-GraspCube Mini
-"""
-
-
-class GraspCubeMiniTask(Task):
-    """
-    The parent task for the FetchPickPlace environment
-    """
-
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
-        self.name = "grasp_cube_mini"
-        self.str_description = "grasp cube mini"
-        self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask]
-
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
-
-    def check_success_reward(self, current_state):
-        success, _ = self.state_parser.check_cube_between_grippers_easy(current_state)
-        reward = self.binary_reward(success)
-        return success, reward
-
-
-"""
-PickupCube Mini
-"""
-
-
-class PickUpCubeMiniTask(Task):
-    """
-    The parent task for the FetchPickPlace environment
-    """
-
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
-        self.name = "pick_up_cube_mini"
-        self.str_description = "Pick up cube mini"
-        self.subtask_cls_seq = [
-            MoveGripperToCubeTask,
-            CubeBetweenGripperTask,
-            CloseGripperCubeTask,
-            LiftCubeTask,
-        ]
-
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
-
-    def check_success_reward(self, current_state):
-        success, _ = self.state_parser.check_cube_lifted(current_state)
-        reward = self.binary_reward(success)
-        return success, reward
-
-
-"""
-PickAndPlace Mini
-"""
-
-
-class PickPlaceMiniTask(Task):
-    """
-    The parent task for the FetchPickPlace environment
-    """
-
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
-        self.name = "pick_place_mini"
-        self.str_description = "pick and place mini"
-        self.subtask_cls_seq = [
-            MoveGripperToCubeTask,
-            CubeBetweenGripperTask,
-            CloseGripperCubeTask,
-            LiftCubeTask,
-            MoveCubeTowardsTargetGraspTask,
-        ]
-
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
-
-    def check_success_reward(self, current_state):
-        success, _ = self.state_parser.check_cube_at_target(current_state)
-        reward = self.binary_reward(success)
-        return success, reward
-
-
-"""
 FetchPickAndPlace
  
 """
@@ -537,32 +259,30 @@ class MoveCubeToTargetTask(Task):
     The parent task for the FetchPickPlace environment
     """
 
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "move_cube_to_target"
         self.str_description = "Move cube to target"
-        self.subtask_cls_seq = [PickUpCubeTask, PlaceCubeAtTargetTask]
 
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
-    def check_success_reward(self, current_state):
+    def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_cube_at_target(current_state)
         reward = self.binary_reward(success)
         return success, reward
 
 
 class PickUpCubeTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "pick_up_cube"
         self.str_description = "Pick up cube"
-        self.subtask_cls_seq = [MoveGripperToCubeTask, GraspCubeTask, LiftCubeTask]
 
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
-    def check_success_reward(self, current_state):
+    def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_cube_lifted(current_state)
         reward = self.binary_reward(success)
         return success, reward
@@ -573,16 +293,15 @@ class MoveGripperToCubeTask(Task):
     TODO: refactor as MoveGripperToObjectTask - takes the object as input (so can deal with different objects...)
     """
 
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "move_gripper_to_cube"
         self.str_description = "Go to cube"
-        self.subtask_cls_seq = []
 
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
-    def check_success_reward(self, current_state):
+    def _check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_gripper_above_cube(
             current_state
         )
@@ -608,19 +327,15 @@ class MoveGripperToCubeTask(Task):
 
 
 class GraspCubeTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "grasp_cube"
         self.str_description = "Grasp cube"
-        self.subtask_cls_seq = [
-            CubeBetweenGripperTask,
-            CloseGripperCubeTask,
-        ]  # OpenGripperTask - removed!
 
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
-    def check_success_reward(self, current_state):
+    def _check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_grasped(current_state)
         if self.use_dense_reward:
             reward = dense_reward
@@ -628,40 +343,17 @@ class GraspCubeTask(Task):
             reward = self.binary_reward(success)
         return success, reward
 
-    # def get_oracle_action(self, state):
-    #     '''
-    #     Assumes the gripper is above the cube
-    #     '''
-    #     # TODO: offload this to the lower level oracles...!!
-    #     # check if grasped
-    #     grasped, _ = self.state_parser.check_grasped(state)
-    #     if not grasped:
-    #         # Open gripper
-    #         is_gripper_open, _ = self.state_parser.check_gripper_open(state)
-    #         if not is_gripper_open:
-    #             return np.array([0, 0, 0]), True
-    #         # Put gripper around cube
-    #         cube_between_grippers, _ = self.state_parser.check_cube_between_grippers(state)
-    #         if not cube_between_grippers:
-    #             target_pos = self.state_parser.get_cube_pos(state)
-    #             gripper_pos = self.state_parser.get_gripper_pos(state)
-    #             direction = target_pos - gripper_pos
-    #             return direction, True
-    #     # Close gripper
-    #     return np.array([0, 0, 0]), False
-
 
 class LiftCubeTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "lift_cube"
         self.str_description = "Lift cube"
-        self.subtask_cls_seq = []
 
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
-    def check_success_reward(self, current_state):
+    def _check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_cube_lifted_and_grasped(
             current_state
         )
@@ -680,16 +372,15 @@ class LiftCubeTask(Task):
 
 
 class PlaceCubeAtTargetTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "place_cube_at_target"
         self.str_description = "Place cube at target"
-        self.subtask_cls_seq = [MoveCubeTowardsTargetGraspTask]
 
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
-    def check_success_reward(self, current_state):
+    def _check_success_reward(self, current_state):
         success, _ = self.state_parser.check_cube_at_target(current_state)
         reward = self.binary_reward(success)
         return success, reward
@@ -730,21 +421,15 @@ class PlaceCubeAtTargetTask(Task):
 
 
 class MoveCubeTowardsTargetGraspTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "move_cube_towards_target_grasp"
         self.str_description = "Move cube to target while grasping"
-        self.subtask_cls_seq = []
 
-        print("\nWARNING:")
-        print(
-            "MoveCubeTowardsTargetGraspTask - sparse reward - success condition dody - doesn't match with parents...\n\n"
-        )
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
-
-    def check_success_reward(self, current_state):
+    def _check_success_reward(self, current_state):
         if self.use_dense_reward:
             success, dense_reward = self.state_parser.check_cube_at_target(
                 current_state
@@ -754,11 +439,12 @@ class MoveCubeTowardsTargetGraspTask(Task):
             else:
                 reward = np.clip(dense_reward * 3, -1, 0)
         else:
-            success, dense_reward = self.state_parser.check_cube_moving_to_target(
-                current_state
-            )
+            # # old shaped sparse reward:
+            # success, dense_reward = self.state_parser.check_cube_moving_to_target(current_state)
+            # reward = self.binary_reward(success)
+            # standard sparse reward:
+            success, _ = self.state_parser.check_cube_at_target(current_state)
             reward = self.binary_reward(success)
-            # print("MoveCubeTowardsTargetGraspTask - sparse reward - success condition dody - doesn't match with parents...")
         return success, reward
 
     def get_oracle_action(self, state):
@@ -776,16 +462,15 @@ class MoveCubeTowardsTargetGraspTask(Task):
 
 
 class OpenGripperTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "open_gripper"
         self.str_description = "Open gripper"
-        self.subtask_cls_seq = []
 
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
-    def check_success_reward(self, current_state):
+    def _check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_gripper_open_stationary(
             current_state
         )
@@ -801,16 +486,15 @@ class OpenGripperTask(Task):
 
 
 class CubeBetweenGripperTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "cube_between_grippers"
         self.str_description = "Put grippers around cube"
-        self.subtask_cls_seq = []
 
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
-    def check_success_reward(self, current_state):
+    def _check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_cube_between_grippers_easy(
             current_state
         )
@@ -837,16 +521,15 @@ class CubeBetweenGripperTask(Task):
 
 
 class CloseGripperCubeTask(Task):
-    def __init__(self, parent_task=None, level=0, use_dense_reward_lowest_level=False):
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
         self.name = "close_gripper_cube"
         self.str_description = "Close gripper around cube"
-        self.subtask_cls_seq = []
 
-        super().__init__(
-            parent_task, self.subtask_cls_seq, level, use_dense_reward_lowest_level
-        )
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
 
-    def check_success_reward(self, current_state):
+    def _check_success_reward(self, current_state):
         success, dense_reward = self.state_parser.check_grasped(current_state)
         # reward
         if self.use_dense_reward:

@@ -53,6 +53,7 @@ def create_env(hparams):
         hparams["info_keywords"] = ("is_success",)
     else:
         env = make_env(
+            drawer_env=hparams["drawer_env"],
             manual_decompose_p=hparams["manual_decompose_p"],
             dense_rew_lowest=hparams["dense_rew_lowest"],
             dense_rew_tasks=hparams["dense_rew_tasks"],
@@ -64,6 +65,7 @@ def create_env(hparams):
             contained_sequence=hparams["contained_sequence"],
             state_obs_only=True,
             curriculum_manager_cls=hparams["curriculum_manager_cls"],
+            use_incremental_reward=hparams["incremental_reward"],
         )
 
     # Vec Env
@@ -289,7 +291,6 @@ def training_loop_sequential(
 
 
 def get_hparams():
-
     hparams = _CONFIG.value
 
     ##### Checks
@@ -326,7 +327,7 @@ def main(argv):
     # W&B
     if hparams["do_track"]:
         run = wandb.init(
-            entity="ucl-air-lab",
+            entity="robertmccarthy11",
             project="llm-curriculum",
             group=hparams["exp_group"],
             name=hparams["exp_name"],
