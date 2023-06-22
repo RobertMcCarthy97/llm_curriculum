@@ -116,6 +116,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
                     self.reset_conductor.get_active_task().name
                     == self.agent_conductor.get_active_single_task_name()
                 ):
+                    # if so, return
                     return obs, info
                 reset_prev_active_task = self.reset_conductor.get_active_task()
                 # action and step env

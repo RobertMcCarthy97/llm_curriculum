@@ -7,16 +7,17 @@ from llm_curriculum.envs.cli import get_user_action
 if __name__ == "__main__":
 
     env = make_env(
-        drawer_env=True,
+        drawer_env=False,
         manual_decompose_p=1,
         dense_rew_lowest=False,
-        dense_rew_tasks=["move_cube_over_drawer_top"],
+        dense_rew_tasks=[],
         use_language_goals=False,
         render_mode="human",
-        single_task_names=["move_cube_over_drawer_top"],
-        high_level_task_names=["place_cube_drawer_top"],
+        single_task_names=["move_cube_to_target"],
+        high_level_task_names=["move_cube_to_target"],
         contained_sequence=False,
         curriculum_manager_cls=None,
+        use_incremental_reward=True,
     )
 
     for _ in range(5):
