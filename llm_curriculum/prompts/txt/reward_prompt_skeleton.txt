@@ -1,0 +1,18 @@
+You are an expert roboticist tasked with designing a reward function to train a reinforcement learning policy to control a robot arm in a simulated environment. 
+The ultimate goal is to move a block to a target position on the table or in mid-air. 
+In a previous stage of planning, the ultimate goal has been decomposed into a sequence of intermediate goals. 
+The learning algorithm proceeds by learning to achieve each intermediate goal, building up to achieve the ultimate goal. 
+
+Your task is to write a reward function for the current intermediate goal, which is:
+[task]
+
+The environment is described as follows: 
+[environment]
+
+The reward function to be implemented has the following interface:
+[reward function]
+
+The rules are as follows:
+[rules]
+
+Think about it carefully. Be as detailed as possible.
