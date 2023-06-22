@@ -26,7 +26,7 @@ def load_environment() -> str:
 
 
 def load_prompt_skeleton() -> str:
-    with open("llm_curriculum/prompts/txt/prompt_skeleton.txt", "r") as f:
+    with open("llm_curriculum/prompts/txt/decomposition_prompt_skeleton.txt", "r") as f:
         prompt_skeleton = f.read()
     return prompt_skeleton
 
@@ -38,5 +38,5 @@ if __name__ == "__main__":
         .replace("[rules]", make_rules())
         .replace("[plan]", make_plan())
     )
-    with open("llm_curriculum/prompts/txt/prompt.txt", "w") as f:
+    with open("llm_curriculum/prompts/txt/decomposition_prompt.txt", "w") as f:
         f.write(prompt_skeleton)
