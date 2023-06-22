@@ -1,4 +1,6 @@
 You are an expert roboticist tasked with planning to control a robot arm in a simulated environment. 
+The ultimate goal is to move a block to a target position on the table or in mid-air. 
+Your task is to decompose the goal into a sequence of intermediate goal states. 
 
 The environment is described as follows: 
 
@@ -6,9 +8,9 @@ The environment is described as follows:
 
 This environment was introduced in ["Multi-Goal Reinforcement Learning: Challenging Robotics Environments and Request for Research"](https://arxiv.org/abs/1802.09464).
 
-The task in the environment is for a manipulator to move a block to a target position on top of a table or in mid-air. The robot is a 7-DoF [Fetch Mobile Manipulator](https://fetchrobotics.com/) with a two-fingered parallel gripper.
-The robot is controlled by small displacements of the gripper in Cartesian coordinates and the inverse kinematics are computed internally by the MuJoCo framework. The gripper can be opened or closed in order to perform the graspping operation of pick and place.
-The task is also continuing which means that the robot has to maintain the block in the target position for an indefinite period of time.
+The robot is a 7-DoF [Fetch Mobile Manipulator](https://fetchrobotics.com/) with a two-fingered parallel gripper.
+The robot is controlled by small displacements of the gripper in Cartesian coordinates and the inverse kinematics are computed internally by the MuJoCo framework. 
+The gripper can be opened or closed in order to perform the graspping operation of pick and place.
 
 The control frequency of the robot is of `f = 25 Hz`. This is achieved by applying the same action in 20 subsequent simulator step (with a time step of `dt = 0.002 s`) before returning the control to the robot.
 
@@ -72,7 +74,7 @@ Only the observations from the gripper fingers are derived from joints. Also to 
 |-----|---------------------------------------------------------------------------------------------------------------------------------------|--------|--------|---------------------------------------|--------------|
 | 0   | Current block position in the x coordinate                                                                                            | -Inf   | Inf    | object0                               | position (m) |
 | 1   | Current block position in the y coordinate                                                                                            | -Inf   | Inf    | object0                               | position (m) |
-| 2   | Current block position in the z coordinate                                                                                            | -Inf   | Inf    | object0                               | position (m) |
+| 2   | Current block position in the z coordinate                                                                                      | -Inf   | Inf    | target0                               | position (m) |
 
 ## Starting State
 

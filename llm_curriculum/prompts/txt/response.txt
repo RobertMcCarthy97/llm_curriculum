@@ -1,35 +1,36 @@
 <goal name='Cube is at the target'>
-    <goal name='Gripper is opened'>
-        <goal name='Gripper is positioned over the block'>
-            <goal name='Gripper is close to the block' />
-            <goal name='Gripper is above the block' />
-        </goal>
-        <goal name='Displace gripper fingers to fully open' />
+  <goal name='Gripper is correctly positioned over the cube'>
+    <goal name='Gripper is at the same x and y position as the cube'>
+      <goal name='Gripper x coordinate matches cube x coordinate' />
+      <goal name='Gripper y coordinate matches cube y coordinate' />
     </goal>
-    <goal name='Gripper is closed with block'>
-        <goal name='Gripper descends to block'>
-            <goal name='Gripper moves towards the block along the z-axis' />
-        </goal>
-        <goal name='Gripper grasps the block'>
-            <goal name='Displace gripper fingers to fully close' />
-        </goal>
+    <goal name='Gripper is positioned above the cube'>
+      <goal name='Gripper z coordinate is greater than cube z coordinate' />
     </goal>
-    <goal name='Block is lifted'>
-        <goal name='Gripper ascends with block'>
-            <goal name='Gripper moves away from the table along the z-axis' />
-        </goal>
+  </goal>
+  <goal name='Gripper is properly aligned with the cube'>
+    <goal name='Gripper orientation matches cube orientation' />
+  </goal>
+  <goal name='Gripper is closed to grasp the cube'>
+    <goal name='Gripper fingers are closing' />
+    <goal name='Gripper fingers are in contact with the cube' />
+  </goal>
+  <goal name='Gripper is lifting the cube'>
+    <goal name='Gripper z coordinate is increasing' />
+    <goal name='Cube z coordinate is increasing' />
+  </goal>
+  <goal name='Gripper is moving the cube towards the target'>
+    <goal name='Gripper and cube x and y coordinates match the target x and y coordinates'>
+      <goal name='Gripper and cube x coordinate matches target x coordinate' />
+      <goal name='Gripper and cube y coordinate matches target y coordinate' />
     </goal>
-    <goal name='Block is above the target'>
-        <goal name='Gripper moves to target with block'>
-            <goal name='Gripper moves towards target in the x-y plane' />
-        </goal>
+    <goal name='Gripper and cube z coordinate is above the target z coordinate'>
+      <goal name='Gripper and cube z coordinate is greater than target z coordinate' />
     </goal>
-    <goal name='Block is at the target'>
-        <goal name='Gripper releases the block'>
-            <goal name='Displace gripper fingers to fully open' />
-        </goal>
-        <goal name='Gripper ascends without block'>
-            <goal name='Gripper moves away from the block along the z-axis' />
-        </goal>
-    </goal>
+  </goal>
+  <goal name='Gripper is releasing the cube at the target'>
+    <goal name='Gripper fingers are opening' />
+    <goal name='Cube is in contact with the target' />
+    <goal name='Cube z coordinate matches the target z coordinate' />
+  </goal>
 </goal>

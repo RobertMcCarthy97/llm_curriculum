@@ -1,4 +1,6 @@
 You are an expert roboticist tasked with planning to control a robot arm in a simulated environment. 
+The ultimate goal is to move a block to a target position on the table or in mid-air. 
+Your task is to decompose the goal into a sequence of intermediate goal states. 
 
 The environment is described as follows: 
 [environment]
