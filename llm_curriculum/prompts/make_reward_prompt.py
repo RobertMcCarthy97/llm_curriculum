@@ -3,6 +3,7 @@ def make_rules() -> str:
         "Ensure the reward function will allow the robot to learn the task.",
         "Reply only with a reward function that returns a reward based on the current state.",
         "Do not define any additional functions.",
+        "Always start the response with [start of function] and end it with [end of function].",
     )
     return "\n".join(rules)
 
@@ -10,11 +11,13 @@ def make_rules() -> str:
 def make_reward_function() -> str:
     """Return a skeleton reward function"""
     reward_function = (
+        "[start of function]",
         "def reward_function(state: Dict[str, Any]) -> float:",
         '    """Return a reward based on the current state """',
         "    reward = 0",
         "    # TODO: Add reward function here",
         "    return reward",
+        "[end of function]",
     )
     return "\n".join(reward_function)
 
