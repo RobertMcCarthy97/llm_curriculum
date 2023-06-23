@@ -291,7 +291,7 @@ def get_hparams():
     hparams = {
         "seed": 0,
         # env
-        "manual_decompose_p": 1,
+        "manual_decompose_p": None,
         "dense_rew_lowest": False,
         "use_language_goals": False,
         "render_mode": "rgb_array",
@@ -300,10 +300,10 @@ def get_hparams():
         "use_baseline_env": False,
         # task
         "drawer_env": False,
-        "single_task_names": ["pick_up_cube"],  #
-        "high_level_task_names": ["move_cube_to_target"],
-        "curriculum_manager_cls": DummySeperateEpisodesCM,  # DummySeperateEpisodesCM, SeperateEpisodesCM, None (CM decides 'decompose_p' based on success rates)
-        "sequenced_episodes": False,
+        "single_task_names": [],  #
+        "high_level_task_names": ["pick_up_cube_mini"],
+        "curriculum_manager_cls": SeperateEpisodesCM,  # DummySeperateEpisodesCM, SeperateEpisodesCM, None (CM decides 'decompose_p' based on success rates)
+        "sequenced_episodes": True,
         "contained_sequence": False,
         "dense_rew_tasks": ["move_gripper_to_cube"],  #
         "incremental_reward": False,
@@ -312,8 +312,8 @@ def get_hparams():
         "algo": TD3,  # DDPG/TD3/SAC
         "policy_type": "MlpPolicy",  # "MlpPolicy", "MultiInputPolicy"
         "learning_starts": 1e3,
-        "replay_buffer_class": None,  # None, SeparatePoliciesReplayBuffer
-        "replay_buffer_kwargs": None,  # None, {'child_p': 0.2}
+        "replay_buffer_class": SeparatePoliciesReplayBuffer,  # None, SeparatePoliciesReplayBuffer
+        "replay_buffer_kwargs": {"child_p": 0.2},  # None, {'child_p': 0.2}
         "total_timesteps": 1e6,
         "device": "cpu",
         "policy_kwargs": None,  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
@@ -321,7 +321,7 @@ def get_hparams():
         # logging
         "do_track": True,
         "log_path": "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}",
-        "exp_name": "pick_up_cube-single-initial_state_curriculum_p=0.5",
+        "exp_name": "pick_up_cube-sequenced-initial_state_curriculum_p=0.5-do_data_share",
         "exp_group": "initial_state_curriculum-testing",
         "info_keywords": ("is_success", "overall_task_success", "active_task_level"),
     }

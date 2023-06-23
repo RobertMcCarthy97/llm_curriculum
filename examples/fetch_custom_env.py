@@ -7,14 +7,14 @@ from llm_curriculum.envs.cli import get_user_action
 if __name__ == "__main__":
 
     env = make_env(
-        drawer_env=False,
-        manual_decompose_p=1,
+        drawer_env=True,
+        manual_decompose_p=0.5,
         dense_rew_lowest=False,
         dense_rew_tasks=[],
         use_language_goals=False,
         render_mode="human",
-        single_task_names=["pick_up_cube"],
-        high_level_task_names=["move_cube_to_target"],
+        single_task_names=[],
+        high_level_task_names=["place_cube_open_drawer"],
         contained_sequence=False,
         curriculum_manager_cls=None,
         use_incremental_reward=False,
@@ -26,7 +26,7 @@ if __name__ == "__main__":
         obs = env.reset()
         print("env reset")
 
-        for _ in range(15):
+        for _ in range(50):
             ## Actions
             # action = env.action_space.sample()
             # action = get_user_action()

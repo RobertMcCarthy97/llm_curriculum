@@ -2,85 +2,9 @@ import numpy as np
 import random
 
 from llm_curriculum.envs.tasks.task_trees import TaskTreeBuilder
+from llm_curriculum.envs.curriculum_manager import InitialStateCurriculumManager
 
-
-class ExponentialDecayingMovingAverage:
-    def __init__(self, alpha=0.5):  # TODO: make alpha an official hyperparameter
-        self.alpha = alpha
-        self.edma = None
-
-    def update(self, data_point):
-        if self.edma is None:
-            self.edma = data_point
-        else:
-            self.edma = self.alpha * data_point + (1 - self.alpha) * self.edma
-        return self.edma
-
-    def get_edma(self):
-        return self.edma
-
-
-class StatsTracker:
-    def __init__(self, task_names) -> None:
-        self.task_names = task_names
-
-        self.raw_stats = {}
-        self.raw_stats["all"] = self.init_raw_stats(task_names)
-        self.raw_stats["epoch"] = self.init_raw_stats(task_names)
-        self.epoch_edma = self.init_raw_stats(task_names, edma=True)
-
-        self.latest_epoch_agg = self.calc_latest_epoch_agg()  # should be zeros??
-
-    def init_raw_stats(self, task_names, edma=False):
-        raw_stats = {}
-        for name in task_names:
-            if edma:
-                raw_stats[
-                    name
-                ] = ExponentialDecayingMovingAverage()  # TODO: set alpha properly
-            else:
-                raw_stats[name] = []
-        return raw_stats
-
-    def append_stat(self, task_name, stat):
-        self.raw_stats["all"][task_name].append(stat)
-        self.raw_stats["epoch"][task_name].append(stat)
-
-    def reset_epoch_stats(self):
-        # record current epoch stats
-        self.latest_epoch_agg = self.calc_latest_epoch_agg()
-        # update edma
-        self.update_edma(self.latest_epoch_agg)
-        # reset
-        self.raw_stats["epoch"] = self.init_raw_stats(self.task_names)
-
-    def get_agg_stats(self, agg_func):
-        agg_stats = {}
-        for time_key in ["all", "epoch"]:
-            agg_stats[time_key] = {}
-            for task_key in self.raw_stats[time_key].keys():
-                if len(self.raw_stats[time_key][task_key]) < 1:
-                    agg_stat = None
-                else:
-                    agg_stat = agg_func(self.raw_stats[time_key][task_key])
-                agg_stats[time_key][task_key] = agg_stat
-        return agg_stats
-
-    def calc_latest_epoch_agg(self):
-        agg_stats = self.get_agg_stats(lambda x: np.mean(x))
-        latest_epoch_agg = agg_stats["epoch"]
-        return latest_epoch_agg
-
-    def update_edma(self, latest_epoch_agg):
-        for task_key, task_stat in latest_epoch_agg.items():
-            if task_stat is not None:
-                self.epoch_edma[task_key].update(task_stat)
-
-    def get_task_edma(self, task_name):
-        return self.epoch_edma[task_name].get_edma()
-
-    def get_task_epoch_agg(self, task_name):
-        return self.latest_epoch_agg[task_name]
+from llm_curriculum.utils.stats import StatsTracker, ExponentialDecayingMovingAverage
 
 
 class AgentConductor:
@@ -115,7 +39,9 @@ class AgentConductor:
         self.dense_reward_tasks = dense_rew_tasks
 
         self.use_incremental_reward = use_incremental_reward
-        self.initial_state_curriculum_p = initial_state_curriculum_p
+        self.initial_state_curriculum_manager = InitialStateCurriculumManager(
+            initial_state_curriculum_p, self
+        )
 
         # logger
         self.logger = None
@@ -258,6 +184,8 @@ class AgentConductor:
     def reset(self):
         # reset tasks (i.e. set complete=False)
         self.reset_tasks()
+        # reset intial-state curriculum
+        self.initial_state_curriculum_manager.episode_reset()
         # if doing single task per episode (or sequenced), sample from self.single_task_names
         if len(self.single_task_names) > 0:
             self.active_single_task_name = np.random.choice(self.single_task_names)
@@ -279,13 +207,13 @@ class AgentConductor:
         self.active_task = self.step_task_recursive(prev_active_task)
         return self.active_task
 
-    def decompose_task(self, task):
+    def decompose_task(self, task, force_decompose=False):
         # Never decompose single task or contained sequence
         if task.name == self.active_single_task_name:
             return task
         if not task.complete:
             if len(task.subtask_sequence) > 0:
-                if self.decide_decompose(task):
+                if self.decide_decompose(task) or force_decompose:
                     for subtask in task.subtask_sequence:
                         if not subtask.complete:
                             return self.decompose_task(subtask)
@@ -303,17 +231,27 @@ class AgentConductor:
         return do_decompose
 
     def step_task_recursive(self, task):
+        # if using single tasks
         if task.name == self.active_single_task_name:
-            # contained sequence logic
-            if self.contained_sequence:
-                if task.complete and task.check_next_task_exists():
-                    # jump to next task in sequence
-                    self.active_single_task_name = task.next_task.name
-                    return task.next_task
-            # single task logic
-            return task
-
+            return self.step_single_task(task)
         # normal tree-traversal logic
+        else:
+            active_task = self.step_task_tree(task)
+            # check for initial state curriculum, only if not doing single task learning
+            active_task = self.initial_state_curriculum_manager.step(active_task)
+            return active_task
+
+    def step_single_task(self, task):
+        # contained sequence logic
+        if self.contained_sequence:
+            if task.complete and task.check_next_task_exists():
+                # jump to next task in sequence
+                self.active_single_task_name = task.next_task.name
+                return task.next_task
+        # single task logic
+        return task
+
+    def step_task_tree(self, task):
         """
         Once gone down (via decompose_task), only ever come back up 1 level if finished a sub-task sequence
         """
@@ -342,28 +280,6 @@ class AgentConductor:
         else:
             # If task not complete, then keep trying!
             return task
-
-    def decide_initial_state_curriculum_task(self, task):
-        """
-        - Decides whether do curriculum according to initial_state_curriculum_p
-        - If so, choose a random child task to reset to (excluding first child)
-
-        TODO:
-        - Move this into a curriculum manager
-        - Use success-rate-based curriculum_p
-        - More princpiled choice of child
-        """
-        do_curriculum_p = self.initial_state_curriculum_p
-        do_curriculum = np.random.choice(
-            [True, False], p=[do_curriculum_p, 1 - do_curriculum_p]
-        )
-        if do_curriculum:
-            n_children = len(task.subtask_sequence)
-            if n_children > 1:
-                reset_to_child_i = random.randrange(1, n_children)
-                reset_child = task.subtask_sequence[reset_to_child_i]
-                return reset_child
-        return task
 
     def get_oracle_action(self, state, task):
         # assert self.chosen_high_level_task != 'grasp_cube', "oracle actions don't work well here!!"

@@ -34,10 +34,10 @@ Custom Fetch environment: `examples/fetch_custom_env.py`.
 
 Single-task training:
 ```bash
-python llm_curriculum/learning/sb3/train_singletask.py
+python llm_curriculum/learning/train_singletask.py
 ```
 
 Multi-task learning:
 ```bash
-python llm_curriculum/learning/sb3/train_multitask_separate.py
+python llm_curriculum/learning/train_multitask_separate.py
 ```

@@ -110,7 +110,11 @@ class CurriculumEnvWrapper(gym.Wrapper):
             # decide task to reset to
             single_task_name = self.agent_conductor.get_active_single_task_name()
             single_task = self.agent_conductor.get_task_from_name(single_task_name)
-            reset_task = self.agent_conductor.decide_initial_state_curriculum_task(
+            (
+                _,
+                reset_task,
+                _,
+            ) = self.agent_conductor.initial_state_curriculum_manager.decide_initial_state_curriculum_task(
                 single_task
             )
             # reset reset_conductor

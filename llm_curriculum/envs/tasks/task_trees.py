@@ -97,6 +97,14 @@ place_cube_drawer_top_tree = {
     }
 }
 
+pick_up_cube_mini_tree = {
+    PickUpCubeTask: {
+        MoveGripperToCubeTask: None,
+        CubeBetweenGripperTask: None,
+        CloseGripperCubeTask: None,
+        LiftCubeTask: None,
+    }
+}
 
 """
 TODO: create these trees
@@ -104,8 +112,6 @@ TODO: create these trees
 self.str_description = "grasp cube mini"
 self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask]
 
-self.str_description = "Pick up cube mini"
-self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask, CloseGripperCubeTask, LiftCubeTask]
 
 self.str_description = "pick and place mini"
 self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask, CloseGripperCubeTask, LiftCubeTask, MoveCubeTowardsTargetGraspTask]
@@ -113,6 +119,7 @@ self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask, CloseGrip
 
 # record all valid trees in this dict
 TASK_TREES = {
+    "pick_up_cube_mini": pick_up_cube_mini_tree,
     "move_cube_to_target": move_cube_to_target_tree,
     "open_drawer": open_drawer_tree,
     "close_drawer": close_drawer_tree,
