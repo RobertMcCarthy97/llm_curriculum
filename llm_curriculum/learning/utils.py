@@ -139,6 +139,22 @@ def setup_logging(hparams, train_env, base_freq=1000):
     return logger, callback
 
 
+def maybe_create_wandb_callback(hparams, env):
+    callback_list = []
+    if hparams.wandb.track:
+        # log hyperparameters
+        wandb.log({"hyperparameters": hparams})
+        # wandb callback
+        callback_list += [
+            WandbCallback(
+                gradient_save_freq=10,
+                model_save_path=None,
+                verbose=1,
+            )
+        ]
+    return callback_list
+
+
 def create_models(env, logger, hparams):
     task_list = env.envs[0].agent_conductor.get_possible_task_names()
     assert len(task_list) > 0
