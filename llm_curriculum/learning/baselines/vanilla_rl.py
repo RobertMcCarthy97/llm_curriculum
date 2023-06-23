@@ -2,6 +2,7 @@
 
 import wandb
 
+from typing import Any, Dict
 from absl import app
 from absl import flags
 from ml_collections import config_flags
@@ -25,11 +26,54 @@ def get_hparams():
     return hparams
 
 
+def training_loop(models_dict, env, hparams, log_interval=4, callback=None):
+
+    total_timesteps = hparams.total_timesteps
+    for task_name in hparams.high_level_task_names:
+        assert len(env.envs) == 1
+
+        # Get model
+        model = models_dict[task_name]
+
+        # Set task
+        for vec_env in env.envs:
+            vec_env.agent_conductor.set_single_task_names([task_name])
+
+        # Collect data
+        rollout = model.collect_rollouts(
+            env,
+            train_freq=model.train_freq,
+            action_noise=model.action_noise,
+            callback=callback,
+            learning_starts=model.learning_starts,
+            replay_buffer=model.replay_buffer,
+            log_interval=log_interval,
+            reset_b4_collect=True,
+        )
+        # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
+
+        if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
+            # If no `gradient_steps` is specified,
+            # do as many gradients steps as steps performed during the rollout
+            gradient_steps = (
+                model.gradient_steps
+                if model.gradient_steps >= 0
+                else rollout.episode_timesteps
+            )
+            # Special case when the user passes `gradient_steps=0`
+            if gradient_steps > 0:
+                model.train(batch_size=model.batch_size, gradient_steps=gradient_steps)
+
+        # end condition
+        if model.num_timesteps > total_timesteps:  # TODO: use global env count instead
+            break
+
+
 def main(argv):
     """
     TODO: implement W&B sweep?
     """
-    hparams = get_hparams()
+    hparams: "ml_collections.config_dict.ConfigDict" = get_hparams()
     print(hparams)
     if hparams["help"]:
         # Exit after printing hparams
@@ -53,7 +97,7 @@ def main(argv):
     set_random_seed(hparams["seed"])  # type:ignore
 
     # create envs
-    env = create_env(hparams)
+    env: "VecNormalize" = create_env(hparams)
 
     # setup logging
     logger, callback = setup_logging(hparams, env)
@@ -61,7 +105,7 @@ def main(argv):
     env.envs[0].agent_conductor.set_logger(logger)
 
     # create models
-    models_dict = create_models(env, logger, hparams)
+    models_dict: Dict[str, Any] = create_models(env, logger, hparams)
 
     # Only keep the model for the high-level task
     assert hparams.high_level_task_names is not None
@@ -71,7 +115,7 @@ def main(argv):
 
     # Train
     init_training(models_dict, hparams["total_timesteps"], callback=callback)
-    training_loop(models_dict, env, hparams["total_timesteps"], callback=callback)
+    training_loop(models_dict, env, hparams, callback=callback)
 
     # Close
     if hparams.wandb.track:
