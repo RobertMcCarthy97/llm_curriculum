@@ -11,6 +11,7 @@ from llm_curriculum.learning.utils import (
     training_loop,
     training_loop_sequential,
     check_hparams,
+    set_random_seed,
 )
 
 _CONFIG = config_flags.DEFINE_config_file("config", None)
@@ -70,7 +71,7 @@ def main(argv):
     else:
         training_loop(models_dict, env, hparams["total_timesteps"], callback=callback)
 
-    if hparams["do_track"]:
+    if hparams.wandb.track:
         run.finish()
 
 

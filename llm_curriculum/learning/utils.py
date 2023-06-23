@@ -81,7 +81,9 @@ def setup_logging(hparams, train_env, base_freq=1000):
     # create eval envs
     if hparams["sequenced_episodes"]:
         eval_env_sequenced = create_env(hparams)
-        non_seq_params = hparams.copy()
+        import copy
+
+        non_seq_params = copy.deepcopy(hparams)
         non_seq_params.update(
             {
                 "sequenced_episodes": False,
@@ -121,7 +123,7 @@ def setup_logging(hparams, train_env, base_freq=1000):
         )
     ]
     # wandb
-    if hparams["do_track"]:
+    if hparams.wandb.track:
         # log hyperparameters
         wandb.log({"hyperparameters": hparams})
         # wandb callback
@@ -158,7 +160,7 @@ def create_models(env, logger, hparams):
             verbose=1,
             learning_starts=hparams["learning_starts"],
             replay_buffer_class=hparams["replay_buffer_class"],
-            replay_buffer_kwargs=hparams["replay_buffer_kwargs"],
+            replay_buffer_kwargs=hparams["replay_buffer_kwargs"].to_dict(),
             device=hparams["device"],
             use_oracle_at_warmup=hparams["use_oracle_at_warmup"],
             policy_kwargs=hparams["policy_kwargs"],
