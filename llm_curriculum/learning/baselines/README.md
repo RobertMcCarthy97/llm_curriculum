@@ -3,14 +3,13 @@
 Run vanilla TD3: 
 ```bash
 python llm_curriculum/learning/baselines/vanilla_rl.py \
-    --config llm_curriculum/learning/config/baseline.py \
-    --config.wandb.track=False 
+    --config llm_curriculum/baselines/config/default.py
 ```
 
 Run TD3 + HER:
 ```bash
 python llm_curriculum/learning/baselines/vanilla_rl.py \
-    --config llm_curriculum/learning/config/baseline.py \
+    --config llm_curriculum/baselines/config/default.py \
     --config.use_her=True
 ```
 
