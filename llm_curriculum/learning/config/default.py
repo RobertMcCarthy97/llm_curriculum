@@ -6,6 +6,30 @@ from stable_baselines3.common.buffers_custom import SeparatePoliciesReplayBuffer
 from stable_baselines3.common.noise import NormalActionNoise
 
 
+def get_env_config():
+    """Returns the default config"""
+    # TODO: Refactor get_config to use this function
+    config = config_dict.ConfigDict()
+
+    # env
+    config.manual_decompose_p = None
+    config.dense_rew_lowest = False
+    config.dense_rew_tasks = ["move_gripper_to_cube"]
+    config.use_language_goals = False
+    config.render_mode = "rgb_array"
+    config.use_oracle_at_warmup = False
+    config.max_ep_len = 50
+    config.use_baseline_env = False
+    # task
+    config.single_task_names = []
+    config.high_level_task_names = ["move_cube_to_target"]
+    config.curriculum_manager_cls = SeperateEpisodesCM
+    config.sequenced_episodes = True
+    config.contained_sequence = False
+
+    return config
+
+
 def get_config():
     """Returns the default config"""
     # TODO: Figure out how to convert string to class
