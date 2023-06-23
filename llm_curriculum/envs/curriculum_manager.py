@@ -1,7 +1,7 @@
 import random
 import numpy as np
 
-from llm_curriculum.envs.agent_conductor import StatsTracker
+from llm_curriculum.utils.stats import StatsTracker
 
 
 class CurriculumManager:
@@ -214,3 +214,111 @@ class SeperateEpisodesCM(CurriculumManager):
         # p is probability of sticking with task, so decompose_p is 1-p
         decompose_p = 1 - p
         return decompose_p
+
+
+class InitialStateCurriculumManager:
+    """
+    Super basic and unprincipled approach to initial state curriculum.
+
+    - Decides wheter to do intial state curriculum for a task
+    - Decides which intial-state child to use
+    - Returns parent once intial-state reached
+    - inital_state_curriculum_p decides whether to do the curriculum
+    - only allowed apply intial-state curriculum once to a single task within a single episode
+
+    TODO:
+    - Exploit mode (take tree path most likely to reach desired intial state)
+    - Use success-rate based p (no point doing curriculum if children are bad, or parent better than children)
+    - COmplete revamp
+    - More principled choice of child
+    """
+
+    def __init__(self, initial_state_curriculum_p, agent_conductor):
+        self.initial_state_curriculum_p = initial_state_curriculum_p
+        self.agent_conductor = agent_conductor
+        self.episode_reset()
+
+    def episode_reset(self):
+        self.curriculum_reset()
+        self.tasks_to_not_apply_curric_again_to = []
+
+    def curriculum_reset(self):
+        self.task_requiring_curriculum = None
+        self.completing_reset_task = None
+        self.curriculum_in_progress = False
+
+    def step(self, active_task):
+        if self.curriculum_in_progress:
+            # if reached init state, then deploy parent
+            if self.completing_reset_task.success_count > 0:
+                og_task = self.task_requiring_curriculum
+                self.curriculum_reset()
+                self.tasks_to_not_apply_curric_again_to += [og_task.name]
+                return og_task
+        else:
+            task_requiring_curriculum = active_task
+            # check if have already done curriculum for this task
+            already_done = (
+                task_requiring_curriculum.name
+                in self.tasks_to_not_apply_curric_again_to
+            )
+            if not already_done:
+                # decide whether to do curriculum
+                (
+                    completing_reset_task,
+                    _,
+                    do_curriculum,
+                ) = self.decide_initial_state_curriculum_task(
+                    task_requiring_curriculum
+                )  # this checks if n_children > 1
+                if do_curriculum:
+                    self.curriculum_in_progress = True
+                    self.task_requiring_curriculum = task_requiring_curriculum
+                    self.completing_reset_task = completing_reset_task
+                    curriculum_task = self.agent_conductor.decompose_task(
+                        task_requiring_curriculum, force_decompose=True
+                    )
+                    return curriculum_task
+                else:
+                    # rule out for rest of episode
+                    self.tasks_to_not_apply_curric_again_to += [
+                        task_requiring_curriculum.name
+                    ]
+        # else just return original actrive task
+        return active_task
+
+    def decide_do_initial_curriculum(self, task):
+        assert (
+            self.initial_state_curriculum_p == 0.0
+        ), "initial-state curriculum not yet robust"
+        # decide based on p
+        do_curriculum_p = (
+            self.initial_state_curriculum_p
+        )  # TODO: base this on success rates...
+        do_curriculum = np.random.choice(
+            [True, False], p=[do_curriculum_p, 1 - do_curriculum_p]
+        )
+        # decide based on children
+        sufficient_children = len(task.subtask_sequence) > 1
+        do_curriculum = do_curriculum and sufficient_children
+        assert not do_curriculum
+        return do_curriculum
+
+    def decide_initial_state_curriculum_task(self, task):
+        """
+        - Decides whether do curriculum according to initial_state_curriculum_p
+        - If so, choose a random leaf task to reset to (excluding first leaf)
+        - assumes each leaf is evenly spaced / evenly difficult
+
+        """
+        do_curriculum = self.decide_do_initial_curriculum(task)
+        if do_curriculum:
+            # get leaf nodes
+            leaf_sequence = task.get_leaf_task_sequence()
+            n_leafs = len(leaf_sequence)
+            chosen_i = random.randrange(1, n_leafs)
+            init_to_reset_leaf = leaf_sequence[chosen_i]
+            completing_reset_leaf = leaf_sequence[chosen_i - 1]
+            return completing_reset_leaf, init_to_reset_leaf, True
+        else:
+            return None, task, False

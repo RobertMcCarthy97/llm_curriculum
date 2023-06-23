@@ -81,6 +81,22 @@ class Task:
             for subtask in self.subtask_sequence:
                 subtask.to_string_full_tree(indent + 1)
 
+    def get_leaf_task_sequence(self):
+        def _get_leaf_task_sequence_recursive(task):
+            leaf_seq = []
+            if len(task.subtask_sequence) > 0:
+                for subtask in task.subtask_sequence:
+                    subtask_seq = _get_leaf_task_sequence_recursive(subtask)
+                    leaf_seq += subtask_seq
+            else:
+                leaf_seq += [task]
+            return leaf_seq
+
+        leaf_seq = []
+        for subtask in self.subtask_sequence:
+            leaf_seq += _get_leaf_task_sequence_recursive(subtask)
+        return leaf_seq
+
     def set_next_task(self, next_task):
         self.next_task = next_task
 

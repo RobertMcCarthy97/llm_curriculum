@@ -29,9 +29,10 @@ def get_config():
     # task
     config.single_task_names = []
     config.high_level_task_names = ["move_cube_to_target"]
-    config.curriculum_manager_cls = SeperateEpisodesCM
+    config.curriculum_manager_cls = SeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM, None (CM decides 'decompose_p' based on success rates)
     config.sequenced_episodes = True
     config.contained_sequence = False
+    config.initial_state_curriculum_p = 0.0
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
@@ -40,7 +41,7 @@ def get_config():
     config.replay_buffer_kwargs = {"child_p": 0.2}
     config.total_timesteps = 1e6
     config.device = "cpu"
-    config.policy_kwargs = None
+    config.policy_kwargs = None  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
     config.action_noise = NormalActionNoise
     # logging
     config.wandb = config_dict.ConfigDict()
