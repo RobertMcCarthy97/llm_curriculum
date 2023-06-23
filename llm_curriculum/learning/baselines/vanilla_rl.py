@@ -1,20 +1,22 @@
 """ Run vanilla RL on the FetchPickAndPlace task. """
 
 import wandb
+import gymnasium as gym
 
 from typing import Any, Dict
 from absl import app
 from absl import flags
 from ml_collections import config_flags
 from llm_curriculum.learning.utils import (
-    create_env,
-    create_models,
-    init_training,
-    setup_logging,
-    training_loop,
-    check_hparams,
+    make_env_baseline,
     set_random_seed,
+    maybe_create_wandb_callback,
 )
+
+from stable_baselines3.common.logger import configure
+from stable_baselines3.common.callbacks import CallbackList
+from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor, VecNormalize
+from llm_curriculum.envs.wrappers import NonGoalNonDictObsWrapper
 
 _CONFIG = config_flags.DEFINE_config_file("config", None)
 flags.mark_flag_as_required("config")
@@ -22,51 +24,37 @@ flags.mark_flag_as_required("config")
 
 def get_hparams():
     hparams = _CONFIG.value
-    check_hparams(hparams)
     return hparams
 
 
-def training_loop(models_dict, env, hparams, log_interval=4, callback=None):
+def setup_logging(hparams, env):
+    # Logger and callbacks
+    logger = configure(hparams.log_path, ["stdout", "csv", "tensorboard"])
+    return logger
 
-    total_timesteps = hparams.total_timesteps
-    for task_name in hparams.high_level_task_names:
-        assert len(env.envs) == 1
 
-        # Get model
-        model = models_dict[task_name]
+def create_env(hparams):
+    env = make_env_baseline(
+        "FetchPickAndPlace-v2",
+        render_mode=hparams.render_mode,
+        max_ep_len=hparams.max_ep_len,
+    )
+    env = NonGoalNonDictObsWrapper(env)
+    env = DummyVecEnv([lambda: env])
+    env = VecMonitor(env, info_keywords=hparams.info_keywords)
+    env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
+    return env
 
-        # Set task
-        for vec_env in env.envs:
-            vec_env.agent_conductor.set_single_task_names([task_name])
 
-        # Collect data
-        rollout = model.collect_rollouts(
-            env,
-            train_freq=model.train_freq,
-            action_noise=model.action_noise,
-            callback=callback,
-            learning_starts=model.learning_starts,
-            replay_buffer=model.replay_buffer,
-            log_interval=log_interval,
-            reset_b4_collect=True,
-        )
-        # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
-
-        if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
-            # If no `gradient_steps` is specified,
-            # do as many gradients steps as steps performed during the rollout
-            gradient_steps = (
-                model.gradient_steps
-                if model.gradient_steps >= 0
-                else rollout.episode_timesteps
-            )
-            # Special case when the user passes `gradient_steps=0`
-            if gradient_steps > 0:
-                model.train(batch_size=model.batch_size, gradient_steps=gradient_steps)
-
-        # end condition
-        if model.num_timesteps > total_timesteps:  # TODO: use global env count instead
-            break
+def create_model(hparams, env):
+    model = hparams.algo(
+        hparams.policy_type,
+        env,
+        verbose=1,
+        learning_starts=hparams.learning_starts,
+        device=hparams.device,
+    )
+    return model
 
 
 def main(argv):
@@ -92,30 +80,31 @@ def main(argv):
             monitor_gym=False,  # auto-upload the videos of agents playing the game
             save_code=False,  # optional
         )
+        # log hyperparameters
+        wandb.log({"hyperparameters": hparams})
 
     # Seed
     set_random_seed(hparams["seed"])  # type:ignore
 
     # create envs
-    env: "VecNormalize" = create_env(hparams)
+    env = create_env(hparams)
+    model = create_model(hparams, env)
 
-    # setup logging
-    logger, callback = setup_logging(hparams, env)
-    assert len(env.envs) == 1
-    env.envs[0].agent_conductor.set_logger(logger)
+    # logging
+    logger = setup_logging(hparams, env)
+    model.set_logger(logger)
 
-    # create models
-    models_dict: Dict[str, Any] = create_models(env, logger, hparams)
-
-    # Only keep the model for the high-level task
-    assert hparams.high_level_task_names is not None
-    assert len(hparams.high_level_task_names) == 1
-    task_name = hparams.high_level_task_names[0]
-    models_dict = {task_name: models_dict[task_name]}
+    # Callbacks
+    callback_list = []
+    callback_list += maybe_create_wandb_callback(hparams, env)
+    callback = CallbackList(callback_list)
 
     # Train
-    init_training(models_dict, hparams["total_timesteps"], callback=callback)
-    training_loop(models_dict, env, hparams, callback=callback)
+    model.learn(
+        total_timesteps=hparams.total_timesteps,
+        callback=callback,
+        log_interval=4,
+    )
 
     # Close
     if hparams.wandb.track:

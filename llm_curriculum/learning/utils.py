@@ -142,8 +142,6 @@ def setup_logging(hparams, train_env, base_freq=1000):
 def maybe_create_wandb_callback(hparams, env):
     callback_list = []
     if hparams.wandb.track:
-        # log hyperparameters
-        wandb.log({"hyperparameters": hparams})
         # wandb callback
         callback_list += [
             WandbCallback(
