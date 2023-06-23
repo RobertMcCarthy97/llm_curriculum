@@ -13,6 +13,8 @@ from llm_curriculum.learning.utils import (
     maybe_create_wandb_callback,
 )
 
+from stable_baselines3 import HerReplayBuffer
+from stable_baselines3.common.buffers import DictReplayBuffer
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.callbacks import CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor, VecNormalize
@@ -39,7 +41,6 @@ def create_env(hparams):
         render_mode=hparams.render_mode,
         max_ep_len=hparams.max_ep_len,
     )
-    env = NonGoalNonDictObsWrapper(env)
     env = DummyVecEnv([lambda: env])
     env = VecMonitor(env, info_keywords=hparams.info_keywords)
     env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
@@ -47,11 +48,26 @@ def create_env(hparams):
 
 
 def create_model(hparams, env):
+
+    replay_buffer_class = None
+    replay_buffer_kwargs = None
+
+    if hparams.use_her:
+        replay_buffer_class = HerReplayBuffer
+        replay_buffer_kwargs = dict(
+            n_sampled_goal=4,
+            goal_selection_strategy="future",
+        )
+    else:
+        replay_buffer_class = DictReplayBuffer
+
     model = hparams.algo(
         hparams.policy_type,
         env,
         verbose=1,
         learning_starts=hparams.learning_starts,
+        replay_buffer_class=replay_buffer_class,
+        replay_buffer_kwargs=replay_buffer_kwargs,
         device=hparams.device,
     )
     return model

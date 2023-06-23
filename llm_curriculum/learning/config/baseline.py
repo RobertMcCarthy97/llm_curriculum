@@ -23,8 +23,9 @@ def get_config():
 
     # algo
     config.algo = TD3
-    config.policy_type = "MlpPolicy"
+    config.policy_type = "MultiInputPolicy"
     config.learning_starts = 1e3
+    config.use_her = False
     config.total_timesteps = 1e6
     config.device = "cpu"
 
