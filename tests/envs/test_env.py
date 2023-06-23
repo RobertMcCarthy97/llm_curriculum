@@ -1,7 +1,7 @@
 import numpy as np
 
 from llm_curriculum.envs.make_env import make_env
-from llm_curriculum.envs.tasks import valid_tasks
+from llm_curriculum.envs.tasks.core_tasks import valid_tasks
 
 
 """
