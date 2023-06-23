@@ -6,13 +6,15 @@ from llm_curriculum.envs.curriculum_manager import SeperateEpisodesCM
 
 def test_make_env():
     env = make_env(
+        drawer_env=False,
+        use_incremental_reward=False,
         manual_decompose_p=1,
         dense_rew_lowest=False,
         dense_rew_tasks=[],
         use_language_goals=False,
         render_mode="rgb_array",
         single_task_names=["lift_cube", "pick_up_cube"],
-        high_level_task_names=["pick_up_cube"],
+        high_level_task_names=["move_cube_to_target"],
         contained_sequence=False,
         curriculum_manager_cls=SeperateEpisodesCM,
     )
