@@ -16,6 +16,8 @@ def get_config():
     config.help = False
     config.seed = 0
     # env
+    config.drawer_env = False
+    config.incremental_reward = False
     config.manual_decompose_p = None
     config.dense_rew_lowest = False
     config.dense_rew_tasks = ["move_gripper_to_cube"]
@@ -41,9 +43,16 @@ def get_config():
     config.policy_kwargs = None
     config.action_noise = NormalActionNoise
     # logging
-    config.do_track = True
+    config.wandb = config_dict.ConfigDict()
+    config.wandb.track = False
+    config.wandb.project = "llm_curriculum"
+    config.wandb.entity = "ucl-air-lab"
+    config.wandb.group = "default"
+    config.wandb.job_type = "training"
+    config.wandb.name = "pickup_mini-sequential-sep_policies-child_p0.2-curriculum-ROB"
+
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
-    config.exp_name = "pickup_mini-sequential-sep_policies-child_p0.2-curriculum-ROB"
+
     config.exp_group = "merge-validation"
     config.info_keywords = ("is_success", "overall_task_success", "active_task_level")
 
