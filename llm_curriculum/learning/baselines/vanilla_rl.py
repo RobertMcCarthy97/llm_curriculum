@@ -11,8 +11,8 @@ from llm_curriculum.learning.utils import (
     init_training,
     setup_logging,
     training_loop,
-    training_loop_sequential,
     check_hparams,
+    set_random_seed,
 )
 
 _CONFIG = config_flags.DEFINE_config_file("config", None)
@@ -63,12 +63,18 @@ def main(argv):
     # create models
     models_dict = create_models(env, logger, hparams)
 
+    # Only keep the model for the high-level task
+    assert hparams.high_level_task_names is not None
+    assert len(hparams.high_level_task_names) == 1
+    task_name = hparams.high_level_task_names[0]
+    models_dict = {task_name: models_dict[task_name]}
+
     # Train
     init_training(models_dict, hparams["total_timesteps"], callback=callback)
-    # TODO: Implement training logic
+    training_loop(models_dict, env, hparams["total_timesteps"], callback=callback)
 
     # Close
-    if hparams["do_track"]:
+    if hparams.wandb.track:
         run.finish()
 
 
