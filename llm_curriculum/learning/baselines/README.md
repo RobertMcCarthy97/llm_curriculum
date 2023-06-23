@@ -1,3 +1,20 @@
+## Instructions
+
+Run vanilla TD3: 
+```bash
+python llm_curriculum/learning/baselines/vanilla_rl.py \
+    --config llm_curriculum/learning/config/baseline.py \
+    --config.wandb.track=False 
+```
+
+Run TD3 + HER:
+```bash
+python llm_curriculum/learning/baselines/vanilla_rl.py \
+    --config llm_curriculum/learning/config/baseline.py \
+    --config.use_her=True
+```
+
+## Errors
 
 Custom replay buffer enforces some conditions on multi-task learning
 
