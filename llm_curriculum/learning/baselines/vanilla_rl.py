@@ -97,7 +97,7 @@ def main(argv):
             save_code=False,  # optional
         )
         # log hyperparameters
-        wandb.log({"hyperparameters": hparams})
+        wandb.log({"hyperparameters": hparams.to_dict()})
 
     # Seed
     set_random_seed(hparams["seed"])  # type:ignore

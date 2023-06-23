@@ -32,9 +32,9 @@ def get_config():
     # logging
     config.wandb = config_dict.ConfigDict()
     config.wandb.track = False
-    config.wandb.project = "llm_curriculum"
+    config.wandb.project = "llm-curriculum"
     config.wandb.entity = "ucl-air-lab"
-    config.wandb.group = "default"
+    config.wandb.group = "baselines"
     config.wandb.job_type = "training"
     config.wandb.name = "baseline"
 
