@@ -8,9 +8,9 @@ if __name__ == "__main__":
 
     env = make_env(
         drawer_env=True,
-        manual_decompose_p=0.5,
+        manual_decompose_p=1,
         dense_rew_lowest=False,
-        dense_rew_tasks=[],
+        dense_rew_tasks=["move_cube_over_drawer_top"],
         use_language_goals=False,
         render_mode="human",
         single_task_names=[],
@@ -18,7 +18,7 @@ if __name__ == "__main__":
         contained_sequence=False,
         curriculum_manager_cls=None,
         use_incremental_reward=False,
-        initial_state_curriculum_p=0.5,
+        initial_state_curriculum_p=0,
     )
 
     for _ in range(5):

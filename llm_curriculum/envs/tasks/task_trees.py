@@ -112,7 +112,6 @@ TODO: create these trees
 self.str_description = "grasp cube mini"
 self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask]
 
-
 self.str_description = "pick and place mini"
 self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask, CloseGripperCubeTask, LiftCubeTask, MoveCubeTowardsTargetGraspTask]
 """

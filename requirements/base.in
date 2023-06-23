@@ -1,0 +1,6 @@
+stable-baselines3 @ git+https://github.com/RobertMcCarthy97/stable-baselines3.git@llm-curriculum
+tensorboard==2.13.0
+wandb==0.15.3
+torch==1.13.1
+gymnasium-robotics==1.2.2
+ml_collections
