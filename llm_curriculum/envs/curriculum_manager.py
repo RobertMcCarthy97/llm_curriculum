@@ -301,6 +301,7 @@ class InitialStateCurriculumManager:
         # decide based on children
         sufficient_children = len(task.subtask_sequence) > 1
         do_curriculum = do_curriculum and sufficient_children
+        assert not do_curriculum
         return do_curriculum
 
     def decide_initial_state_curriculum_task(self, task):

@@ -1,5 +1,6 @@
 from datetime import datetime
 import numpy as np
+import copy
 
 from stable_baselines3 import TD3
 from stable_baselines3.common.logger import configure
@@ -42,7 +43,7 @@ flags.mark_flag_as_required("config")
 
 
 def create_env(hparams, eval=False):
-    hparams = hparams.copy()
+    hparams = copy.deepcopy(hparams)
     if eval:
         hparams["initial_state_curriculum_p"] = 0.0
     # Create env
@@ -69,7 +70,7 @@ def create_env(hparams, eval=False):
             state_obs_only=True,
             curriculum_manager_cls=hparams["curriculum_manager_cls"],
             use_incremental_reward=hparams["incremental_reward"],
-            # initial_state_curriculum_p=hparams["initial_state_curriculum_p"],
+            initial_state_curriculum_p=hparams["initial_state_curriculum_p"],
         )
 
     # Vec Env
@@ -92,7 +93,6 @@ def setup_logging(hparams, train_env, base_freq=1000):
     # create eval envs
     if hparams["sequenced_episodes"]:
         eval_env_sequenced = create_env(hparams)
-        import copy
         non_seq_params = copy.deepcopy(hparams)
         non_seq_params.update(
             {
