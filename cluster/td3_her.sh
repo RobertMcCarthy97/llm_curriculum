@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
-#$ -l h_rt=4:00:00      # Request 4 hours runtime
-#$ -l h_vmem=8G         # Request 8GB of memory
-#$ -pe smp 4            # Request 4 CPU cores
+#$ -l h_rt=24:00:00      # Request 24 hours runtime
+#$ -l h_vmem=8G          # Request 8GB of memory
+#$ -pe smp 16            # Request 16 CPU cores
 #$ -wd /home/ucabdc6/github/llm_curriculum
 
 module load python/3.9.10
