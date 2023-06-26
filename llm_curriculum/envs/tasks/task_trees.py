@@ -28,7 +28,7 @@ from llm_curriculum.envs.tasks.drawer_tasks import (
 )
 
 ######################
-# Define trees
+# Define high-level task trees
 ######################
 
 move_cube_to_target_tree = {
@@ -116,14 +116,38 @@ self.str_description = "pick and place mini"
 self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask, CloseGripperCubeTask, LiftCubeTask, MoveCubeTowardsTargetGraspTask]
 """
 
+
+################################
+# Define some 0-shot adapt trees
+################################
+
+cube_in_open_drawer_to_cube_at_target_tree = {
+    # Mix 'cube_on_table -> cube_at_target' with 'cube_in_open_drawer -> 'cube on drawer'
+    MoveCubeToTargetTask: {PickUpCubeTask: None, PlaceCubeAtTargetTask: None},
+}
+
+cube_in_closed_drawer_to_cube_at_target_tree = {
+    # Mix 'cube_on_table -> cube_at_target' with 'cube_in_open_drawer -> 'cube on drawer'
+    MoveCubeToTargetTask: {
+        OpenDrawerTask: None,
+        PickUpCubeTask: None,
+        PlaceCubeAtTargetTask: None,
+    },
+}
+
+
 # record all valid trees in this dict
 TASK_TREES = {
+    # high-level tasks
     "pick_up_cube_mini": pick_up_cube_mini_tree,
     "move_cube_to_target": move_cube_to_target_tree,
     "open_drawer": open_drawer_tree,
     "close_drawer": close_drawer_tree,
     "place_cube_open_drawer": place_cube_open_drawer_tree,
     "place_cube_drawer_top": place_cube_drawer_top_tree,
+    # 0-shot adapt tasks
+    "open_drawer_to_target_adapt": cube_in_open_drawer_to_cube_at_target_tree,
+    "closed_drawer_to_target_adapt": cube_in_closed_drawer_to_cube_at_target_tree,
 }
 
 ######################
