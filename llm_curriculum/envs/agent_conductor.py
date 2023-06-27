@@ -132,13 +132,13 @@ class AgentConductor:
             if len(task.subtask_sequence) > 0:
                 for subtask in task.subtask_sequence:
                     subtask_names = recursively_get_names(subtask)
-                    task_names = task_names + subtask_names
+                    task_names += subtask_names
             return task_names
 
         assert len(self.high_level_task_list) == 1
         task_names = []
         for task in self.high_level_task_list:
-            task_names = task_names + recursively_get_names(task)
+            task_names += recursively_get_names(task)
 
         return task_names
 
@@ -191,7 +191,7 @@ class AgentConductor:
             self.active_single_task_name = np.random.choice(self.single_task_names)
         else:
             self.active_single_task_name = None
-        # choose random high-level task from list
+        # choose random high-level task from list # TODO: improve
         self.chosen_high_level_task = np.random.choice(self.high_level_task_list)
         # choose active task
         self.active_task = self.decompose_task(self.chosen_high_level_task)

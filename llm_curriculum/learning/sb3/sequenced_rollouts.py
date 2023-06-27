@@ -256,6 +256,7 @@ def evaluate_sequenced_policy(
     reward_threshold: Optional[float] = None,
     return_episode_rewards: bool = False,
     warn: bool = True,
+    verbose: int = 1,
 ) -> Union[Tuple[float, float], Tuple[List[float], List[int]]]:
     """
     Runs policy for ``n_eval_episodes`` episodes and returns average reward.
@@ -341,6 +342,8 @@ def evaluate_sequenced_policy(
     while (episode_counts < episode_count_targets).any():
         # Select which model to use
         model, model_name = choose_model(env, models_dict)
+        if verbose > 0:
+            print(f"Model: {model_name}")
         # rollout
         actions, states = model.predict(
             observations,

@@ -1,10 +1,7 @@
 """
 TODO:
-VecNormEnvs are killing me:
-- Need to save norm stats for each model
-- Create non-normed env
-- Load norm stats for each model
-- Create model wrapper that loads norm stats and norms obs before passing to model
+- Waiting more steps after success before switching policies may help
+- Record success rates (implement success checkers via the high-level task)
 """
 
 import os
@@ -68,40 +65,50 @@ hparams = {
     "dense_rew_tasks": [],
     "use_language_goals": False,
     "single_task_names": [],
-    "high_level_task_names": ["open_drawer"],
+    "high_level_task_names": ["open_drawer_then_pickup_cube"],
     "contained_sequence": False,
     "curriculum_manager_cls": None,
     "incremental_reward": None,
     "info_keywords": ("is_success",),
-    "log_path": "./models/" + "open_drawer-temp",
 }
 
+pretrained_models = [
+    {
+        "log_path": "./models/open_drawer-pretrained",
+        "high_level_task_name": "open_drawer",
+    },
+    {
+        "log_path": "./models/pick_up_cube-opened_drawer-pretrained",
+        "high_level_task_name": "pick_up_cube",
+    },
+]
 
 # create envs
-vec_norm_env = create_env(
+venv = create_env(
     hparams,
     eval=True,
-    vec_norm_path=os.path.join(hparams["log_path"], "vec_norm_env.pkl"),
-)
-venv = vec_norm_env.venv
-
-# # setup logging
-# logger, callback = setup_logging(hparams, env)
-# assert len(env.envs) == 1
-# env.envs[0].agent_conductor.set_logger(logger)
+).venv
 
 # create models
 models_dict = {}
-# logger = None
-# models_dict = create_models(env, logger, hparams)
-possible_tasks = vec_norm_env.envs[0].agent_conductor.get_possible_task_names()
 
-# load pretrained policies
-for task_name in possible_tasks:
-    # model = TD3("MlpPolicy", env)
-    model = TD3.load(os.path.join(hparams["log_path"], "models", task_name), env=venv)
-    model = ZeroShotNormedPolicy(model, vec_norm_env)
-    models_dict[task_name] = model
+for pretrained in pretrained_models:
+    pretrained_params = deepcopy(hparams)
+    pretrained_params["high_level_task_names"] = [pretrained["high_level_task_name"]]
+    log_path = pretrained["log_path"]
+    # create envs - for obs norm stats
+    vec_norm_env = create_env(
+        pretrained_params,
+        eval=True,
+        vec_norm_path=os.path.join(log_path, "vec_norm_env.pkl"),
+    )
+    # load pretrained policies
+    possible_tasks = vec_norm_env.envs[0].agent_conductor.get_possible_task_names()
+    for task_name in possible_tasks:
+        # model = TD3("MlpPolicy", env)
+        model = TD3.load(os.path.join(log_path, "models", task_name), env=venv)
+        model = ZeroShotNormedPolicy(model, vec_norm_env)
+        models_dict[task_name] = model
 
 # perform evaluation
 episode_rewards, episode_lengths = evaluate_sequenced_policy(
@@ -113,6 +120,7 @@ episode_rewards, episode_lengths = evaluate_sequenced_policy(
     return_episode_rewards=True,
     warn=True,
     callback=None,
+    verbose=1,
 )
 print("episode_rewards:", episode_rewards)
 print("episode_lengths:", episode_lengths)

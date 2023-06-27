@@ -37,7 +37,7 @@ def make_env(
         env = gym.make(
             "FetchPickAndPlaceDrawer-v2",
             render_mode=render_mode,
-            is_closed_on_reset=False,  # Default: True # TODO: make param
+            is_closed_on_reset=True,  # Default: True # TODO: make param
         )
     else:
         env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)

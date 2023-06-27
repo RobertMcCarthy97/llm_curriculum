@@ -42,6 +42,17 @@ pick_up_cube_mini_tree = {
     }
 }
 
+pick_up_cube_tree = {
+    PickUpCubeTask: {
+        MoveGripperToCubeTask: None,
+        GraspCubeTask: {
+            CubeBetweenGripperTask: None,
+            CloseGripperCubeTask: None,
+        },
+        LiftCubeTask: None,
+    },
+}
+
 move_cube_to_target_tree = {
     MoveCubeToTargetTask: {
         PickUpCubeTask: {
@@ -186,6 +197,7 @@ TASK_TREES = {
     ## high-level tasks
     # cube only
     "pick_up_cube_mini": pick_up_cube_mini_tree,
+    "pick_up_cube": pick_up_cube_tree,
     "move_cube_to_target": move_cube_to_target_tree,
     # drawer only
     "open_drawer": open_drawer_tree,
@@ -195,6 +207,7 @@ TASK_TREES = {
     "place_cube_drawer_top": place_cube_drawer_top_tree,
     "open_then_place_in_drawer": open_then_place_in_drawer_tree,
     ## 0-shot adapt tasks
+    "open_drawer_then_pickup_cube": open_drawer_then_pick_cube,
     "open_drawer_to_target_adapt": cube_in_open_drawer_to_cube_at_target_tree,
     "closed_drawer_to_target_adapt": cube_in_closed_drawer_to_cube_at_target_tree,
 }
