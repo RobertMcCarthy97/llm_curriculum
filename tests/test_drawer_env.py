@@ -4,9 +4,8 @@ import gymnasium as gym
 def test_drawer_env():
     env = gym.make(
         "FetchPickAndPlaceDrawer-v2",
-        render_mode="human",
         is_closed_on_reset=False,  # Default: True
-        is_cube_inside_drawer=False,  # Default: True
+        is_cube_inside_drawer_on_reset=False,  # Default: True
     )
     obs = env.reset()
 
@@ -17,3 +16,4 @@ def test_drawer_env():
 
     # env.reset_cube_outside_drawer()
     env.reset_cube_inside_drawer()
+    env.close()
