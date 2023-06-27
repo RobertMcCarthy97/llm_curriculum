@@ -274,6 +274,7 @@ def training_loop_sequential(
     callback=None,
     save_freq=10000,
     do_save=False,
+    hparams=None,
 ):  # TODO: log interval
 
     rollout_collector = SequencedRolloutCollector(env, models_dict)
@@ -310,16 +311,17 @@ def training_loop_sequential(
 
         # Save models
         if do_save and timesteps_count >= save_after:
-            save_models(models_dict, logger.get_dir())
+            save_models(models_dict, hparams)
             save_after += save_freq
 
 
-def save_models(models_dict, log_dir, save_env=True):
+def save_models(models_dict, hparams, save_env=True):
+    save_dir = os.path.join("./models", hparams.wandb.name)
     for task_name, model in models_dict.items():
-        save_path = os.path.join(log_dir, "models", task_name)
+        save_path = os.path.join(save_dir, "models", task_name)
         model.save(save_path)
     if save_env:
-        save_path = os.path.join(log_dir, "vec_norm_env.pkl")
+        save_path = os.path.join(save_dir, "vec_norm_env.pkl")
         model.get_vec_normalize_env().save(save_path)
 
 
@@ -398,6 +400,7 @@ def main(argv):
             logger,
             callback=callback,
             do_save=hparams["save_models"],
+            hparams=hparams,
         )
     else:
         training_loop(models_dict, env, hparams["total_timesteps"], callback=callback)

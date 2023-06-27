@@ -31,6 +31,17 @@ from llm_curriculum.envs.tasks.drawer_tasks import (
 # Define high-level task trees
 ######################
 
+## Cube only ##
+
+pick_up_cube_mini_tree = {
+    PickUpCubeTask: {
+        MoveGripperToCubeTask: None,
+        CubeBetweenGripperTask: None,
+        CloseGripperCubeTask: None,
+        LiftCubeTask: None,
+    }
+}
+
 move_cube_to_target_tree = {
     MoveCubeToTargetTask: {
         PickUpCubeTask: {
@@ -47,6 +58,8 @@ move_cube_to_target_tree = {
     }
 }
 
+## Drawer only ##
+
 open_drawer_tree = {
     OpenDrawerTask: {
         MoveGripperToDrawerTask: None,
@@ -62,6 +75,8 @@ close_drawer_tree = {
         PushHandleToCloseTask: None,
     }
 }
+
+## Cube and drawer ##
 
 place_cube_open_drawer_tree = {
     PlaceCubeDrawerTask: {
@@ -97,12 +112,25 @@ place_cube_drawer_top_tree = {
     }
 }
 
-pick_up_cube_mini_tree = {
-    PickUpCubeTask: {
-        MoveGripperToCubeTask: None,
-        CubeBetweenGripperTask: None,
-        CloseGripperCubeTask: None,
-        LiftCubeTask: None,
+open_then_place_in_drawer_tree = {
+    PlaceCubeDrawerTask: {
+        OpenDrawerTask: {
+            MoveGripperToDrawerTask: None,
+            GraspHandleTask: None,
+            PullHandleToOpenTask: None,
+        },
+        PickUpCubeTask: {
+            MoveGripperToCubeTask: None,
+            GraspCubeTask: {
+                CubeBetweenGripperTask: None,
+                CloseGripperCubeTask: None,
+            },
+            LiftCubeTask: None,
+        },
+        PlaceGraspedCubeDrawerTask: {
+            MoveCubeOverDrawerTask: None,
+            ReleaseCubeInDrawerTask: None,
+        },
     }
 }
 
@@ -135,17 +163,38 @@ cube_in_closed_drawer_to_cube_at_target_tree = {
     },
 }
 
+open_drawer_then_cube_in_drawer = {
+    PlaceCubeDrawerTask: {
+        OpenDrawerTask: None,
+        PlaceCubeDrawerTask: None,  # TODO: this should be different from parent
+    }
+}
 
+open_drawer_then_pick_cube = {
+    PickUpCubeTask: {
+        OpenDrawerTask: None,
+        PickUpCubeTask: None,  # TODO: this should be different from parent
+    }
+}
+
+
+######################################
 # record all valid trees in this dict
+######################################
+
 TASK_TREES = {
-    # high-level tasks
+    ## high-level tasks
+    # cube only
     "pick_up_cube_mini": pick_up_cube_mini_tree,
     "move_cube_to_target": move_cube_to_target_tree,
+    # drawer only
     "open_drawer": open_drawer_tree,
     "close_drawer": close_drawer_tree,
+    # cube and drawer
     "place_cube_open_drawer": place_cube_open_drawer_tree,
     "place_cube_drawer_top": place_cube_drawer_top_tree,
-    # 0-shot adapt tasks
+    "open_then_place_in_drawer": open_then_place_in_drawer_tree,
+    ## 0-shot adapt tasks
     "open_drawer_to_target_adapt": cube_in_open_drawer_to_cube_at_target_tree,
     "closed_drawer_to_target_adapt": cube_in_closed_drawer_to_cube_at_target_tree,
 }
