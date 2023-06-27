@@ -61,7 +61,7 @@ gymnasium==0.28.1
     # via
     #   gymnasium-robotics
     #   pettingzoo
-gymnasium-robotics==1.2.2
+gymnasium-robotics @ git+https://github.com/dtch1997/Gymnasium-Robotics.git@add_drawer_env
     # via -r requirements/base.in
 idna==3.4
     # via requests
