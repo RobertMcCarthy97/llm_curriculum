@@ -73,7 +73,7 @@ def get_config():
     config.wandb.entity = "ucl-air-lab"
     config.wandb.group = "default"
     config.wandb.job_type = "training"
-    config.wandb.name = "pickup_mini-sequential-sep_policies-child_p0.2-curriculum-ROB"
+    config.wandb.name = "move_cube_to_target"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
 
