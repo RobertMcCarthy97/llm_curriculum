@@ -145,6 +145,33 @@ open_then_place_in_drawer_tree = {
     }
 }
 
+open_then_place_drawer_then_close_tree = {
+    PlaceCubeDrawerTask: {
+        OpenDrawerTask: {
+            MoveGripperToDrawerTask: None,
+            GraspHandleTask: None,
+            PullHandleToOpenTask: None,
+        },
+        PickUpCubeTask: {
+            MoveGripperToCubeTask: None,
+            GraspCubeTask: {
+                CubeBetweenGripperTask: None,
+                CloseGripperCubeTask: None,
+            },
+            LiftCubeTask: None,
+        },
+        PlaceGraspedCubeDrawerTask: {
+            MoveCubeOverDrawerTask: None,
+            ReleaseCubeInDrawerTask: None,
+        },
+        CloseDrawerTask: {
+            MoveGripperToDrawerTask: None,
+            GraspHandleTask: None,
+            PushHandleToCloseTask: None,
+        },
+    }
+}
+
 """
 TODO: create these trees
 
@@ -206,6 +233,7 @@ TASK_TREES = {
     "place_cube_open_drawer": place_cube_open_drawer_tree,
     "place_cube_drawer_top": place_cube_drawer_top_tree,
     "open_then_place_in_drawer": open_then_place_in_drawer_tree,
+    "open_then_place_drawer_then_close": open_then_place_drawer_then_close_tree,
     ## 0-shot adapt tasks
     "open_drawer_then_pickup_cube": open_drawer_then_pick_cube,
     "open_drawer_to_target_adapt": cube_in_open_drawer_to_cube_at_target_tree,
