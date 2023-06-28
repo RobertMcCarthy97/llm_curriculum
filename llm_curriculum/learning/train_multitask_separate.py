@@ -115,16 +115,17 @@ def setup_logging(hparams, train_env, base_freq=1000):
     # TODO: link train curriculum manager + agent_conductor to eval envs?? (so can get same decompositions in eval...)
 
     callback_list = []
-    callback_list += [
-        EvalCallbackMultiTask(
-            eval_env_non_seq,
-            eval_env_sequenced=eval_env_sequenced,
-            eval_freq=log_freq,
-            best_model_save_path=None,
-            seperate_policies=True,
-            single_task_names=single_task_names,
-        )
-    ]
+    if hparams["eval_policy"]:
+        callback_list += [
+            EvalCallbackMultiTask(
+                eval_env_non_seq,
+                eval_env_sequenced=eval_env_sequenced,
+                eval_freq=log_freq,
+                best_model_save_path=None,
+                seperate_policies=True,
+                single_task_names=single_task_names,
+            )
+        ]
     if not hparams["use_baseline_env"]:
         callback_list += [SuccessCallbackSeperatePolicies(log_freq=log_freq)]
     callback_list += [
