@@ -14,6 +14,14 @@ from llm_curriculum.learning.train_multitask_separate import (
 )
 from llm_curriculum.learning.sb3.sequenced_rollouts import evaluate_sequenced_policy
 from stable_baselines3 import TD3
+import wandb
+
+
+def wandb_download(wandb_path, log_dir, name):
+    run = wandb.init()
+    artifact = run.use_artifact(wandb_path + name + ":latest")
+    artifact_path = artifact.download(root=log_dir)
+    return artifact_path
 
 
 class ZeroShotNormedPolicy:
@@ -59,28 +67,31 @@ hparams = {
     "use_baseline_env": False,
     "render_mode": "human",
     "max_ep_len": 50,
-    "drawer_env": True,
-    "manual_decompose_p": 1,
     "dense_rew_lowest": False,
-    "dense_rew_tasks": [],
     "use_language_goals": False,
-    "single_task_names": [],
-    "high_level_task_names": ["open_drawer_then_pickup_cube"],
     "contained_sequence": False,
     "curriculum_manager_cls": None,
     "incremental_reward": None,
     "info_keywords": ("is_success",),
+    "dense_rew_tasks": ["move_gripper_to_drawer"],
+    "manual_decompose_p": 0,
+    "drawer_env": True,
+    "is_closed_on_reset": True,
+    "is_cube_inside_drawer_on_reset": True,
+    "single_task_names": [],
+    "high_level_task_names": ["open_drawer"],
 }
 
 pretrained_models = [
     {
-        "log_path": "./models/open_drawer-pretrained",
+        "log_path": "./models/test-wandb-model_save-open_drawer",
         "high_level_task_name": "open_drawer",
+        "wandb_path": "robertmccarthy11/llm-curriculum/test-wandb-model_save-open_drawer_",
     },
-    {
-        "log_path": "./models/pick_up_cube-opened_drawer-pretrained",
-        "high_level_task_name": "pick_up_cube",
-    },
+    # {
+    #     "log_path": "./models/pick_up_cube-opened_drawer-pretrained",
+    #     "high_level_task_name": "pick_up_cube",
+    # },
 ]
 
 # create envs
@@ -96,17 +107,31 @@ for pretrained in pretrained_models:
     pretrained_params = deepcopy(hparams)
     pretrained_params["high_level_task_names"] = [pretrained["high_level_task_name"]]
     log_path = pretrained["log_path"]
+
     # create envs - for obs norm stats
+    if "wandb_path" in pretrained.keys():
+        vec_norm_path = wandb_download(
+            pretrained["wandb_path"], log_path, "vec_norm_env"
+        )
+        vec_norm_path = os.path.join(vec_norm_path, "vec_norm_env.pkl")
+    else:
+        vec_norm_path = os.path.join(log_path, "vec_norm_env.pkl")
     vec_norm_env = create_env(
         pretrained_params,
         eval=True,
-        vec_norm_path=os.path.join(log_path, "vec_norm_env.pkl"),
+        vec_norm_path=vec_norm_path,
     )
+
     # load pretrained policies
     possible_tasks = vec_norm_env.envs[0].agent_conductor.get_possible_task_names()
     for task_name in possible_tasks:
+        if "wandb_path" in pretrained.keys():
+            model_path = wandb_download(pretrained["wandb_path"], log_path, task_name)
+            model_path = os.path.join(model_path, task_name)
+        else:
+            model_path = os.path.join(log_path, "models", task_name)
         # model = TD3("MlpPolicy", env)
-        model = TD3.load(os.path.join(log_path, "models", task_name), env=venv)
+        model = TD3.load(model_path, env=venv)
         model = ZeroShotNormedPolicy(model, vec_norm_env)
         models_dict[task_name] = model
 

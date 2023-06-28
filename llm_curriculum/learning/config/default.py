@@ -26,6 +26,8 @@ def get_config():
     config.use_oracle_at_warmup = False
     config.max_ep_len = 50
     config.use_baseline_env = False
+    config.is_closed_on_reset = (True,)
+    config.is_cube_inside_drawer_on_reset = (False,)
     # task
     config.single_task_names = []
     config.high_level_task_names = ["move_cube_to_target"]

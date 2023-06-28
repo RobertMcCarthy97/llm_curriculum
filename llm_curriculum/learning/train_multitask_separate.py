@@ -72,6 +72,8 @@ def create_env(hparams, eval=False, vec_norm_path=None):
             curriculum_manager_cls=hparams["curriculum_manager_cls"],
             use_incremental_reward=hparams["incremental_reward"],
             initial_state_curriculum_p=hparams["initial_state_curriculum_p"],
+            is_closed_on_reset=hparams["is_closed_on_reset"],
+            is_cube_inside_drawer_on_reset=hparams["is_cube_inside_drawer_on_reset"],
         )
 
     # Vec Env
@@ -276,6 +278,7 @@ def training_loop_sequential(
     save_freq=10000,
     do_save=False,
     hparams=None,
+    run=None,
 ):  # TODO: log interval
 
     rollout_collector = SequencedRolloutCollector(env, models_dict)
@@ -312,18 +315,30 @@ def training_loop_sequential(
 
         # Save models
         if do_save and timesteps_count >= save_after:
-            save_models(models_dict, hparams)
+            save_models(models_dict, hparams, run)
             save_after += save_freq
 
 
-def save_models(models_dict, hparams, save_env=True):
+def save_models(models_dict, hparams, run, save_env=True):
     save_dir = os.path.join("./models", hparams.wandb.name)
     for task_name, model in models_dict.items():
         save_path = os.path.join(save_dir, "models", task_name)
         model.save(save_path)
+        if hparams.wandb.track:
+            artifact = wandb.Artifact(
+                hparams.wandb.name + "_" + task_name, type="model"
+            )
+            artifact.add_file(save_path + ".zip")
+            run.log_artifact(artifact)
     if save_env:
         save_path = os.path.join(save_dir, "vec_norm_env.pkl")
         model.get_vec_normalize_env().save(save_path)
+        if hparams.wandb.track:
+            artifact = wandb.Artifact(
+                hparams.wandb.name + "_" + "vec_norm_env", type="env"
+            )
+            artifact.add_file(save_path)
+            run.log_artifact(artifact, aliases=["v0", "latest"])
 
 
 def get_hparams():
@@ -402,6 +417,7 @@ def main(argv):
             callback=callback,
             do_save=hparams["save_models"],
             hparams=hparams,
+            run=run,
         )
     else:
         training_loop(models_dict, env, hparams["total_timesteps"], callback=callback)

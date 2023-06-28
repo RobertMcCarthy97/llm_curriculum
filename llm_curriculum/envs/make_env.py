@@ -32,8 +32,8 @@ def make_env(
     use_incremental_reward=False,
     initial_state_curriculum_p=0.0,
     # drawer env
-    is_closed_on_reset=False,
-    is_cube_inside_drawer_on_reset=True,
+    is_closed_on_reset=True,
+    is_cube_inside_drawer_on_reset=False,
 ):
 
     if drawer_env:
