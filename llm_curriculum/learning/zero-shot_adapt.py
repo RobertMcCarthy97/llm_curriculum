@@ -83,11 +83,24 @@ hparams = {
 }
 
 pretrained_models = [
+    ## Open drawer
+    # {
+    #     "log_path": "./models/test-wandb-model_save-open_drawer",
+    #     "high_level_task_name": "open_drawer",
+    #     "wandb_path": "robertmccarthy11/llm-curriculum/test-wandb-model_save-open_drawer_",
+    # },
+    # {
+    #     "log_path": "./models/open_drawer-pretrained",
+    #     "high_level_task_name": "open_drawer",
+    # },
+    ## Close drawer
     {
-        "log_path": "./models/test-wandb-model_save-open_drawer",
-        "high_level_task_name": "open_drawer",
-        "wandb_path": "robertmccarthy11/llm-curriculum/test-wandb-model_save-open_drawer_",
+        "log_path": "./models/close_drawer-pretrained",
+        "high_level_task_name": "close_drawer",
     },
+    ## Cube on table -> Cube at target
+    ## Cube on drawer -> Cube in drawer
+    ## Other
     # {
     #     "log_path": "./models/pick_up_cube-opened_drawer-pretrained",
     #     "high_level_task_name": "pick_up_cube",

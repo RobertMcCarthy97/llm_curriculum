@@ -132,3 +132,5 @@ wandb/
 
 logs/
 logs/*
+
+models/
