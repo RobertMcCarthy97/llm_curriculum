@@ -66,4 +66,11 @@ Added a new hyperparamter help; when True, the program will exit after printing 
 python llm_curriculum/learning/train_multitask_separate.py \
     --config llm_curriculum/learning/config/default.py \
     --config.help=True
-```
+
+
+## Documentation
+
+Planning doc: https://docs.google.com/document/d/1e6-Mq5KjXKuIgxf6-E3fBbqIb5GeNbuYAngC6YDuEgQ/edit#heading=h.yyfnkspbactf
+Slideshow: https://docs.google.com/presentation/d/1gTlCxZdajc9d1fsrd4AskrUWt8AACdulaWzVvB256_w/edit?usp=sharing
+Prompting: https://github.com/dtch1997/gpt-text-gym.git
+
