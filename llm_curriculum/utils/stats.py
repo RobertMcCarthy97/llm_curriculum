@@ -14,7 +14,10 @@ class ExponentialDecayingMovingAverage:
         return self.edma
 
     def get_edma(self):
-        return self.edma
+        if self.edma is None:
+            return 0
+        else:
+            return self.edma
 
 
 class StatsTracker:

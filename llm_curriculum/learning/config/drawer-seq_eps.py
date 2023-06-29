@@ -59,8 +59,9 @@ def get_config():
     config.wandb.name = "test-wandb-model_save-open_drawer"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
-    config.save_models = True
-    config.eval_policy = False
+    config.save_models = False
+    config.eval_policy = True
+    config.eval_traversal_modes = ["train", "leaf", "exploit"]
 
     config.exp_group = "merge-validation"
     config.info_keywords = ("is_success", "overall_task_success", "active_task_level")

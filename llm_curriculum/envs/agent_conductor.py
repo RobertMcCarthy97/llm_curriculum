@@ -386,9 +386,7 @@ class AgentConductor:
         - Use edma or just the epochs success rate??
         """
         if len(task.subtask_sequence) > 0:
-            task_success = self.self.agent_conductor.task_stats[
-                "success"
-            ].get_task_edma(task.name)
+            task_success = self.task_stats["success"].get_task_edma(task.name)
             sequence_success = self.get_sequence_exploit_success(task.subtask_sequence)
             return sequence_success > task_success
         else:
@@ -400,9 +398,7 @@ class AgentConductor:
         """
         sequence_success = 1
         for task in sequence:
-            task_success = self.self.agent_conductor.task_stats[
-                "success"
-            ].get_task_edma(task.name)
+            task_success = self.task_stats["success"].get_task_edma(task.name)
             subtask_sequence = task.subtask_sequence
             if len(subtask_sequence) > 0:
                 task_subtask_seq_success = self.get_sequence_exploit_success(

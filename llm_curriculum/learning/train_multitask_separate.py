@@ -126,6 +126,7 @@ def setup_logging(hparams, train_env, base_freq=1000):
                 best_model_save_path=None,
                 seperate_policies=True,
                 single_task_names=single_task_names,
+                tree_traversal_modes=hparams["eval_traversal_modes"],
             )
         ]
     if not hparams["use_baseline_env"]:

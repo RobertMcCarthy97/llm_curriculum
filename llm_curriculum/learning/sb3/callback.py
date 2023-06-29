@@ -17,6 +17,7 @@ from stable_baselines3.common.vec_env import (
 )
 
 from llm_curriculum.learning.sb3.sequenced_rollouts import evaluate_sequenced_policy
+import copy
 
 
 class VideoRecorderCallback(BaseCallback):
@@ -296,6 +297,7 @@ class EvalCallbackMultiTask(EventCallback):
         warn: bool = True,
         seperate_policies: bool = False,
         single_task_names: List[str] = None,
+        tree_traversal_modes: List[str] = ["train"],
     ):
         super().__init__(callback_after_eval, verbose=verbose)
 
@@ -314,6 +316,7 @@ class EvalCallbackMultiTask(EventCallback):
         self.seperate_policies = seperate_policies
         self.single_task_names = single_task_names
         assert len(single_task_names) > 0
+        self.tree_traversal_modes = tree_traversal_modes
 
         # Convert to VecEnv for consistency
         if not isinstance(eval_env, VecEnv):
@@ -394,70 +397,11 @@ class EvalCallbackMultiTask(EventCallback):
                     ), "Not checked if can handle more than 1 env"
 
             # Test on each task individually
-            for task in self.single_task_names:
-                # set env eval task
-                self.eval_env.envs[0].agent_conductor.set_single_task_names(
-                    [task]
-                )  # very hacky, but this ensures the task is always chosen
-                # Reset success rate buffer
-                self._is_success_buffer = []
-                # set model
-                if self.seperate_policies:
-                    model = self.locals["models_dict"][task]
-                else:
-                    model = self.model
-                # collect episodes
-                episode_rewards, episode_lengths = evaluate_policy(
-                    model,
-                    self.eval_env,
-                    n_eval_episodes=self.n_eval_episodes,
-                    render=self.render,
-                    deterministic=self.deterministic,
-                    return_episode_rewards=True,
-                    warn=self.warn,
-                    callback=self._log_success_callback,
-                )
-                # calc stats
-                mean_reward, _ = np.mean(episode_rewards), np.std(episode_rewards)
-                mean_ep_length, _ = np.mean(episode_lengths), np.std(episode_lengths)
-                # Add to current Logger
-                self.logger.record(f"eval/{task}_mean_reward", float(mean_reward))
-                self.logger.record(f"eval/{task}_mean_ep_length", mean_ep_length)
-                if len(self._is_success_buffer) > 0:
-                    success_rate = np.mean(self._is_success_buffer)
-                    # if self.verbose >= 1:
-                    #     print(f"Success rate: {100 * success_rate:.2f}%")
-                    self.logger.record(
-                        f"eval_success/{task}_success_rate", success_rate
-                    )
+            self.seperate_episodes_eval()
 
+            # Test on sequenced episodes
             if self.eval_env_sequenced is not None:
-                # Reset success rate buffer
-                self._is_success_buffer = []
-                # collect episodes
-                episode_rewards, episode_lengths = evaluate_sequenced_policy(
-                    self.locals["models_dict"],
-                    self.eval_env_sequenced,
-                    n_eval_episodes=self.n_eval_episodes,
-                    render=self.render,
-                    deterministic=self.deterministic,
-                    return_episode_rewards=True,
-                    warn=self.warn,
-                    callback=self._log_success_callback,
-                )
-                # calc stats
-                mean_reward, _ = np.mean(episode_rewards), np.std(episode_rewards)
-                mean_ep_length, _ = np.mean(episode_lengths), np.std(episode_lengths)
-                # Add to current Logger
-                self.logger.record("eval/sequenced_mean_reward", float(mean_reward))
-                self.logger.record("eval/sequenced_mean_ep_length", mean_ep_length)
-                if len(self._is_success_buffer) > 0:
-                    success_rate = np.mean(self._is_success_buffer)
-                    # if self.verbose >= 1:
-                    #     print(f"Success rate: {100 * success_rate:.2f}%")
-                    self.logger.record(
-                        "eval_success/sequenced_success_rate", success_rate
-                    )
+                self.sequenced_episodes_eval()
 
             # Dump log so the evaluation results are printed with the correct timestep
             self.logger.record(
@@ -470,6 +414,88 @@ class EvalCallbackMultiTask(EventCallback):
                 continue_training = continue_training and self._on_event()
 
         return continue_training
+
+    def seperate_episodes_eval(self):
+        for task in self.single_task_names:
+            # set env eval task
+            self.eval_env.envs[0].agent_conductor.set_single_task_names(
+                [task]
+            )  # very hacky, but this ensures the task is always chosen
+            # Reset success rate buffer
+            self._is_success_buffer = []
+            # set model
+            if self.seperate_policies:
+                model = self.locals["models_dict"][task]
+            else:
+                model = self.model
+            # collect episodes
+            episode_rewards, episode_lengths = evaluate_policy(
+                model,
+                self.eval_env,
+                n_eval_episodes=self.n_eval_episodes,
+                render=self.render,
+                deterministic=self.deterministic,
+                return_episode_rewards=True,
+                warn=self.warn,
+                callback=self._log_success_callback,
+            )
+            # calc stats
+            mean_reward, _ = np.mean(episode_rewards), np.std(episode_rewards)
+            mean_ep_length, _ = np.mean(episode_lengths), np.std(episode_lengths)
+            # Add to current Logger
+            self.logger.record(f"eval/{task}_mean_reward", float(mean_reward))
+            self.logger.record(f"eval/{task}_mean_ep_length", mean_ep_length)
+            if len(self._is_success_buffer) > 0:
+                success_rate = np.mean(self._is_success_buffer)
+                # if self.verbose >= 1:
+                #     print(f"Success rate: {100 * success_rate:.2f}%")
+                self.logger.record(f"eval_success/{task}_success_rate", success_rate)
+
+    def sequenced_episodes_eval(self):
+        for traversal_mode in self.tree_traversal_modes:
+            # set agent conductor
+            task_stats = copy.deepcopy(
+                self.training_env.envs[0].agent_conductor.task_stats
+            )
+            self.eval_env_sequenced.envs[0].agent_conductor.task_stats = task_stats
+            assert len(self.eval_env_sequenced.envs) == len(self.training_env.envs) == 1
+            # set traversal mode
+            self.eval_env_sequenced.envs[0].agent_conductor.set_tree_traversal_mode(
+                traversal_mode
+            )
+            # Reset success rate buffer
+            self._is_success_buffer = []
+            # collect episodes
+            episode_rewards, episode_lengths = evaluate_sequenced_policy(
+                self.locals["models_dict"],
+                self.eval_env_sequenced,
+                n_eval_episodes=self.n_eval_episodes,
+                render=self.render,
+                deterministic=self.deterministic,
+                return_episode_rewards=True,
+                warn=self.warn,
+                callback=self._log_success_callback,
+            )
+            # calc stats
+            mean_reward, _ = np.mean(episode_rewards), np.std(episode_rewards)
+            mean_ep_length, _ = np.mean(episode_lengths), np.std(episode_lengths)
+            # Add to current Logger
+            self.logger.record(
+                f"eval/{traversal_mode}_sequenced_mean_reward", float(mean_reward)
+            )
+            self.logger.record(
+                f"eval/{traversal_mode}_sequenced_mean_ep_length", mean_ep_length
+            )
+            if len(self._is_success_buffer) > 0:
+                success_rate = np.mean(self._is_success_buffer)
+                # if self.verbose >= 1:
+                #     print(f"Success rate: {100 * success_rate:.2f}%")
+                self.logger.record(
+                    f"eval_success/{traversal_mode}_sequenced_success_rate",
+                    success_rate,
+                )
+        # ensure train env is still in train mode
+        assert self.train_env.envs[0].agent_conductor.tree_traversal_mode == "train"
 
     def update_child_locals(self, locals_: Dict[str, Any]) -> None:
         """
