@@ -76,5 +76,8 @@ class StatsTracker:
     def get_task_edma(self, task_name):
         return self.epoch_edma[task_name].get_edma()
 
+    def get_task_epoch_success_rate(self, task_name):
+        return self.latest_epoch_agg[task_name]
+
     def get_task_epoch_agg(self, task_name):
         return self.latest_epoch_agg[task_name]
