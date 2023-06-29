@@ -275,7 +275,7 @@ def training_loop_sequential(
     logger,
     log_interval=4,
     callback=None,
-    save_freq=10000,
+    save_freq=20000,
     do_save=False,
     hparams=None,
     run=None,
@@ -391,6 +391,8 @@ def main(argv):
             monitor_gym=False,  # auto-upload the videos of agents playing the game
             save_code=False,  # optional
         )
+    else:
+        run = None
 
     # Seed
     set_random_seed(hparams["seed"])  # type:ignore

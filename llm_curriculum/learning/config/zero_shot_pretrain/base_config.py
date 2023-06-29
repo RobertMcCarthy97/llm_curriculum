@@ -34,7 +34,7 @@ def get_config():
     config.use_oracle_at_warmup = False
     config.max_ep_len = 50
     config.use_baseline_env = False
-    config.is_closed_on_reset = True
+    config.is_closed_on_reset = False
     config.is_cube_inside_drawer_on_reset = False
     # task
     config.single_task_names = []
@@ -59,7 +59,7 @@ def get_config():
     config.wandb.track = True
     config.wandb.project = "llm-curriculum"
     config.wandb.entity = "robertmccarthy11"
-    config.wandb.group = "single-tree-exp"
+    config.wandb.group = "zero_shot-pretrain-tree-exp"
     config.wandb.job_type = "training"
     config.wandb.name = "pickup_cube-default_exp"
 
