@@ -31,13 +31,22 @@ def make_env(
     curriculum_manager_cls=None,
     use_incremental_reward=False,
     initial_state_curriculum_p=0.0,
+    # drawer env
+    is_closed_on_reset=True,
+    is_cube_inside_drawer_on_reset=False,
 ):
 
     if drawer_env:
+        # TODO: assert not using oracle actions or oracle action resets if cube in drawer
+        if is_cube_inside_drawer_on_reset:
+            print(
+                "assert len(single_task_names) == 0, oracle resets broken for cube in drawer!"
+            )
         env = gym.make(
             "FetchPickAndPlaceDrawer-v2",
             render_mode=render_mode,
-            is_closed_on_reset=False,  # Default: True # TODO: make param
+            is_closed_on_reset=is_closed_on_reset,
+            is_cube_inside_drawer_on_reset=is_cube_inside_drawer_on_reset,
         )
     else:
         env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)

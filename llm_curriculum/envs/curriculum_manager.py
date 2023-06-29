@@ -172,7 +172,7 @@ class SeperateEpisodesCM(CurriculumManager):
         Child_p is just the average child_p (# TODO: improve)
 
         Flaws:
-        - If self bad (0.0) and child good (1.0), still decomposes 50% of time. Should focus more on self here!!
+        - If self bad (0.0) and child good (1.0), still decomposes 50% of time. Should focus more on self here!! (actually, this is fine because child data can be useful?)
         - If self good (1.0) and child bad (0.0), still decomposes 50% of time. Mostly care about higher level tasks, so should focus more on self here?
 
         # TODO:
@@ -203,6 +203,9 @@ class SeperateEpisodesCM(CurriculumManager):
                 last_child_name = self.task_last_childs[task_name]
                 p_child = self.get_p_task(last_child_name, positive_relationship=True)
                 assert False, "not thought through yet..."
+
+            elif child_strat == "sequence":
+                raise NotImplementedError
 
             else:
                 raise NotImplementedError

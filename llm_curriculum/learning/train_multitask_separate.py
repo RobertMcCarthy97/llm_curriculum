@@ -1,6 +1,7 @@
 from datetime import datetime
 import numpy as np
 import copy
+import os
 
 from stable_baselines3 import TD3
 from stable_baselines3.common.logger import configure
@@ -42,7 +43,7 @@ _CONFIG = config_flags.DEFINE_config_file("config", None)
 flags.mark_flag_as_required("config")
 
 
-def create_env(hparams, eval=False):
+def create_env(hparams, eval=False, vec_norm_path=None):
     hparams = copy.deepcopy(hparams)
     if eval:
         hparams["initial_state_curriculum_p"] = 0.0
@@ -71,12 +72,17 @@ def create_env(hparams, eval=False):
             curriculum_manager_cls=hparams["curriculum_manager_cls"],
             use_incremental_reward=hparams["incremental_reward"],
             initial_state_curriculum_p=hparams["initial_state_curriculum_p"],
+            is_closed_on_reset=hparams["is_closed_on_reset"],
+            is_cube_inside_drawer_on_reset=hparams["is_cube_inside_drawer_on_reset"],
         )
 
     # Vec Env
     env = DummyVecEnv([lambda: env])
     env = VecMonitor(env, info_keywords=hparams["info_keywords"])
-    env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
+    if vec_norm_path is None:
+        env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
+    else:
+        env = VecNormalize.load(vec_norm_path, env)
 
     return env
 
@@ -111,16 +117,17 @@ def setup_logging(hparams, train_env, base_freq=1000):
     # TODO: link train curriculum manager + agent_conductor to eval envs?? (so can get same decompositions in eval...)
 
     callback_list = []
-    callback_list += [
-        EvalCallbackMultiTask(
-            eval_env_non_seq,
-            eval_env_sequenced=eval_env_sequenced,
-            eval_freq=log_freq,
-            best_model_save_path=None,
-            seperate_policies=True,
-            single_task_names=single_task_names,
-        )
-    ]
+    if hparams["eval_policy"]:
+        callback_list += [
+            EvalCallbackMultiTask(
+                eval_env_non_seq,
+                eval_env_sequenced=eval_env_sequenced,
+                eval_freq=log_freq,
+                best_model_save_path=None,
+                seperate_policies=True,
+                single_task_names=single_task_names,
+            )
+        ]
     if not hparams["use_baseline_env"]:
         callback_list += [SuccessCallbackSeperatePolicies(log_freq=log_freq)]
     callback_list += [
@@ -135,7 +142,7 @@ def setup_logging(hparams, train_env, base_freq=1000):
     # wandb
     if hparams.wandb.track:
         # log hyperparameters
-        wandb.log({"hyperparameters": hparams})
+        wandb.log({"hyperparameters": hparams.to_dict()})
         # wandb callback
         callback_list += [
             WandbCallback(
@@ -243,6 +250,7 @@ def training_loop(models_dict, env, total_timesteps, log_interval=4, callback=No
         )
         # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
 
+        # Train
         if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
             # If no `gradient_steps` is specified,
             # do as many gradients steps as steps performed during the rollout
@@ -261,11 +269,21 @@ def training_loop(models_dict, env, total_timesteps, log_interval=4, callback=No
 
 
 def training_loop_sequential(
-    models_dict, env, total_timesteps, logger, log_interval=4, callback=None
+    models_dict,
+    env,
+    total_timesteps,
+    logger,
+    log_interval=4,
+    callback=None,
+    save_freq=20000,
+    do_save=False,
+    hparams=None,
+    run=None,
 ):  # TODO: log interval
 
     rollout_collector = SequencedRolloutCollector(env, models_dict)
     timesteps_count = 0
+    save_after = save_freq
 
     while timesteps_count < total_timesteps:
         # Collect data
@@ -284,6 +302,7 @@ def training_loop_sequential(
         timesteps_count += rollout.episode_timesteps
         logger.record("time/train_loop_timesteps", timesteps_count)
 
+        # Train
         for model_name, model in models_dict.items():
             if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
                 ###### Custom: we just do 1 grad step per env step
@@ -293,6 +312,33 @@ def training_loop_sequential(
                     model.train(
                         batch_size=model.batch_size, gradient_steps=gradient_steps
                     )
+
+        # Save models
+        if do_save and timesteps_count >= save_after:
+            save_models(models_dict, hparams, run)
+            save_after += save_freq
+
+
+def save_models(models_dict, hparams, run, save_env=True):
+    save_dir = os.path.join("./models", hparams.wandb.name)
+    for task_name, model in models_dict.items():
+        save_path = os.path.join(save_dir, "models", task_name)
+        model.save(save_path)
+        if hparams.wandb.track:
+            artifact = wandb.Artifact(
+                hparams.wandb.name + "_" + task_name, type="model"
+            )
+            artifact.add_file(save_path + ".zip")
+            run.log_artifact(artifact)
+    if save_env:
+        save_path = os.path.join(save_dir, "vec_norm_env.pkl")
+        model.get_vec_normalize_env().save(save_path)
+        if hparams.wandb.track:
+            artifact = wandb.Artifact(
+                hparams.wandb.name + "_" + "vec_norm_env", type="env"
+            )
+            artifact.add_file(save_path)
+            run.log_artifact(artifact, aliases=["v0", "latest"])
 
 
 def get_hparams():
@@ -315,6 +361,9 @@ def get_hparams():
             assert not isinstance(
                 hparams["curriculum_manager_cls"], SeperateEpisodesCM
             ), "manual decompose_p overrides CM"
+
+    if hparams["save_models"]:
+        assert hparams["sequenced_episodes"], "not setup for non-sequenced episodes"
 
     return hparams
 
@@ -342,6 +391,8 @@ def main(argv):
             monitor_gym=False,  # auto-upload the videos of agents playing the game
             save_code=False,  # optional
         )
+    else:
+        run = None
 
     # Seed
     set_random_seed(hparams["seed"])  # type:ignore
@@ -361,7 +412,14 @@ def main(argv):
     init_training(models_dict, hparams["total_timesteps"], callback=callback)
     if hparams["sequenced_episodes"]:
         training_loop_sequential(
-            models_dict, env, hparams["total_timesteps"], logger, callback=callback
+            models_dict,
+            env,
+            hparams["total_timesteps"],
+            logger,
+            callback=callback,
+            do_save=hparams["save_models"],
+            hparams=hparams,
+            run=run,
         )
     else:
         training_loop(models_dict, env, hparams["total_timesteps"], callback=callback)
