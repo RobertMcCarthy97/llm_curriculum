@@ -240,12 +240,21 @@ def train() -> None:
         help="if toggled, this experiment will be tracked with Weights and Biases",
     )
     parser.add_argument(
-        "--wandb-project-name", type=str, default="sb3", help="the wandb's project name"
+        "--wandb-project-name",
+        type=str,
+        default="llm-curriculum",
+        help="the wandb's project name",
+    )
+    parser.add_argument(
+        "--wandb-group-name",
+        type=str,
+        default="minigrid",
+        help="the wandb's group name",
     )
     parser.add_argument(
         "--wandb-entity",
         type=str,
-        default=None,
+        default="ucl-air-lab",
         help="the entity (team) of wandb's project",
     )
     parser.add_argument(
@@ -320,6 +329,7 @@ def train() -> None:
         run = wandb.init(
             name=run_name,
             project=args.wandb_project_name,
+            group=args.wandb_group_name,
             entity=args.wandb_entity,
             tags=tags,
             config=vars(args),
