@@ -346,7 +346,7 @@ MiniGrid-UnlockPickup-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 1e6
 
-MiniGrid-UnlockPickupDecompose-v0:
+MiniGrid-UnlockPickupDecomposed-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 1e6
 
