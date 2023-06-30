@@ -8,7 +8,7 @@ def get_config():
     config = get_base_config()
 
     config.is_closed_on_reset = True
-    config.is_cube_inside_drawer_on_reset = False
+    config.cube_pos_on_reset = "table"
 
     config.dense_rew_tasks = ["move_gripper_to_drawer"]
     config.high_level_task_names = ["open_drawer"]

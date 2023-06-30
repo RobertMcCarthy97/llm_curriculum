@@ -30,7 +30,7 @@ def get_config():
     config.max_ep_len = 50
     config.use_baseline_env = False
     config.is_closed_on_reset = True
-    config.is_cube_inside_drawer_on_reset = False
+    config.cube_pos_on_reset = "table"
     # task
     config.single_task_names = []
     config.high_level_task_names = ["open_drawer"]

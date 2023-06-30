@@ -495,7 +495,7 @@ class EvalCallbackMultiTask(EventCallback):
                     success_rate,
                 )
         # ensure train env is still in train mode
-        assert self.train_env.envs[0].agent_conductor.tree_traversal_mode == "train"
+        assert self.training_env.envs[0].agent_conductor.tree_traversal_mode == "train"
 
     def update_child_locals(self, locals_: Dict[str, Any]) -> None:
         """

@@ -73,7 +73,7 @@ def create_env(hparams, eval=False, vec_norm_path=None):
             use_incremental_reward=hparams["incremental_reward"],
             initial_state_curriculum_p=hparams["initial_state_curriculum_p"],
             is_closed_on_reset=hparams["is_closed_on_reset"],
-            is_cube_inside_drawer_on_reset=hparams["is_cube_inside_drawer_on_reset"],
+            cube_pos_on_reset=hparams["cube_pos_on_reset"],
         )
 
     # Vec Env

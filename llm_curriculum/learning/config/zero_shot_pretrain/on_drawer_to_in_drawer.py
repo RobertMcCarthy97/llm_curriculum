@@ -8,12 +8,11 @@ def get_config():
     config = get_base_config()
 
     config.is_closed_on_reset = False
-    config.is_cube_on_drawer_on_reset = True
-    raise NotImplementedError("Need to add this to env reset")
+    config.cube_pos_on_reset = "on_drawer"
 
     config.dense_rew_tasks = ["move_gripper_to_cube", "move_cube_over_drawer"]
-    config.high_level_task_names = ["move_cube_to_target"]
+    config.high_level_task_names = ["place_cube_open_drawer"]
 
-    config.wandb.name = "move_cube_to_target-single_tree"
+    config.wandb.name = "on_drawer_to_in_drawer-single_tree"
 
     return config
