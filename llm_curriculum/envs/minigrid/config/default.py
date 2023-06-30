@@ -1,10 +1,4 @@
 from ml_collections import config_dict
-from llm_curriculum.envs.minigrid.tasks import (
-    GoToObjectTask,
-    PickUpObjectTask,
-    PlaceObjectTask,
-    OpenDoorTask,
-)
 
 
 def get_env_config():
@@ -19,7 +13,6 @@ def get_env_config():
 
     config.env = config_dict.ConfigDict()
     config.env.id = "MiniGrid-UnlockPickup-v0"
-    config.env.subtasks = ["pickup", "unlock"]
 
     # Logging
     config.wandb = config_dict.ConfigDict()
