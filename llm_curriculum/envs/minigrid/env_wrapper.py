@@ -29,8 +29,8 @@ class MinigridTaskEnvWrapper(gym.Wrapper):
     def get_current_task(self):
         return self.tasks[self.current_task_idx]
 
-    def reset(self):
-        obs, info = self.env.reset()
+    def reset(self, *args, **kwargs):
+        obs, info = self.env.reset(*args, **kwargs)
         self.tasks = self.make_tasks_fn(self.env)
         self.current_task_idx = 0
         info["overall_mission"] = obs["mission"]

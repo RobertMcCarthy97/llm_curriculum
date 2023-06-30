@@ -18,10 +18,10 @@ class GoToObjectTask(BaseTask):
         self.object_desc = object_desc
 
     def check_success(self, env) -> bool:
-        agent_desc = ObjectDescription("agent", "red")
-        agent_pos = grid_utils.get_object_pos(env.grid, agent_desc)
+        agent_pos = env.agent_pos
         object_pos = grid_utils.get_object_pos(env.grid, self.object_desc)
-        agent_y, agent_x = agent_pos
+        assert object_pos != (-1, -1)
+        agent_x, agent_y = agent_pos
         object_y, object_x = object_pos
         return abs(agent_x - object_x) + abs(agent_y - object_y) <= 1
 

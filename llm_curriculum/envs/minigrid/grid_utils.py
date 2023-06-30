@@ -31,8 +31,10 @@ def get_object_pos(grid: Grid, object_desc: ObjectDescription) -> Tuple[int, int
     return (-1, -1)
     """
     for idx, object in enumerate(grid.grid):
+        if object is None:
+            continue
         if object_desc.match(object):
-            row = idx % grid.width
-            col = idx // grid.width
+            row = idx // grid.width
+            col = idx % grid.width
             return (row, col)
     return (-1, -1)

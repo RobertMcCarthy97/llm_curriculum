@@ -35,6 +35,8 @@ class ManualControl:
 
     def step(self, action: Actions):
         obs, reward, terminated, truncated, _ = self.env.step(action)
+        print("Mission: ", obs["mission"])
+        print("Agent pos: ", env.agent_pos)
         print(f"step={self.env.step_count}, reward={reward:.2f}")
 
         if terminated:
@@ -45,7 +47,6 @@ class ManualControl:
             self.reset(self.seed)
         else:
             self.env.render()
-        return obs
 
     def reset(self, seed=None):
         self.env.reset(seed=seed)
@@ -75,11 +76,7 @@ class ManualControl:
         }
         if key in key_to_action.keys():
             action = key_to_action[key]
-            obs = self.step(action)
-            from gpt_text_gym.envs.minigrid.parse_obs import get_objects
-
-            objects = get_objects(obs["image"])
-            print([line for line in objects if "key" in line])
+            self.step(action)
         else:
             print(key)
 
