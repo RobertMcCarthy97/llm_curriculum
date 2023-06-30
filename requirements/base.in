@@ -4,3 +4,4 @@ wandb==0.15.3
 torch==1.13.1
 gymnasium-robotics @ git+https://github.com/dtch1997/Gymnasium-Robotics.git@add_drawer_env
 ml_collections
+minigrid
