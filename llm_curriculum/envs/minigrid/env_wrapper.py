@@ -77,6 +77,41 @@ class MinigridTaskEnvWrapper(gym.Wrapper):
         return obs, reward, terminated, truncated, info
 
 
+def make_automated_env(*args, **kwargs):
+
+    from llm_curriculum.envs.minigrid.prompting.prompt import (
+        make_prompt,
+        parse_task_descriptions,
+        chat_completion_request,
+        make_tasks,
+    )
+
+    env = gym.make("MiniGrid-UnlockPickup-v0", *args, **kwargs)
+    env.reset()
+
+    messages = [
+        {
+            "role": "system",
+            "content": "You are ChatGPT, a large language model trained by OpenAI, based on the GPT-4 architecture. Knowledge cutoff: 2021-09. Current date: 2023-05-04. ",
+        },
+        {"role": "user", "content": make_prompt(env)},
+    ]
+
+    # Note: This is equivalent to one-shot completion
+    # TODO: Can we ask for multiple completions and then ask GPT to select the best one?
+    response = chat_completion_request(messages)
+    assistant_message = response.json()["choices"][0]["message"]
+    messages.append(assistant_message)
+    response_content = assistant_message["content"]
+
+    task_descs = parse_task_descriptions(response_content)
+    tasks = make_tasks(task_descs)
+    # Dummy function returning fixed input
+    make_task_fn = lambda env: tasks
+    env = MinigridTaskEnvWrapper(env, make_task_fn)
+    return env
+
+
 def make_wrapped_pickup_unlock_env(*args, **kwargs):
 
     env = gym.make("MiniGrid-UnlockPickup-v0", *args, **kwargs)
