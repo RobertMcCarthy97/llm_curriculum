@@ -350,6 +350,10 @@ MiniGrid-UnlockPickupDecomposed-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 1e6
 
+MiniGrid-UnlockPickupDecomposedAutomated-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 1e6
+
 MiniGrid-ObstructedMaze-2Dlh-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 1e7 # Unsolved
