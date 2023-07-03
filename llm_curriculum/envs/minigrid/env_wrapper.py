@@ -25,7 +25,7 @@ def env_to_str(env: gym.Env):
     env_str = (
         f"The environment consists of:\n"
         + "\n".join([("--" + line) for line in grid_str.split("\n ")])
-        + f"The current mission is: {env.mission}\n"
+        + f"The overall mission is: {env.mission}\n"
         f"The agent is at: {agent_pos}\n"
         f"The agent is facing: {agent_dir_str}"
     )

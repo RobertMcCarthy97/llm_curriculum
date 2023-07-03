@@ -6,10 +6,10 @@ from pathlib import Path
 from tenacity import retry, wait_random_exponential, stop_after_attempt
 from termcolor import colored
 
-GPT_MODEL = "gpt-3.5-turbo-0613"
+GPT_MODEL = "gpt-4"
 
-dotenv_path = Path(__file__).parent.parent.absolute()
-secrets = dotenv.dotenv_values()
+dotenv_path = Path(__file__).parent.parent.absolute() / ".env"
+secrets = dotenv.dotenv_values(dotenv_path)
 openai.api_key = secrets["OPENAI_API_KEY"]
 
 

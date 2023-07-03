@@ -18,7 +18,9 @@ class ObjectDescription:
         return ObjectDescription(type, color, location)
 
     def match(self, object: WorldObj):
-        return self.type == object.type and self.color == object.color
+        return (self.type == "any" or self.type == object.type) and (
+            self.color == "any" or self.color == object.color
+        )
 
 
 def get_object_pos(grid: Grid, object_desc: ObjectDescription) -> Tuple[int, int]:

@@ -36,7 +36,6 @@ class ManualControl:
     def step(self, action: Actions):
         obs, reward, terminated, truncated, _ = self.env.step(action)
         print("Mission: ", obs["mission"])
-        print("Agent pos: ", env.agent_pos)
         print(f"step={self.env.step_count}, reward={reward:.2f}")
 
         if terminated:
