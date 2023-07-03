@@ -235,9 +235,12 @@ class AgentConductor:
         """
         if self.tree_traversal_mode == "train":
             if self.manual_decompose_p is None:
+                # curriculum
                 decompose_p = self.curriculum_manager.calc_decompose_p(task.name)
             else:
+                # manual
                 decompose_p = self.manual_decompose_p
+
             do_decompose = np.random.choice(
                 [True, False], p=[decompose_p, 1 - decompose_p]
             )
@@ -295,7 +298,7 @@ class AgentConductor:
                         assert (
                             task.parent_task is not None
                         )  # if self is complete and high-level is not, then task must have parent - more work to do!
-                        # if no next but has parent, then go up to parent
+                        # If no next but has parent, then go up to parent
                         return step_sub_task(task.parent_task)
 
             return step_sub_task(task)

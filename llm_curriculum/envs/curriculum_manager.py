@@ -214,8 +214,10 @@ class SeperateEpisodesCM(CurriculumManager):
 
         # combined p
         p = np.mean(p_list)
+
         # p is probability of sticking with task, so decompose_p is 1-p
         decompose_p = 1 - p
+
         return decompose_p
 
 

@@ -15,4 +15,12 @@ def get_config():
 
     config.wandb.name = "on_drawer_to_in_drawer-single_tree"
 
+    raise NotImplementedError("TODO: fix this")
+    """
+    TODO:
+    - Fix lift_cube and pickup_cube success checks (height threshold needs to be incremented as starts ontop of drawer)
+    - Fix move_gripper_to_cube scale + clip (saturates when cube on drawer so losing out on learning signal)
+    - Test all low-level tasks!
+    """
+
     return config
