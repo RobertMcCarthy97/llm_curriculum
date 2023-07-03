@@ -48,6 +48,7 @@ def get_config():
     config.device = "cpu"
     config.policy_kwargs = None  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
     config.action_noise = NormalActionNoise
+    config.batch_size = 100
     # TODO: increase batch size??
     # logging
     config.wandb = config_dict.ConfigDict()
