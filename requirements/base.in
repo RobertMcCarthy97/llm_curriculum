@@ -5,3 +5,10 @@ torch==1.13.1
 ml_collections
 minigrid
 rl_zoo3
+tenacity
+tiktoken
+termcolor
+openai
+requests
+scipy
+python-dotenv

@@ -11,10 +11,18 @@ absl-py==1.4.0
     # via
     #   ml-collections
     #   tensorboard
+aiohttp==3.8.4
+    # via openai
+aiosignal==1.3.1
+    # via aiohttp
 alembic==1.11.1
     # via optuna
 appdirs==1.4.4
     # via wandb
+async-timeout==4.0.2
+    # via aiohttp
+attrs==23.1.0
+    # via aiohttp
 cachetools==5.3.1
     # via google-auth
 certifi==2023.5.7
@@ -24,7 +32,9 @@ certifi==2023.5.7
 chardet==5.1.0
     # via mbstrdecoder
 charset-normalizer==3.1.0
-    # via requests
+    # via
+    #   aiohttp
+    #   requests
 click==8.1.3
     # via wandb
 cloudpickle==2.2.1
@@ -55,6 +65,10 @@ filelock==3.12.2
     # via huggingface-hub
 fonttools==4.40.0
     # via matplotlib
+frozenlist==1.3.3
+    # via
+    #   aiohttp
+    #   aiosignal
 fsspec==2023.6.0
     # via huggingface-hub
 gitdb==4.0.10
@@ -84,7 +98,9 @@ huggingface-hub==0.15.1
 huggingface-sb3==2.2.5
     # via rl-zoo3
 idna==3.4
-    # via requests
+    # via
+    #   requests
+    #   yarl
 jax-jumpy==1.0.0
     # via gymnasium
 kiwisolver==1.4.4
@@ -112,6 +128,10 @@ minigrid==2.3.0
     # via -r requirements/base.in
 ml-collections==0.1.1
     # via -r requirements/base.in
+multidict==6.0.4
+    # via
+    #   aiohttp
+    #   yarl
 numpy==1.23.5
     # via
     #   cmaes
@@ -124,6 +144,7 @@ numpy==1.23.5
     #   minigrid
     #   optuna
     #   pandas
+    #   scipy
     #   stable-baselines3
     #   tensorboard
 nvidia-cublas-cu11==11.10.3.66
@@ -138,6 +159,8 @@ nvidia-cudnn-cu11==8.5.0.96
     # via torch
 oauthlib==3.2.2
     # via requests-oauthlib
+openai==0.27.8
+    # via -r requirements/base.in
 optuna==3.2.0
     # via rl-zoo3
 packaging==23.1
@@ -179,6 +202,8 @@ python-dateutil==2.8.2
     #   matplotlib
     #   pandas
     #   typepy
+python-dotenv==1.0.0
+    # via -r requirements/base.in
 pytz==2023.3
     # via
     #   pandas
@@ -191,11 +216,16 @@ pyyaml==6.0
     #   optuna
     #   rl-zoo3
     #   wandb
+regex==2023.6.3
+    # via tiktoken
 requests==2.31.0
     # via
+    #   -r requirements/base.in
     #   huggingface-hub
+    #   openai
     #   requests-oauthlib
     #   tensorboard
+    #   tiktoken
     #   wandb
 requests-oauthlib==1.3.1
     # via google-auth-oauthlib
@@ -207,6 +237,8 @@ rsa==4.9
     # via google-auth
 sb3-contrib==2.0.0
     # via rl-zoo3
+scipy==1.11.1
+    # via -r requirements/base.in
 sentry-sdk==1.25.1
     # via wandb
 setproctitle==1.3.2
@@ -231,10 +263,16 @@ tabledata==1.3.1
     # via pytablewriter
 tcolorpy==0.1.3
     # via pytablewriter
+tenacity==8.2.2
+    # via -r requirements/base.in
 tensorboard==2.13.0
     # via -r requirements/base.in
 tensorboard-data-server==0.7.1
     # via tensorboard
+termcolor==2.3.0
+    # via -r requirements/base.in
+tiktoken==0.4.0
+    # via -r requirements/base.in
 torch==1.13.1
     # via
     #   -r requirements/base.in
@@ -242,6 +280,7 @@ torch==1.13.1
 tqdm==4.65.0
     # via
     #   huggingface-hub
+    #   openai
     #   optuna
     #   rl-zoo3
 typepy[datetime]==1.3.1
@@ -274,6 +313,8 @@ wheel==0.40.0
     #   nvidia-cublas-cu11
     #   nvidia-cuda-runtime-cu11
     #   tensorboard
+yarl==1.9.2
+    # via aiohttp
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

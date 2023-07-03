@@ -51,13 +51,11 @@ def grid_to_str(grid: Grid) -> str:
             x = idx % grid.width
             cell_str = f"{object.color} {object.type} at {(x,y)}\n"
             if object.type == "door":
-                if object.state == 2:
+                if object.is_locked:
                     cell_str = "locked " + cell_str
-                elif object.state == 1:
+                elif not object.is_open:
                     cell_str = "closed " + cell_str
-                elif object.state == 0:
-                    cell_str = "open " + cell_str
                 else:
-                    raise ValueError(f"Unknown door state {object.state}")
+                    cell_str = "open " + cell_str
             grid_str += cell_str
     return grid_str
