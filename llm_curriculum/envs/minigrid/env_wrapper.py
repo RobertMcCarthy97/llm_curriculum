@@ -48,6 +48,9 @@ class MinigridTaskEnvWrapper(gym.Wrapper):
     def get_current_task(self):
         return self.tasks[self.current_task_idx]
 
+    def has_tasks_remaining(self):
+        return self.current_task_idx < len(self.tasks)
+
     def reset(self, *args, **kwargs):
         obs, info = self.env.reset(*args, **kwargs)
         self.tasks = self.make_tasks_fn(self.env)
@@ -57,19 +60,24 @@ class MinigridTaskEnvWrapper(gym.Wrapper):
         return obs, info
 
     def step(self, action):
-        obs, _, _, truncated, info = self.env.step(action)
+        obs, reward, terminated, truncated, info = self.env.step(action)
 
-        terminated = False
-        task = self.get_current_task()
-        task_success = task.check_success(self.env)
-        if task_success:
-            reward = 1
-            if self.current_task_idx < len(self.tasks) - 1:
-                self.current_task_idx += 1
-            else:
-                terminated = True
+        # If no subtasks remain
+        if not self.has_tasks_remaining():
+            return obs, reward, terminated, truncated, info
+
         else:
-            reward = 0
+            # If subtask is completed
+            task = self.get_current_task()
+            task_success = task.check_success(self.env)
+            if task_success:
+                reward = 1
+                if self.current_task_idx < len(self.tasks) - 1:
+                    self.current_task_idx += 1
+                else:
+                    terminated = True
+            else:
+                reward = 0
 
         info["overall_mission"] = obs["mission"]
         obs["mission"] = self.get_current_task().to_string()
@@ -77,7 +85,7 @@ class MinigridTaskEnvWrapper(gym.Wrapper):
         return obs, reward, terminated, truncated, info
 
 
-def make_automated_env(*args, **kwargs):
+def make_automated_env(env_id, *args, **kwargs):
 
     from llm_curriculum.envs.minigrid.prompting.prompt import (
         make_prompt,
@@ -86,7 +94,7 @@ def make_automated_env(*args, **kwargs):
         make_tasks,
     )
 
-    env = gym.make("MiniGrid-UnlockPickup-v0", *args, **kwargs)
+    env = gym.make(env_id, *args, **kwargs)
     env.reset()
 
     messages = [

@@ -16,7 +16,9 @@ from stable_baselines3.common.utils import set_random_seed
 import minigrid
 import llm_curriculum.envs.minigrid  # noqa: F401 pytype: disable=import-error
 import rl_zoo3.import_envs  # noqa: F401 pytype: disable=import-error
-from rl_zoo3.exp_manager import ExperimentManager
+
+# from rl_zoo3.exp_manager import ExperimentManager
+from llm_curriculum.envs.minigrid.exp_manager import MyExperimentManager
 from rl_zoo3.utils import ALGOS, StoreDict
 
 
@@ -31,6 +33,9 @@ def train() -> None:
         choices=list(ALGOS.keys()),
     )
     parser.add_argument("--env", type=str, default="CartPole-v1", help="environment ID")
+    parser.add_argument(
+        "--eval-env", type=str, default=None, help="Eval environment ID"
+    )
     parser.add_argument(
         "-tb", "--tensorboard-log", help="Tensorboard log dir", default="", type=str
     )
@@ -294,6 +299,8 @@ def train() -> None:
             f"{env_id} not found in gym registry, you maybe meant {closest_match}?"
         )
 
+    eval_env_id = args.eval_env
+
     # Unique id to ensure there is no race condition for the folder creation
     uuid_str = f"_{uuid.uuid4()}" if args.uuid else ""
     if args.seed < 0:
@@ -339,7 +346,7 @@ def train() -> None:
         )
         args.tensorboard_log = f"runs/{run_name}"
 
-    exp_manager = ExperimentManager(
+    exp_manager = MyExperimentManager(
         args,
         args.algo,
         env_id,
@@ -361,6 +368,7 @@ def train() -> None:
         args.sampler,
         args.pruner,
         args.optimization_log_path,
+        eval_env_id=eval_env_id,
         n_startup_trials=args.n_startup_trials,
         n_evaluations=args.n_evaluations,
         truncate_last_trajectory=args.truncate_last_trajectory,
