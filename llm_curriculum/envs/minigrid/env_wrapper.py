@@ -5,12 +5,29 @@ from typing import List, Callable
 
 from minigrid.wrappers import ReseedWrapper
 from llm_curriculum.envs.minigrid.tasks import BaseTask
-from llm_curriculum.envs.minigrid.grid_utils import get_object_pos, ObjectDescription
+from llm_curriculum.envs.minigrid.grid_utils import (
+    get_object_pos,
+    ObjectDescription,
+    grid_to_str,
+)
 from llm_curriculum.envs.minigrid.tasks import (
     GoToObjectTask,
     PickUpObjectTask,
     OpenDoorTask,
 )
+
+
+def env_to_str(env: gym.Env):
+    grid_str = grid_to_str(env.grid)
+    agent_pos = env.agent_pos
+    agent_dir = env.agent_dir
+    env_str = (
+        f"The environment consists of:\n {grid_str}"
+        ""
+        f"The agent is at: {agent_pos}"
+        f"The agent is facing: {agent_dir}"
+    )
+    return env_str
 
 
 class MinigridTaskEnvWrapper(gym.Wrapper):
