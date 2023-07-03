@@ -85,8 +85,9 @@ class MinigridTaskEnvWrapper(gym.Wrapper):
         return obs, reward, terminated, truncated, info
 
 
-def make_automated_env(env_id, *args, **kwargs):
+def make_automated_env(*args, **kwargs):
 
+    env_id = kwargs.pop("env_id")
     from llm_curriculum.envs.minigrid.prompting.prompt import (
         make_prompt,
         parse_task_descriptions,
