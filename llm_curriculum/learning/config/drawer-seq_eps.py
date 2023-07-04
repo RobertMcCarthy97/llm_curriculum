@@ -23,21 +23,26 @@ def get_config():
     config.incremental_reward = False
     config.manual_decompose_p = None
     config.dense_rew_lowest = False
-    config.dense_rew_tasks = ["move_gripper_to_drawer"]
+    config.dense_rew_tasks = [
+        "move_gripper_to_drawer",
+        "move_gripper_to_cube",
+        "move_cube_over_drawer",
+    ]
     config.use_language_goals = False
     config.render_mode = "rgb_array"
     config.use_oracle_at_warmup = False
-    config.max_ep_len = 50
+    config.max_ep_len = 80
     config.use_baseline_env = False
     config.is_closed_on_reset = True
     config.cube_pos_on_reset = "table"
-    # task
+    # task / curriculum
     config.single_task_names = []
-    config.high_level_task_names = ["open_drawer"]
-    config.curriculum_manager_cls = SeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
+    config.high_level_task_names = ["open_then_place_in_drawer"]
     config.sequenced_episodes = True
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
+    config.curriculum_manager_cls = SeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
+    config.child_p_strat = "sequenced"
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
@@ -49,15 +54,14 @@ def get_config():
     config.policy_kwargs = None  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
     config.action_noise = NormalActionNoise
     config.batch_size = 100
-    # TODO: increase batch size??
     # logging
     config.wandb = config_dict.ConfigDict()
-    config.wandb.track = False
+    config.wandb.track = True
     config.wandb.project = "llm-curriculum"
     config.wandb.entity = "robertmccarthy11"
-    config.wandb.group = "drawer-env-testing"
+    config.wandb.group = "child_p_strat-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "test-wandb-model_save-open_drawer"
+    config.wandb.name = "open_then_place_in_drawer-sequenced_child_p_strat"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = False
@@ -66,7 +70,5 @@ def get_config():
 
     config.exp_group = "merge-validation"
     config.info_keywords = ("is_success", "overall_task_success", "active_task_level")
-
-    # assert False, "increase episode length!"
 
     return config

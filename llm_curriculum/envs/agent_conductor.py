@@ -87,6 +87,14 @@ class AgentConductor:
         self.set_tree_traversal_mode("train")
 
     def init_possible_tasks(self, env):
+        for task in self.high_level_task_names:
+            if (
+                task.name == "open_then_place_in_drawer"
+                or "open_then_place_drawer_then_close"
+            ):
+                assert env.max_steps >= 80
+            else:
+                assert env.max_steps == 50
         tree_builder = TaskTreeBuilder(
             use_dense_reward_lowest_level=self.dense_rew_lowest,
             use_incremental_reward=self.use_incremental_reward,

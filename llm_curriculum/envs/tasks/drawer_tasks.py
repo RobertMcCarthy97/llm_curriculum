@@ -237,7 +237,7 @@ class PullHandleToOpenTask(Task):
         """
         success, _ = self.state_parser.check_drawer_open(state)
         if success:
-            return np.array([0, 0, 0]), False
+            return np.array([0, 0, 1]), False
         else:
             return np.array([0, -1, 0]), False
 

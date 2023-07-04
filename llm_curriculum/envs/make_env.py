@@ -34,6 +34,8 @@ def make_env(
     # drawer env
     is_closed_on_reset=True,
     cube_pos_on_reset="table",
+    # curriculum
+    child_p_strat="mean",
 ):
 
     if drawer_env:
@@ -76,6 +78,7 @@ def make_env(
         curriculum_manager = curriculum_manager_cls(
             tasks_list=agent_conductor.get_possible_task_names(),
             agent_conductor=agent_conductor,
+            child_p_strat=child_p_strat,
         )
         agent_conductor.set_curriculum_manager(
             curriculum_manager

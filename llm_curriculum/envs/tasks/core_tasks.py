@@ -335,7 +335,6 @@ class MoveGripperToCubeTask(Task):
         cube_pos = (
             self.state_parser.get_cube_pos(state) + self.state_parser.cube_height_offset
         )
-        print("cube_pos", self.state_parser.get_cube_pos(state))
         gripper_pos = self.state_parser.get_gripper_pos(state)
         direction = cube_pos - gripper_pos
         gripper_open = True

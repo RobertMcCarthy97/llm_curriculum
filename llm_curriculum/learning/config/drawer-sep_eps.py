@@ -23,25 +23,26 @@ def get_config():
     config.incremental_reward = False
     config.manual_decompose_p = 1
     config.dense_rew_lowest = False
-    config.dense_rew_tasks = ["move_gripper_to_cube"]
+    config.dense_rew_tasks = []
     config.use_language_goals = False
     config.render_mode = "rgb_array"
-    config.use_oracle_at_warmup = False
-    config.max_ep_len = 50
+    config.use_oracle_at_warmup = True
+    config.max_ep_len = 80
     config.use_baseline_env = False
     config.is_closed_on_reset = True
     config.cube_pos_on_reset = "table"
     # task
-    config.single_task_names = ["move_gripper_to_cube"]
-    config.high_level_task_names = ["pick_up_cube"]
+    config.single_task_names = ["place_cube_drawer"]
+    config.high_level_task_names = ["open_then_place_in_drawer"]
     config.curriculum_manager_cls = DummySeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
     config.sequenced_episodes = False
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
+    config.child_p_strat = "mean"
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
-    config.learning_starts = 1e3
+    config.learning_starts = 50e3
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
     config.replay_buffer_kwargs = {"child_p": 0.2}
     config.total_timesteps = 1e6
@@ -57,12 +58,12 @@ def get_config():
     config.wandb.entity = "robertmccarthy11"
     config.wandb.group = "drawer-env-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "gripper2cube_in_drawer-single"
+    config.wandb.name = "open_then_place_in_drawer-single-oracle_seed_50k"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = False
     config.eval_policy = True
-    config.eval_traversal_modes = ["train", "leaf", "exploit"]
+    config.eval_traversal_modes = ["train"]
 
     config.exp_group = "merge-validation"
     config.info_keywords = ("is_success", "overall_task_success", "active_task_level")

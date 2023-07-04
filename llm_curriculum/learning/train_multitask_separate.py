@@ -74,6 +74,7 @@ def create_env(hparams, eval=False, vec_norm_path=None):
             initial_state_curriculum_p=hparams["initial_state_curriculum_p"],
             is_closed_on_reset=hparams["is_closed_on_reset"],
             cube_pos_on_reset=hparams["cube_pos_on_reset"],
+            child_p_strat=hparams["child_p_strat"],
         )
 
     # Vec Env
@@ -127,6 +128,7 @@ def setup_logging(hparams, train_env, base_freq=1000):
                 seperate_policies=True,
                 single_task_names=single_task_names,
                 tree_traversal_modes=hparams["eval_traversal_modes"],
+                n_eval_episodes=10,
             )
         ]
     if not hparams["use_baseline_env"]:

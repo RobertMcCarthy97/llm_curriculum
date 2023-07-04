@@ -43,6 +43,7 @@ def get_config():
     config.sequenced_episodes = True
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
+    config.child_p_strat = "mean"
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
