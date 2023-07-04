@@ -42,6 +42,7 @@ def get_config():
     config.initial_state_curriculum_p = 0.0
     config.curriculum_manager_cls = SeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
     config.child_p_strat = "sequenced"
+    config.decompose_p_clip = {"low": 0.1, "high": 0.9}
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
@@ -56,7 +57,7 @@ def get_config():
     config.batch_size = 100
     # logging
     config.wandb = config_dict.ConfigDict()
-    config.wandb.track = True
+    config.wandb.track = False
     config.wandb.project = "llm-curriculum"
     config.wandb.entity = "robertmccarthy11"
     config.wandb.group = "child_p_strat-testing"
