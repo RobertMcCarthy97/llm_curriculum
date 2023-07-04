@@ -26,9 +26,6 @@ from llm_curriculum.envs.curriculum_manager import (
 )
 from llm_curriculum.learning.sb3.sequenced_rollouts import SequencedRolloutCollector
 
-from stable_baselines3.common.buffers_custom import (
-    SeparatePoliciesReplayBuffer,
-)  # TODO: should move these into this repo!!??
 from llm_curriculum.learning.sb3.callback import (
     VideoRecorderCallback,
     EvalCallbackMultiTask,

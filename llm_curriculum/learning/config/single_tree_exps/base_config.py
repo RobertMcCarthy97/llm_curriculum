@@ -4,8 +4,10 @@ from llm_curriculum.envs.curriculum_manager import (
     SeperateEpisodesCM,
     DummySeperateEpisodesCM,
 )
+from llm_curriculum.learning.sb3.buffers_custom import SeparatePoliciesReplayBuffer
 from stable_baselines3 import TD3
-from stable_baselines3.common.buffers_custom import SeparatePoliciesReplayBuffer
+
+# from stable_baselines3.common.buffers_custom import SeparatePoliciesReplayBuffer
 from stable_baselines3.common.noise import NormalActionNoise
 
 """
