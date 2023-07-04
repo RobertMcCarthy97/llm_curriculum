@@ -31,7 +31,7 @@ def get_config():
     config.dense_rew_tasks = ["move_gripper_to_cube"]
     config.use_language_goals = False
     config.render_mode = "rgb_array"
-    config.use_oracle_at_warmup = False
+    config.oracle_at_warmup = {"use_oracle": False, "oracle_steps": 0}
     config.max_ep_len = 50
     config.use_baseline_env = False
     config.is_closed_on_reset = True

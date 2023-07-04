@@ -182,7 +182,7 @@ def create_models(env, logger, hparams):
             replay_buffer_class=hparams["replay_buffer_class"],
             replay_buffer_kwargs=hparams["replay_buffer_kwargs"].to_dict(),
             device=hparams["device"],
-            use_oracle_at_warmup=hparams["use_oracle_at_warmup"],
+            oracle_at_warmup=hparams["oracle_at_warmup"],
             policy_kwargs=hparams["policy_kwargs"],
             action_noise=hparams["action_noise"],
             batch_size=hparams["batch_size"],

@@ -38,6 +38,22 @@ def make_env(
     child_p_strat="mean",
 ):
 
+    ##########
+    # checks #
+    ##########
+
+    for task in high_level_task_names:
+        if (
+            task == "open_then_place_in_drawer"
+            or task == "open_then_place_drawer_then_close"
+        ):
+            assert max_ep_len >= 80
+        else:
+            assert max_ep_len == 50
+
+    #########
+    # build #
+    #########
     if drawer_env:
         # TODO: assert not using oracle actions or oracle action resets if cube in drawer
         if cube_pos_on_reset == "in_drawer":

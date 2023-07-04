@@ -78,7 +78,7 @@ def get_hparams():
         ],  # ['move_gripper_to_cube', "move_cube_towards_target_grasp"]
         "use_language_goals": False,
         "render_mode": "rgb_array",
-        "use_oracle_at_warmup": False,
+        "oracle_at_warmup": False,
         "max_ep_len": 50,
         "use_baseline_env": False,
         # task
@@ -303,7 +303,7 @@ if __name__ == "__main__":
         replay_buffer_class=hparams["replay_buffer_class"],
         replay_buffer_kwargs=hparams["replay_buffer_kwargs"],
         device=hparams["device"],
-        use_oracle_at_warmup=hparams["use_oracle_at_warmup"],
+        oracle_at_warmup=hparams["oracle_at_warmup"],
         policy_kwargs=hparams["policy_kwargs"],
         action_noise=hparams["action_noise"],
         gradient_steps=hparams["gradient_steps"],
