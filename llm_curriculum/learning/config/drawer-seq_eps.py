@@ -41,14 +41,16 @@ def get_config():
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
     config.curriculum_manager_cls = SeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
-    config.child_p_strat = "sequenced"
+    config.child_p_strat = (
+        "sequenced"  # "mean", "sequenced", "sequenced_direct_children"
+    )
     config.decompose_p_clip = {"low": 0.1, "high": 0.9}
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
     config.learning_starts = 1e3
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
-    config.replay_buffer_kwargs = {"child_p": 0.2}
+    config.replay_buffer_kwargs = {"child_p": 1.0}
     config.only_use_nearest_children_data = False
     config.total_timesteps = 1e6
     config.device = "cpu"
@@ -62,7 +64,7 @@ def get_config():
     config.wandb.entity = "robertmccarthy11"
     config.wandb.group = "child_p_strat-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "move_cube_to_target-sequenced_child_p_strat-new_p_clip"
+    config.wandb.name = "move_cube_to_target-sequenced_child_p_strat-buffer_child_p_1.0"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = False

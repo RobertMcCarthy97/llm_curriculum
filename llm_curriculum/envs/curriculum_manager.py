@@ -261,9 +261,8 @@ class SeperateEpisodesCM(CurriculumManager):
             elif self.child_p_strat == "sequenced_direct_children":
                 p_child = 1
                 task = self.agent_conductor.get_task_from_name(task_name)
-                for child in self.subtask_sequence:
+                for child in task.subtask_sequence:
                     p_child *= self.get_p_task(child.name, positive_relationship=True)
-                assert False, "not tested"
 
             else:
                 raise NotImplementedError

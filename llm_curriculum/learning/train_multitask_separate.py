@@ -370,6 +370,9 @@ def get_hparams():
     if hparams["save_models"]:
         assert hparams["sequenced_episodes"], "not setup for non-sequenced episodes"
 
+    if hparams["only_use_nearest_children_data"]:
+        assert hparams["child_p_strat"] == "sequenced_direct_children"
+
     return hparams
 
 
