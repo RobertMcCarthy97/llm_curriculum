@@ -73,13 +73,14 @@ hparams = {
     "curriculum_manager_cls": None,
     "incremental_reward": None,
     "info_keywords": ("is_success",),
-    "dense_rew_tasks": ["move_gripper_to_drawer"],
+    "dense_rew_tasks": [],
     "manual_decompose_p": 0,
     "drawer_env": True,
-    "is_closed_on_reset": True,
-    "is_cube_inside_drawer_on_reset": True,
+    "is_closed_on_reset": False,
+    "cube_pos_on_reset": "table",
     "single_task_names": [],
-    "high_level_task_names": ["open_drawer"],
+    "high_level_task_names": ["move_cube_to_target"],
+    "download_only": False,
 }
 
 pretrained_models = [
@@ -93,12 +94,21 @@ pretrained_models = [
     #     "log_path": "./models/open_drawer-pretrained",
     #     "high_level_task_name": "open_drawer",
     # },
-    ## Close drawer
-    {
-        "log_path": "./models/close_drawer-pretrained",
-        "high_level_task_name": "close_drawer",
-    },
+    # ## Close drawer
+    # {
+    #     "log_path": "./models/close_drawer-pretrained",
+    #     "high_level_task_name": "close_drawer",
+    # },
     ## Cube on table -> Cube at target
+    {
+        "log_path": "./models/move_cube_to_target-single_tree",
+        "high_level_task_name": "move_cube_to_target",
+        "wandb_path": "robertmccarthy11/llm-curriculum/move_cube_to_target-single_tree_",
+    },
+    # {
+    #     "log_path": "./models/move_cube_to_target-pretrained",
+    #     "high_level_task_name": "move_cube_to_target",
+    # },
     ## Cube on drawer -> Cube in drawer
     ## Other
     # {
@@ -149,16 +159,17 @@ for pretrained in pretrained_models:
         models_dict[task_name] = model
 
 # perform evaluation
-episode_rewards, episode_lengths = evaluate_sequenced_policy(
-    models_dict,
-    venv,
-    n_eval_episodes=10,
-    render=True,
-    deterministic=True,
-    return_episode_rewards=True,
-    warn=True,
-    callback=None,
-    verbose=1,
-)
-print("episode_rewards:", episode_rewards)
-print("episode_lengths:", episode_lengths)
+if not hparams["download_only"]:
+    episode_rewards, episode_lengths = evaluate_sequenced_policy(
+        models_dict,
+        venv,
+        n_eval_episodes=10,
+        render=True,
+        deterministic=True,
+        return_episode_rewards=True,
+        warn=True,
+        callback=None,
+        verbose=1,
+    )
+    print("episode_rewards:", episode_rewards)
+    print("episode_lengths:", episode_lengths)

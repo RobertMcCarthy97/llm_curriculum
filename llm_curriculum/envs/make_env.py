@@ -33,12 +33,30 @@ def make_env(
     initial_state_curriculum_p=0.0,
     # drawer env
     is_closed_on_reset=True,
-    is_cube_inside_drawer_on_reset=False,
+    cube_pos_on_reset="table",
+    # curriculum
+    child_p_strat="mean",
 ):
 
+    ##########
+    # checks #
+    ##########
+
+    for task in high_level_task_names:
+        if (
+            task == "open_then_place_in_drawer"
+            or task == "open_then_place_drawer_then_close"
+        ):
+            assert max_ep_len >= 80
+        else:
+            assert max_ep_len == 50
+
+    #########
+    # build #
+    #########
     if drawer_env:
         # TODO: assert not using oracle actions or oracle action resets if cube in drawer
-        if is_cube_inside_drawer_on_reset:
+        if cube_pos_on_reset == "in_drawer":
             print(
                 "assert len(single_task_names) == 0, oracle resets broken for cube in drawer!"
             )
@@ -46,7 +64,7 @@ def make_env(
             "FetchPickAndPlaceDrawer-v2",
             render_mode=render_mode,
             is_closed_on_reset=is_closed_on_reset,
-            is_cube_inside_drawer_on_reset=is_cube_inside_drawer_on_reset,
+            cube_pos_on_reset=cube_pos_on_reset,
         )
     else:
         env = gym.make("FetchPickAndPlace-v2", render_mode=render_mode)
@@ -76,6 +94,7 @@ def make_env(
         curriculum_manager = curriculum_manager_cls(
             tasks_list=agent_conductor.get_possible_task_names(),
             agent_conductor=agent_conductor,
+            child_p_strat=child_p_strat,
         )
         agent_conductor.set_curriculum_manager(
             curriculum_manager

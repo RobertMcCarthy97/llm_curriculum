@@ -73,7 +73,8 @@ def create_env(hparams, eval=False, vec_norm_path=None):
             use_incremental_reward=hparams["incremental_reward"],
             initial_state_curriculum_p=hparams["initial_state_curriculum_p"],
             is_closed_on_reset=hparams["is_closed_on_reset"],
-            is_cube_inside_drawer_on_reset=hparams["is_cube_inside_drawer_on_reset"],
+            cube_pos_on_reset=hparams["cube_pos_on_reset"],
+            child_p_strat=hparams["child_p_strat"],
         )
 
     # Vec Env
@@ -126,6 +127,8 @@ def setup_logging(hparams, train_env, base_freq=1000):
                 best_model_save_path=None,
                 seperate_policies=True,
                 single_task_names=single_task_names,
+                tree_traversal_modes=hparams["eval_traversal_modes"],
+                n_eval_episodes=10,
             )
         ]
     if not hparams["use_baseline_env"]:
@@ -179,9 +182,10 @@ def create_models(env, logger, hparams):
             replay_buffer_class=hparams["replay_buffer_class"],
             replay_buffer_kwargs=hparams["replay_buffer_kwargs"].to_dict(),
             device=hparams["device"],
-            use_oracle_at_warmup=hparams["use_oracle_at_warmup"],
+            oracle_at_warmup=hparams["oracle_at_warmup"],
             policy_kwargs=hparams["policy_kwargs"],
             action_noise=hparams["action_noise"],
+            batch_size=hparams["batch_size"],
         )
         model.set_logger(logger)
         if hparams["replay_buffer_class"] is not None:

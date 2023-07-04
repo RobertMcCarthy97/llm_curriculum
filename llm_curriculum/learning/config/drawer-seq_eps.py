@@ -19,25 +19,29 @@ def get_config():
     config.help = False
     config.seed = 0
     # env
-    config.drawer_env = True
+    config.drawer_env = False
     config.incremental_reward = False
     config.manual_decompose_p = None
     config.dense_rew_lowest = False
-    config.dense_rew_tasks = ["move_gripper_to_drawer"]
+    config.dense_rew_tasks = [
+        "move_gripper_to_cube",
+        "move_cube_towards_target_grasp",
+    ]
     config.use_language_goals = False
     config.render_mode = "rgb_array"
-    config.use_oracle_at_warmup = False
+    config.oracle_at_warmup = {"use_oracle": False, "oracle_steps": 0}
     config.max_ep_len = 50
     config.use_baseline_env = False
     config.is_closed_on_reset = True
-    config.is_cube_inside_drawer_on_reset = False
-    # task
+    config.cube_pos_on_reset = "table"
+    # task / curriculum
     config.single_task_names = []
-    config.high_level_task_names = ["open_drawer"]
-    config.curriculum_manager_cls = SeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
+    config.high_level_task_names = ["move_cube_to_target"]
     config.sequenced_episodes = True
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
+    config.curriculum_manager_cls = SeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
+    config.child_p_strat = "sequenced"
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
@@ -48,23 +52,22 @@ def get_config():
     config.device = "cpu"
     config.policy_kwargs = None  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
     config.action_noise = NormalActionNoise
-    # TODO: increase batch size??
+    config.batch_size = 100
     # logging
     config.wandb = config_dict.ConfigDict()
-    config.wandb.track = False
+    config.wandb.track = True
     config.wandb.project = "llm-curriculum"
     config.wandb.entity = "robertmccarthy11"
-    config.wandb.group = "drawer-env-testing"
+    config.wandb.group = "child_p_strat-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "test-wandb-model_save-open_drawer"
+    config.wandb.name = "move_cube_to_target-sequenced_child_p_strat-new_p_clip"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
-    config.save_models = True
-    config.eval_policy = False
+    config.save_models = False
+    config.eval_policy = True
+    config.eval_traversal_modes = ["train", "leaf", "exploit"]
 
     config.exp_group = "merge-validation"
     config.info_keywords = ("is_success", "overall_task_success", "active_task_level")
-
-    # assert False, "increase episode length!"
 
     return config

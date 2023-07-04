@@ -66,7 +66,9 @@ class CurriculumEnvWrapper(gym.Wrapper):
                 task.state_parser.check_obs_space(self.observation_space["observation"])
 
     def reset(self, **kwargs):
-        prev_task = self.agent_conductor.get_active_task()
+        prev_task = (
+            self.agent_conductor.get_active_task()
+        )  # (record some stats about previous task)
         # single task scenario
         if len(self.agent_conductor.single_task_names) > 0:
             obs, info = self.reset_single_task(

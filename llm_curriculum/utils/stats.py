@@ -14,7 +14,10 @@ class ExponentialDecayingMovingAverage:
         return self.edma
 
     def get_edma(self):
-        return self.edma
+        if self.edma is None:
+            return 0
+        else:
+            return self.edma
 
 
 class StatsTracker:
@@ -75,6 +78,9 @@ class StatsTracker:
 
     def get_task_edma(self, task_name):
         return self.epoch_edma[task_name].get_edma()
+
+    def get_task_epoch_success_rate(self, task_name):
+        return self.latest_epoch_agg[task_name]
 
     def get_task_epoch_agg(self, task_name):
         return self.latest_epoch_agg[task_name]

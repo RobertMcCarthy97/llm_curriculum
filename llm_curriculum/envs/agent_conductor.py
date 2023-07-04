@@ -83,6 +83,9 @@ class AgentConductor:
         self.active_task = self.high_level_task_list[0]
         # self.active_task_steps_active = 0
 
+        # tree traversal mode
+        self.set_tree_traversal_mode("train")
+
     def init_possible_tasks(self, env):
         tree_builder = TaskTreeBuilder(
             use_dense_reward_lowest_level=self.dense_rew_lowest,
@@ -181,6 +184,10 @@ class AgentConductor:
             task_idx_dict[name] = i
         return task_idx_dict, len(self.task_names)
 
+    def set_tree_traversal_mode(self, mode):
+        assert mode in ["train", "leaf", "exploit"]
+        self.tree_traversal_mode = mode
+
     def reset(self):
         # reset tasks (i.e. set complete=False)
         self.reset_tasks()
@@ -221,13 +228,31 @@ class AgentConductor:
         return task
 
     def decide_decompose(self, task):
-        if self.manual_decompose_p is None:
-            decompose_p = self.curriculum_manager.calc_decompose_p(task.name)
-        else:
-            decompose_p = self.manual_decompose_p
-        do_decompose = np.random.choice([True, False], p=[decompose_p, 1 - decompose_p])
-        if self.logger is not None:
-            self.logger.record(f"curriculum/{task.name}_decompose_p", decompose_p)
+        """
+        - Train mode: decompose based on curriculum, or manually defined probability
+        - Leaf mode: always decompose (to the leafs)
+        - Exploit mode: decompose if gives higher success rate
+        """
+        if self.tree_traversal_mode == "train":
+            if self.manual_decompose_p is None:
+                # curriculum
+                decompose_p = self.curriculum_manager.calc_decompose_p(task.name)
+            else:
+                # manual
+                decompose_p = self.manual_decompose_p
+
+            do_decompose = np.random.choice(
+                [True, False], p=[decompose_p, 1 - decompose_p]
+            )
+            if self.logger is not None:
+                self.logger.record(f"curriculum/{task.name}_decompose_p", decompose_p)
+
+        elif self.tree_traversal_mode == "leaf":
+            do_decompose = True
+
+        elif self.tree_traversal_mode == "exploit":
+            do_decompose = self.should_decompose_if_exploiting(task)
+
         return do_decompose
 
     def step_task_recursive(self, task):
@@ -273,7 +298,7 @@ class AgentConductor:
                         assert (
                             task.parent_task is not None
                         )  # if self is complete and high-level is not, then task must have parent - more work to do!
-                        # if no next but has parent, then go up to parent
+                        # If no next but has parent, then go up to parent
                         return step_sub_task(task.parent_task)
 
             return step_sub_task(task)
@@ -351,6 +376,40 @@ class AgentConductor:
                 return self.single_task_names
         else:
             return self.get_task_names()
+
+    ###############
+    # Exploit mode
+    ###############
+
+    def should_decompose_if_exploiting(self, task):
+        """
+        Gets the maximum possible success that could be obtained via decomposition, and compares to the success of the task itself.
+
+        TODO:
+        - Use edma or just the epochs success rate??
+        """
+        if len(task.subtask_sequence) > 0:
+            task_success = self.task_stats["success"].get_task_edma(task.name)
+            sequence_success = self.get_sequence_exploit_success(task.subtask_sequence)
+            return sequence_success > task_success
+        else:
+            return False
+
+    def get_sequence_exploit_success(self, sequence):
+        """
+        Returns max possible success of a sequence of tasks, allowing for decomposition.
+        """
+        sequence_success = 1
+        for task in sequence:
+            task_success = self.task_stats["success"].get_task_edma(task.name)
+            subtask_sequence = task.subtask_sequence
+            if len(subtask_sequence) > 0:
+                task_subtask_seq_success = self.get_sequence_exploit_success(
+                    subtask_sequence
+                )
+                task_success = max(task_success, task_subtask_seq_success)
+            sequence_success *= task_success
+        return sequence_success
 
 
 class FetchAction:

@@ -19,35 +19,37 @@ def get_config():
     config.help = False
     config.seed = 0
     # env
-    config.drawer_env = True
+    config.drawer_env = False
     config.incremental_reward = False
     config.manual_decompose_p = 1
     config.dense_rew_lowest = False
-    config.dense_rew_tasks = ["move_gripper_to_cube"]
+    config.dense_rew_tasks = []
     config.use_language_goals = False
     config.render_mode = "rgb_array"
-    config.use_oracle_at_warmup = False
+    config.oracle_at_warmup = {"use_oracle": True, "oracle_steps": 10e3}
     config.max_ep_len = 50
     config.use_baseline_env = False
-    config.is_closed_on_reset = (True,)
-    config.is_cube_inside_drawer_on_reset = (False,)
+    config.is_closed_on_reset = True
+    config.cube_pos_on_reset = "table"
     # task
-    config.single_task_names = ["move_gripper_to_cube"]
-    config.high_level_task_names = ["pick_up_cube"]
+    config.single_task_names = ["move_cube_to_target"]
+    config.high_level_task_names = ["move_cube_to_target"]
     config.curriculum_manager_cls = DummySeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
     config.sequenced_episodes = False
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
+    config.child_p_strat = "mean"
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
-    config.learning_starts = 1e3
+    config.learning_starts = 10e3
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
     config.replay_buffer_kwargs = {"child_p": 0.2}
     config.total_timesteps = 1e6
     config.device = "cpu"
     config.policy_kwargs = None  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
     config.action_noise = NormalActionNoise
+    config.batch_size = 100
     # TODO: increase batch size??
     # logging
     config.wandb = config_dict.ConfigDict()
@@ -56,11 +58,12 @@ def get_config():
     config.wandb.entity = "robertmccarthy11"
     config.wandb.group = "drawer-env-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "gripper2cube_in_drawer-single"
+    config.wandb.name = "move_cube_to_target-single-oracle_10k"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = False
     config.eval_policy = True
+    config.eval_traversal_modes = ["train"]
 
     config.exp_group = "merge-validation"
     config.info_keywords = ("is_success", "overall_task_success", "active_task_level")

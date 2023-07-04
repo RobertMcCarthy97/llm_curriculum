@@ -10,7 +10,7 @@ if __name__ == "__main__":
         drawer_env=True,
         manual_decompose_p=1,
         dense_rew_lowest=False,
-        dense_rew_tasks=["move_cube_over_drawer_top"],
+        dense_rew_tasks=["move_gripper_to_cube", "move_cube_over_drawer"],
         use_language_goals=False,
         render_mode="human",
         single_task_names=[],
@@ -19,7 +19,13 @@ if __name__ == "__main__":
         curriculum_manager_cls=None,
         use_incremental_reward=False,
         initial_state_curriculum_p=0,
+        # drawer env
+        is_closed_on_reset=False,
+        cube_pos_on_reset="on_drawer",
     )
+
+    # set traversal mode
+    # env.agent_conductor.set_tree_traversal_mode('exploit')
 
     for _ in range(5):
 
@@ -27,6 +33,7 @@ if __name__ == "__main__":
         print("env reset")
 
         for _ in range(50):
+            print("cube_pos_obs: ", obs["observation"][3:6])
             ## Actions
             # action = env.action_space.sample()
             # action = get_user_action()

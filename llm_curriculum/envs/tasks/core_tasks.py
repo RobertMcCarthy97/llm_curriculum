@@ -29,7 +29,6 @@ class Task:
     def __init__(
         self,
         parent_task=None,
-        subtask_cls_seq=[],
         level=0,
         use_dense_reward_lowest_level=False,
         use_incremental_reward=False,
