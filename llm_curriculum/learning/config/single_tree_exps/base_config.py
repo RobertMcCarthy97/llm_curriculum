@@ -50,6 +50,7 @@ def get_config():
     config.learning_starts = 1e3
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
     config.replay_buffer_kwargs = {"child_p": 0.2}
+    config.only_use_nearest_children_data = False
     config.total_timesteps = 1e6
     config.device = "cpu"
     config.policy_kwargs = None  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}

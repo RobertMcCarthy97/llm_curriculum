@@ -199,7 +199,7 @@ def create_models(env, logger, hparams):
             relations = (
                 env.envs[0]
                 .agent_conductor.get_task_from_name(task_name)
-                .get_relations()
+                .get_relations(nearest=hparams["only_use_nearest_children_data"])
             )
             models_dict[task_name].replay_buffer.init_datasharing(
                 relations, models_dict, agent_conductor=env.envs[0].agent_conductor
