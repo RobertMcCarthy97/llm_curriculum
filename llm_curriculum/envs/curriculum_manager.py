@@ -94,18 +94,22 @@ class SeperateEpisodesCM(CurriculumManager):
         p_list = []
 
         p_self = self.get_p_task(task_name, positive_relationship=False)
+        p_self = self.clip_p(p_self)
         p_list.append(p_self)
 
         if self.child_parent_info[task_name]["parent"] is not None:
             p_parent = self.get_p_task(
                 self.child_parent_info[task_name]["parent"], positive_relationship=False
             )
+            p_parent = self.clip_p(p_parent)
             p_list.append(p_parent)
 
         if len(self.child_parent_info[task_name]["children"]) > 0:
             p_childs = []
             for child_name in self.child_parent_info[task_name]["children"]:
-                p_childs += [self.get_p_task(child_name, positive_relationship=True)]
+                p_childs += [
+                    self.clip_p(self.get_p_task(child_name, positive_relationship=True))
+                ]
             p_child = np.mean(p_childs)
             p_list.append(p_child)
 
@@ -179,7 +183,7 @@ class SeperateEpisodesCM(CurriculumManager):
             p = success_rate
         else:
             p = 1 - success_rate
-        return self.clip_p(p)
+        return p
 
     def calc_decompose_p(self, task_name):
         """

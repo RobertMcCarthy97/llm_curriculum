@@ -173,7 +173,7 @@ def create_models(env, logger, hparams):
 
     models_dict = {}
     # create models
-    for task in task_list:
+    for task_name in task_list:
         model = hparams["algo"](
             hparams["policy_type"],
             env,
@@ -189,8 +189,8 @@ def create_models(env, logger, hparams):
         )
         model.set_logger(logger)
         if hparams["replay_buffer_class"] is not None:
-            model.replay_buffer.set_task_name(task)
-        models_dict[task] = model
+            model.replay_buffer.set_task_name(task_name)
+        models_dict[task_name] = model
 
     if hparams["replay_buffer_class"] is not None:
         # link buffers relations
