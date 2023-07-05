@@ -196,6 +196,21 @@ class SuccessCallbackSeperatePolicies(BaseCallback):
                     env.agent_conductor.task_stats["success"].get_task_edma(task_key),
                 )
 
+            # record data-sampling curriculum info
+            assert (
+                len(env.agent_conductor.high_level_task_list) == 1
+            ), "not setup for more than 1 high-level task!"
+            high_level_task = env.agent_conductor.high_level_task_list[0]
+            high_level_policy = self.locals["models_dict"][high_level_task.name]
+            if len(high_level_policy.replay_buffer.child_scoring_strats) > 0:
+                child_scores = (
+                    high_level_policy.replay_buffer.score_children_for_split()
+                )
+                for child_key, child_score in child_scores.items():
+                    self.logger.record(
+                        f"parent_buffer_curriculum/{child_key}_score", child_score
+                    )
+
             # dump and reset
             self.logger.dump(
                 self.num_timesteps

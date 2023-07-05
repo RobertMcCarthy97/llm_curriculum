@@ -54,8 +54,12 @@ def get_config():
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
     config.replay_buffer_kwargs = {
         "child_p": 0.2,
-        "child_scoring_strats": ["success_edma", "proportion", "data_size"],
-    }  # scoring: ["success_edma", "proportion", "data_size"]
+        "child_scoring_strats": [
+            "success_edma",
+            "proportion",
+            "data_size",
+        ],  # scoring: ["success_edma", "proportion", "data_size"]
+    }
     config.only_use_nearest_children_data = False
     config.total_timesteps = 1e6
     config.device = "cpu"
