@@ -337,6 +337,7 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
         optimize_memory_usage: bool = False,
         handle_timeout_termination: bool = True,
         child_p: float = 0.2,
+        child_scoring_strats: List[str] = [],
     ):
         super().__init__(
             buffer_size, observation_space, action_space, device, n_envs=n_envs
@@ -385,6 +386,7 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
 
         # datasharing
         self.child_p = child_p
+        self.child_scoring_strats = child_scoring_strats
 
         if psutil is not None:
             total_memory_usage = (
@@ -443,6 +445,9 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
         # get task proportions
         task = agent_conductor.get_task_from_name(self.task_name)
         self.child_proportions = task.get_child_proportions()
+
+        # set agent conductor
+        self.agent_conductor = agent_conductor
 
     def set_task_name(self, task_name):
         """Custom"""
@@ -618,82 +623,6 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
 
         return child_p
 
-    def get_child_batch_split(self, batch_size, split_strat="even"):
-
-        # just do even split for now
-        child_split = {}
-
-        if split_strat == "even":
-            child_batch_size = math.ceil(
-                batch_size // len(self.valid_relations["children"])
-            )  # round up to boost batch size
-            assert child_batch_size > 0
-            for child_name in self.valid_relations["children"].keys():
-                child_split[child_name] = child_batch_size
-
-        else:
-            raise NotImplementedError(
-                f"{split_strat} not implemented for get_child_batch_split()"
-            )
-
-        return child_split
-
-    def score(self):
-        """
-        Potential scores:
-        - success rate
-        - % of task
-        - data size
-
-        Todo:
-        - Nearness to end of sequence (this is actually somewhat important!)
-        - Proximity to parent (% of task covers this somewhat)
-        - % positive rewards in whole buffer
-        - How much child contributes to parents 'exploit tree traversal score'
-        """
-
-        def normalize_scores(scores_dict):
-            total = sum(scores_dict.values())
-            for key in scores_dict.keys():
-                scores_dict[key] /= total
-            return scores_dict
-
-        def combine_and_normalize_scores(*scores):
-            combined_scores = {
-                key: sum(scores_dict[key] for scores_dict in scores)
-                for key in scores[0]
-            }
-            return normalize_scores(combined_scores)
-
-        # success rates
-        child_success_rates = {}
-        for child_name in self.valid_relations["children"].keys():
-            child_success_rates[child_name] = self._get_task_success_rate(child_name)
-        child_success_rates = normalize_scores(child_success_rates)
-
-        # % of task
-        child_task_proportions = self.child_proportions
-        child_task_proportions = normalize_scores(child_task_proportions)
-
-        # data sizes
-        child_data_sizes = {}
-        for child_name in self.valid_relations["children"].keys():
-            child_data_sizes[child_name] = self.all_models[
-                child_name
-            ].replay_buffer.size()
-        child_data_sizes = normalize_scores(child_data_sizes)
-
-        score = combine_and_normalize_scores(
-            child_success_rates, child_task_proportions, child_data_sizes
-        )
-
-        assert False, "figure out what is simplest and best to use..."
-
-        return score
-
-    def _get_task_success_rate(self, task_name):
-        return self.agent_conductor.task_stats["success"].get_task_edma(task_name)
-
     def _get_child_data(self, batch_size):
         """Custom"""
         # decide split among children
@@ -745,3 +674,98 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
                 batch_inds, env_indices
             ].copy(),
         }
+
+    def get_child_batch_split(self, batch_size):
+
+        if len(self.child_scoring_strats) == 0:
+            child_batch_size = math.ceil(
+                batch_size
+                / len(self.valid_relations["children"])  # round up to boost batch size
+            )
+            assert child_batch_size > 0
+            child_split = {
+                child_name: child_batch_size
+                for child_name in self.valid_relations["children"].keys()
+            }
+
+        else:
+            child_scores = self.score_children_for_split()
+            child_split = {
+                child_name: math.ceil(child_scores[child_name] * batch_size)
+                for child_name in self.valid_relations["children"].keys()
+            }
+        return child_split
+
+    def score_children_for_split(self):
+        """
+        Potential scores:
+        - success rate
+        - % of task
+        - data size
+
+        Todo:
+        - Nearness to end of sequence (this is actually somewhat important!)
+        - Proximity to parent (% of task covers this somewhat)
+        - % positive rewards in whole buffer
+        - How much child contributes to parents 'exploit tree traversal score'
+        """
+        assert len(self.child_scoring_strats) > 0
+        for strat in self.child_scoring_strats:
+            assert strat in [
+                "success_edma",
+                "proportion",
+                "data_size",
+            ], f"Invalid strategy: {strat}"
+
+        def normalize_scores(scores_dict):
+            total = sum(scores_dict.values())
+            if total == 0:
+                scores_dict = {key: 1 / len(scores_dict) for key in scores_dict.keys()}
+            else:
+                for key in scores_dict.keys():
+                    scores_dict[key] /= total
+            return scores_dict
+
+        def combine_and_normalize_scores(scores):
+            combined_scores = {
+                key: sum(scores_dict[key] for scores_dict in scores)
+                for key in scores[0]
+            }
+            return normalize_scores(combined_scores)
+
+        scores = []
+
+        # success rates
+        if "success_edma" in self.child_scoring_strats:
+            child_success_rates = {}
+            for child_name in self.valid_relations["children"].keys():
+                child_success_rates[child_name] = self._get_task_success_rate(
+                    child_name
+                )
+            scores += [normalize_scores(child_success_rates)]
+
+        # % of task
+        if "proportion" in self.child_scoring_strats:
+            child_task_proportions = {}
+            for child_name in self.valid_relations["children"].keys():
+                child_task_proportions[child_name] = self.child_proportions[child_name]
+            scores += [normalize_scores(child_task_proportions)]
+
+        # data sizes
+        if "data_size" in self.child_scoring_strats:
+            child_data_sizes = {}
+            for child_name in self.valid_relations["children"].keys():
+                child_data_sizes[child_name] = self.all_models[
+                    child_name
+                ].replay_buffer.size()
+            scores += [normalize_scores(child_data_sizes)]
+
+        assert len(scores) > 0, "No child scoring strats selected"
+
+        child_split = combine_and_normalize_scores(
+            scores
+        )  # normalize again to ensure sum is 1
+        return child_split
+
+    def _get_task_success_rate(self, task_name):
+        return self.agent_conductor.task_stats["success"].get_task_edma(task_name)
