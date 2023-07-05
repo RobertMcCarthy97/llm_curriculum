@@ -61,7 +61,7 @@ def get_config():
     config.batch_size = 100
     # logging
     config.wandb = config_dict.ConfigDict()
-    config.wandb.track = False
+    config.wandb.track = True
     config.wandb.project = "llm-curriculum"
     config.wandb.entity = "robertmccarthy11"
     config.wandb.group = "child_p_strat-testing"

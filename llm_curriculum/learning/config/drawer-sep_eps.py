@@ -25,16 +25,16 @@ def get_config():
     config.incremental_reward = False
     config.manual_decompose_p = 1
     config.dense_rew_lowest = False
-    config.dense_rew_tasks = []
+    config.dense_rew_tasks = ["move_gripper_to_cube"]
     config.use_language_goals = False
     config.render_mode = "rgb_array"
-    config.oracle_at_warmup = {"use_oracle": True, "oracle_steps": 10e3}
+    config.oracle_at_warmup = {"use_oracle": False, "oracle_steps": 0}
     config.max_ep_len = 50
     config.use_baseline_env = False
     config.is_closed_on_reset = True
     config.cube_pos_on_reset = "table"
     # task
-    config.single_task_names = ["move_cube_to_target"]
+    config.single_task_names = ["move_gripper_to_cube"]
     config.high_level_task_names = ["move_cube_to_target"]
     config.curriculum_manager_cls = DummySeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
     config.sequenced_episodes = False
@@ -45,7 +45,7 @@ def get_config():
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
-    config.learning_starts = 10e3
+    config.learning_starts = 1e3
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
     config.replay_buffer_kwargs = {"child_p": 0.2}
     config.only_use_nearest_children_data = False
@@ -57,12 +57,12 @@ def get_config():
     # TODO: increase batch size??
     # logging
     config.wandb = config_dict.ConfigDict()
-    config.wandb.track = False
+    config.wandb.track = True
     config.wandb.project = "llm-curriculum"
     config.wandb.entity = "robertmccarthy11"
     config.wandb.group = "drawer-env-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "move_cube_to_target-single-oracle_10k"
+    config.wandb.name = "move_gripper_cube_test-dense_rew2"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = False

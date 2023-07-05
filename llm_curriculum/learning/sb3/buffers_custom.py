@@ -619,21 +619,6 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
         return child_p
 
     def get_child_batch_split(self, batch_size, split_strat="even"):
-        # # success rates
-        # child_success_rates = {}
-        # for child_name in self.valid_relations['children'].keys():
-        #     child_success_rates[child_name] = self._get_task_success_rate(child_name)
-        # # data sizes
-        # child_data_sizes = {}
-        # for child_name in self.valid_relations['children'].keys():
-        #     child_data_sizes[child_name] = self.all_models[child_name].replay_buffer.size()
-        # # % of task
-        # child_task_proportions = self.child_proportions
-        # # distance from parent
-        # child_distance_from_parent = {}
-        # for child_name in self.valid_relations['children'].keys():
-        #     child_distance_from_parent[child_name] = self.valid_relations['children'][child_name]
-        # assert False, "figure out what is simplest and best to use..."
 
         # just do even split for now
         child_split = {}
@@ -653,10 +638,61 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
 
         return child_split
 
+    def score(self):
+        """
+        Potential scores:
+        - success rate
+        - % of task
+        - data size
+
+        Todo:
+        - Nearness to end of sequence (this is actually somewhat important!)
+        - Proximity to parent (% of task covers this somewhat)
+        - % positive rewards in whole buffer
+        - How much child contributes to parents 'exploit tree traversal score'
+        """
+
+        def normalize_scores(scores_dict):
+            total = sum(scores_dict.values())
+            for key in scores_dict.keys():
+                scores_dict[key] /= total
+            return scores_dict
+
+        def combine_and_normalize_scores(*scores):
+            combined_scores = {
+                key: sum(scores_dict[key] for scores_dict in scores)
+                for key in scores[0]
+            }
+            return normalize_scores(combined_scores)
+
+        # success rates
+        child_success_rates = {}
+        for child_name in self.valid_relations["children"].keys():
+            child_success_rates[child_name] = self._get_task_success_rate(child_name)
+        child_success_rates = normalize_scores(child_success_rates)
+
+        # % of task
+        child_task_proportions = self.child_proportions
+        child_task_proportions = normalize_scores(child_task_proportions)
+
+        # data sizes
+        child_data_sizes = {}
+        for child_name in self.valid_relations["children"].keys():
+            child_data_sizes[child_name] = self.all_models[
+                child_name
+            ].replay_buffer.size()
+        child_data_sizes = normalize_scores(child_data_sizes)
+
+        score = combine_and_normalize_scores(
+            child_success_rates, child_task_proportions, child_data_sizes
+        )
+
+        assert False, "figure out what is simplest and best to use..."
+
+        return score
+
     def _get_task_success_rate(self, task_name):
-        return self.env.agent_conductor.get_task_epoch_success_rate(
-            task_name
-        )  # TODO: use ema or this???
+        return self.agent_conductor.task_stats["success"].get_task_edma(task_name)
 
     def _get_child_data(self, batch_size):
         """Custom"""
