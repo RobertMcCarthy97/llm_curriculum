@@ -52,7 +52,7 @@ def get_config():
     config.policy_type = "MlpPolicy"
     config.learning_starts = 1e3
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
-    config.replay_buffer_kwargs = {"child_p": 1.0}
+    config.replay_buffer_kwargs = {"child_p": 1.0, "child_scoring_strats": []}
     config.only_use_nearest_children_data = False
     config.total_timesteps = 1e6
     config.device = "cpu"
