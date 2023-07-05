@@ -336,8 +336,8 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
         n_envs: int = 1,
         optimize_memory_usage: bool = False,
         handle_timeout_termination: bool = True,
-        child_p: float = 0.2,
         child_scoring_strats: List[str] = [],
+        parent_child_split: Dict = {"strat": "static", "min_p": 0.2, "max_p": 0.2},
     ):
         super().__init__(
             buffer_size, observation_space, action_space, device, n_envs=n_envs
@@ -385,8 +385,16 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
         self.timeouts = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
 
         # datasharing
-        self.child_p = child_p
         self.child_scoring_strats = child_scoring_strats
+        self.parent_child_split = parent_child_split
+        assert self.parent_child_split["strat"] in [
+            "static",
+            "self_success",
+            "all_success",
+        ]
+        assert self.parent_child_split["min_p"] <= self.parent_child_split["max_p"]
+        assert self.parent_child_split["min_p"] >= 0.0
+        assert self.parent_child_split["max_p"] <= 1.0
 
         if psutil is not None:
             total_memory_usage = (
@@ -558,12 +566,13 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
         unnormed_data["rewards"] = self.rewards[batch_inds, env_indices].copy()
 
         # child data
-        if self.has_children and self.child_p > 0:
+        if self.has_children and self.parent_child_split["max_p"] > 0:
             # get child data
             child_p = self.calc_child_p()
-            child_batch_size = child_p * len(
-                batch_inds
-            )  # TODO: Not actually taking a proportion here...
+            child_batch_size = np.ceil(
+                child_p
+                * len(batch_inds)  # TODO: Not actually taking a proportion here...
+            )
             data_dict_list = self._get_child_data(child_batch_size)
             # add child data to parent data
             for key in data_dict_list.keys():
@@ -588,38 +597,50 @@ class SeparatePoliciesReplayBuffer(BaseBuffer):
         )
         return ReplayBufferSamples(*tuple(map(self.to_torch, data)))
 
-    def calc_child_p(self, min_p=0.05, max_p=0.5, child_p_strat="default"):
+    def calc_child_p(self):
         """
         Decides batch split between parent and child data
         """
-        # just use default value for now
-        # TODO
-        if child_p_strat == "default":
-            child_p = self.child_p
+        # min_p=0.05, max_p=0.5, child_p_strat="default"
 
-        elif child_p_strat == "self_success":
-            # chooses split based self success rate
-            self_success = self._get_task_success_rate(self.task_name)
-            child_p = max(min_p, max_p * (1 - self_success))
-            assert child_p >= min_p and child_p <= max_p
-            assert False, "check works properly"
+        def rescale_between_min_max(p):
+            assert p >= 0 and p <= 1
+            p = self.parent_child_split["min_p"] + (
+                p
+                * (self.parent_child_split["max_p"] - self.parent_child_split["min_p"])
+            )
+            assert (
+                p >= self.parent_child_split["min_p"]
+                and p <= self.parent_child_split["max_p"]
+            )
+            return p
 
-        elif child_p_strat == "all_task_success":
-            # chooses split based on self and children success rates
+        # static split
+        if self.parent_child_split["strat"] == "static":
+            assert self.parent_child_split["min_p"] == self.parent_child_split["max_p"]
+            child_p = self.parent_child_split["min_p"]
+
+        # chooses split based on self-success rate
+        elif self.parent_child_split["strat"] == "self_success":
             self_success = self._get_task_success_rate(self.task_name)
-            children_successes = []
-            for child in self.valid_relations["children"].keys():
-                children_successes.append(self._get_task_success_rate(child))
-            children_success = np.mean(children_successes)
-            p = ((1 - self_success) + (children_success / 2)) / 1.5
-            child_p = max(min_p, max_p * p)
-            assert child_p >= min_p and child_p <= max_p
-            assert False, "check works, make more sophisticated"
+            child_p = 1 - self_success
+            child_p = rescale_between_min_max(child_p)
+
+        # chooses split based on self and children success rates
+        elif self.parent_child_split["strat"] == "all_success":
+            self_success = self._get_task_success_rate(self.task_name)
+            child_success = self.agent_conductor.get_sequence_exploit_success(
+                self.agent_conductor.get_task_from_name(
+                    self.task_name
+                ).subtask_sequence  # TODO: # exploit_sequenced_success rates don't work for single_task learning
+            )
+            child_p = (
+                1 - self_success
+            ) * child_success  # modulate with child_success (if children bad, use less data)
+            child_p = rescale_between_min_max(child_p)
 
         else:
-            raise NotImplementedError(
-                f"{child_p_strat} not implemented for calc_child_p()"
-            )
+            raise NotImplementedError
 
         return child_p
 

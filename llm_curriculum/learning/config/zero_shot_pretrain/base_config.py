@@ -52,7 +52,14 @@ def get_config():
     config.policy_type = "MlpPolicy"
     config.learning_starts = 1e3
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
-    config.replay_buffer_kwargs = {"child_p": 0.2, "child_scoring_strats": []}
+    config.replay_buffer_kwargs = {
+        "parent_child_split": {
+            "strat": "static",
+            "min_p": 0.2,
+            "max_p": 0.2,
+        },  # static, self_success, all_success
+        "child_scoring_strats": [],  # scoring: ["success_edma", "proportion", "data_size"]
+    }
     config.only_use_nearest_children_data = False
     config.total_timesteps = 1e6
     config.device = "cpu"

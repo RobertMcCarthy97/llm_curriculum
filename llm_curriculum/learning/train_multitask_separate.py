@@ -370,6 +370,11 @@ def get_hparams():
     if hparams["only_use_nearest_children_data"]:
         assert hparams["child_p_strat"] == "sequenced_direct_children"
 
+    if hparams["replay_buffer_kwargs"]["parent_child_split"]["strat"] == "all_success":
+        assert hparams[
+            "sequenced_episodes"
+        ]  # exploit_sequenced_success rates only work if doing full tree learning...
+
     return hparams
 
 

@@ -37,10 +37,9 @@ def get_config():
     config.single_task_names = [
         "move_gripper_to_cube",
         "lift_cube",
-        "move_cube_to_target",
         "pick_up_cube",
     ]
-    config.high_level_task_names = ["move_cube_to_target"]
+    config.high_level_task_names = ["pick_up_cube"]
     config.curriculum_manager_cls = DummySeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
     config.sequenced_episodes = False
     config.contained_sequence = False
@@ -50,15 +49,15 @@ def get_config():
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
-    config.learning_starts = 1e2  # TODO: undo to 1e3!
+    config.learning_starts = 1e3
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
     config.replay_buffer_kwargs = {
-        "child_p": 0.2,
-        "child_scoring_strats": [
-            "success_edma",
-            "proportion",
-            "data_size",
-        ],  # scoring: ["success_edma", "proportion", "data_size"]
+        "parent_child_split": {
+            "strat": "static",
+            "min_p": 0.2,
+            "max_p": 0.2,
+        },  # static, self_success, all_success
+        "child_scoring_strats": [],  # scoring: ["success_edma", "proportion", "data_size"]
     }
     config.only_use_nearest_children_data = False
     config.total_timesteps = 1e6
@@ -69,12 +68,12 @@ def get_config():
     # TODO: increase batch size??
     # logging
     config.wandb = config_dict.ConfigDict()
-    config.wandb.track = False
+    config.wandb.track = True
     config.wandb.project = "llm-curriculum"
     config.wandb.entity = "robertmccarthy11"
     config.wandb.group = "drawer-env-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "move_gripper_cube_test-dense_rew2-seed100"
+    config.wandb.name = "test"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = False
