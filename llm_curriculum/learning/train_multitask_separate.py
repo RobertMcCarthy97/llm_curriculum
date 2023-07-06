@@ -3,7 +3,8 @@ import numpy as np
 import copy
 import os
 
-from stable_baselines3 import TD3
+# from stable_baselines3 import TD3
+from llm_curriculum.learning.sb3.td3_custom import TD3
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize, VecMonitor
 from stable_baselines3.common.callbacks import CallbackList
@@ -172,6 +173,7 @@ def create_models(env, logger, hparams):
     models_dict = {}
     # create models
     for task_name in task_list:
+        assert hparams["algo"] is TD3
         model = hparams["algo"](
             hparams["policy_type"],
             env,
@@ -184,6 +186,7 @@ def create_models(env, logger, hparams):
             policy_kwargs=hparams["policy_kwargs"],
             action_noise=hparams["action_noise"],
             batch_size=hparams["batch_size"],
+            task_name=task_name,
         )
         model.set_logger(logger)
         if hparams["replay_buffer_class"] is not None:

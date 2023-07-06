@@ -5,7 +5,7 @@ from llm_curriculum.envs.curriculum_manager import (
     DummySeperateEpisodesCM,
 )
 from llm_curriculum.learning.sb3.buffers_custom import SeparatePoliciesReplayBuffer
-from stable_baselines3 import TD3
+from llm_curriculum.learning.sb3.td3_custom import TD3
 
 # from stable_baselines3.common.buffers_custom import SeparatePoliciesReplayBuffer
 from stable_baselines3.common.noise import NormalActionNoise
@@ -27,7 +27,7 @@ def get_config():
     config.dense_rew_lowest = False
     config.dense_rew_tasks = [
         "move_gripper_to_cube",
-        "move_cube_towards_target_grasp",
+        # "move_cube_towards_target_grasp",
     ]
     config.use_language_goals = False
     config.render_mode = "rgb_array"
@@ -38,7 +38,7 @@ def get_config():
     config.cube_pos_on_reset = "table"
     # task / curriculum
     config.single_task_names = []
-    config.high_level_task_names = ["move_cube_to_target"]
+    config.high_level_task_names = ["pick_up_cube"]
     config.sequenced_episodes = True
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
@@ -54,9 +54,9 @@ def get_config():
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
     config.replay_buffer_kwargs = {
         "parent_child_split": {
-            "strat": "self_success",
+            "strat": "static",
             "min_p": 0.2,
-            "max_p": 1.0,
+            "max_p": 0.2,
         },  # static, self_success, all_success
         "child_scoring_strats": [],  # scoring: ["success_edma", "proportion", "data_size"]
     }
@@ -73,7 +73,7 @@ def get_config():
     config.wandb.entity = "robertmccarthy11"
     config.wandb.group = "child_p_strat-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "move_cube_to_target-parent_child_self_success_0.2_1.0"
+    config.wandb.name = "pick_up_cube-test_rl_stats"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = False
