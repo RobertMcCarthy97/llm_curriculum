@@ -36,6 +36,7 @@ def make_env(
     cube_pos_on_reset="table",
     # curriculum
     child_p_strat="mean",
+    decompose_p_clip={"low": 0.1, "high": 0.9},
 ):
 
     ##########
@@ -95,6 +96,7 @@ def make_env(
             tasks_list=agent_conductor.get_possible_task_names(),
             agent_conductor=agent_conductor,
             child_p_strat=child_p_strat,
+            decompose_p_clip=decompose_p_clip,
         )
         agent_conductor.set_curriculum_manager(
             curriculum_manager

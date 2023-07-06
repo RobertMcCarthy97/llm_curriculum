@@ -6,12 +6,18 @@ from llm_curriculum.utils.stats import StatsTracker
 
 class CurriculumManager:
     def __init__(
-        self, tasks_list, agent_conductor, child_p_strat="mean", p_combined_strat="mean"
+        self,
+        tasks_list,
+        agent_conductor,
+        child_p_strat="mean",
+        p_combined_strat="mean",
+        decompose_p_clip={"low": 0.1, "high": 0.9},
     ):
         self.tasks_list = tasks_list
         self.agent_conductor = agent_conductor
         self.child_p_strat = child_p_strat
         self.p_combined_strat = p_combined_strat
+        self.decompose_p_clip = decompose_p_clip
 
         self.last_returned_i = -1
         self.stat_tracker = StatsTracker(tasks_list)
@@ -67,8 +73,19 @@ class CurriculumManager:
 
 
 class DummySeperateEpisodesCM(CurriculumManager):
-    def __init__(self, tasks_list, agent_conductor, child_p_strat="mean"):
-        super().__init__(tasks_list, agent_conductor, child_p_strat)
+    def __init__(
+        self,
+        tasks_list,
+        agent_conductor,
+        child_p_strat="mean",
+        decompose_p_clip={"low": 0.1, "high": 0.9},
+    ):
+        super().__init__(
+            tasks_list,
+            agent_conductor,
+            child_p_strat=child_p_strat,
+            decompose_p_clip=decompose_p_clip,
+        )
 
     def next_task(self):
         i = self.last_returned_i + 1
@@ -80,8 +97,19 @@ class DummySeperateEpisodesCM(CurriculumManager):
 
 
 class SeperateEpisodesCM(CurriculumManager):
-    def __init__(self, tasks_list, agent_conductor, child_p_strat="mean"):
-        super().__init__(tasks_list, agent_conductor, child_p_strat)
+    def __init__(
+        self,
+        tasks_list,
+        agent_conductor,
+        child_p_strat="mean",
+        decompose_p_clip={"low": 0.1, "high": 0.9},
+    ):
+        super().__init__(
+            tasks_list,
+            agent_conductor,
+            child_p_strat=child_p_strat,
+            decompose_p_clip=decompose_p_clip,
+        )
 
         self.child_parent_info = self.init_child_parent_info()
         self.task_last_childs = self.init_task_last_childs()
@@ -94,18 +122,22 @@ class SeperateEpisodesCM(CurriculumManager):
         p_list = []
 
         p_self = self.get_p_task(task_name, positive_relationship=False)
+        p_self = self.clip_p(p_self)
         p_list.append(p_self)
 
         if self.child_parent_info[task_name]["parent"] is not None:
             p_parent = self.get_p_task(
                 self.child_parent_info[task_name]["parent"], positive_relationship=False
             )
+            p_parent = self.clip_p(p_parent)
             p_list.append(p_parent)
 
         if len(self.child_parent_info[task_name]["children"]) > 0:
             p_childs = []
             for child_name in self.child_parent_info[task_name]["children"]:
-                p_childs += [self.get_p_task(child_name, positive_relationship=True)]
+                p_childs += [
+                    self.clip_p(self.get_p_task(child_name, positive_relationship=True))
+                ]
             p_child = np.mean(p_childs)
             p_list.append(p_child)
 
@@ -158,7 +190,7 @@ class SeperateEpisodesCM(CurriculumManager):
                 assert False, "Could not find a task to return"
 
     def clip_p(self, p):
-        return min(max(p, 0.1), 0.9)
+        return np.clip(p, self.decompose_p_clip["low"], self.decompose_p_clip["high"])
 
     ###########################
     # Tree traveral functions #
@@ -179,7 +211,7 @@ class SeperateEpisodesCM(CurriculumManager):
             p = success_rate
         else:
             p = 1 - success_rate
-        return self.clip_p(p)
+        return p
 
     def calc_decompose_p(self, task_name):
         """
@@ -229,9 +261,8 @@ class SeperateEpisodesCM(CurriculumManager):
             elif self.child_p_strat == "sequenced_direct_children":
                 p_child = 1
                 task = self.agent_conductor.get_task_from_name(task_name)
-                for child in self.subtask_sequence:
+                for child in task.subtask_sequence:
                     p_child *= self.get_p_task(child.name, positive_relationship=True)
-                assert False, "not tested"
 
             else:
                 raise NotImplementedError
@@ -251,9 +282,12 @@ class SeperateEpisodesCM(CurriculumManager):
             else:
                 decompose_p = 1 - np.mean([p_self, p_child])
 
+        else:
+            raise NotImplementedError
+
         # clip
-        decompose_p = np.clip(
-            decompose_p, 0.1, 0.99
+        decompose_p = self.clip_p(
+            decompose_p
         )  # Prev version was mean(clip(p_self, 0.1, 0.9), clip(p_child, 0.1, 0.9))
 
         return decompose_p

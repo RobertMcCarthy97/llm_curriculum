@@ -4,8 +4,10 @@ from llm_curriculum.envs.curriculum_manager import (
     SeperateEpisodesCM,
     DummySeperateEpisodesCM,
 )
+from llm_curriculum.learning.sb3.buffers_custom import SeparatePoliciesReplayBuffer
 from stable_baselines3 import TD3
-from stable_baselines3.common.buffers_custom import SeparatePoliciesReplayBuffer
+
+# from stable_baselines3.common.buffers_custom import SeparatePoliciesReplayBuffer
 from stable_baselines3.common.noise import NormalActionNoise
 
 
@@ -41,13 +43,24 @@ def get_config():
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
     config.curriculum_manager_cls = SeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
-    config.child_p_strat = "sequenced"
+    config.child_p_strat = (
+        "sequenced"  # "mean", "sequenced", "sequenced_direct_children"
+    )
+    config.decompose_p_clip = {"low": 0.1, "high": 0.9}
     # algo
     config.algo = TD3
     config.policy_type = "MlpPolicy"
     config.learning_starts = 1e3
     config.replay_buffer_class = SeparatePoliciesReplayBuffer
-    config.replay_buffer_kwargs = {"child_p": 0.2}
+    config.replay_buffer_kwargs = {
+        "parent_child_split": {
+            "strat": "self_success",
+            "min_p": 0.2,
+            "max_p": 1.0,
+        },  # static, self_success, all_success
+        "child_scoring_strats": [],  # scoring: ["success_edma", "proportion", "data_size"]
+    }
+    config.only_use_nearest_children_data = False
     config.total_timesteps = 1e6
     config.device = "cpu"
     config.policy_kwargs = None  # None, {'goal_based_custom_args': {'use_siren': True, 'use_sigmoid': True}}
@@ -60,7 +73,7 @@ def get_config():
     config.wandb.entity = "robertmccarthy11"
     config.wandb.group = "child_p_strat-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "move_cube_to_target-sequenced_child_p_strat-new_p_clip"
+    config.wandb.name = "move_cube_to_target-parent_child_self_success_0.2_1.0"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = False

@@ -233,8 +233,21 @@ class Task:
 
         self.child_propostions = set_child_proportions(self, task_prop=1.0)
 
-    def get_relations(self):
-        return self.relations
+    def get_relations(self, nearest=False):
+        if nearest:
+            child_dict = {}
+            for child_name, child_distance in self.relations["children"].items():
+                if child_distance == 1:
+                    child_dict[child_name] = child_distance
+            parent_dict = {}
+            for parent_name, parent_distance in self.relations["parents"].items():
+                if parent_distance == 1:
+                    parent_dict[parent_name] = parent_distance
+            assert len(parent_dict.keys()) <= 1
+            return {"parents": parent_dict, "children": child_dict}
+        else:
+            # return all
+            return self.relations
 
     def get_child_proportions(self):
         return self.child_propostions

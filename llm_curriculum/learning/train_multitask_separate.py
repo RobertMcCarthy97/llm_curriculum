@@ -26,9 +26,6 @@ from llm_curriculum.envs.curriculum_manager import (
 )
 from llm_curriculum.learning.sb3.sequenced_rollouts import SequencedRolloutCollector
 
-from stable_baselines3.common.buffers_custom import (
-    SeparatePoliciesReplayBuffer,
-)  # TODO: should move these into this repo!!??
 from llm_curriculum.learning.sb3.callback import (
     VideoRecorderCallback,
     EvalCallbackMultiTask,
@@ -75,6 +72,7 @@ def create_env(hparams, eval=False, vec_norm_path=None):
             is_closed_on_reset=hparams["is_closed_on_reset"],
             cube_pos_on_reset=hparams["cube_pos_on_reset"],
             child_p_strat=hparams["child_p_strat"],
+            decompose_p_clip=hparams["decompose_p_clip"],
         )
 
     # Vec Env
@@ -173,7 +171,7 @@ def create_models(env, logger, hparams):
 
     models_dict = {}
     # create models
-    for task in task_list:
+    for task_name in task_list:
         model = hparams["algo"](
             hparams["policy_type"],
             env,
@@ -189,8 +187,8 @@ def create_models(env, logger, hparams):
         )
         model.set_logger(logger)
         if hparams["replay_buffer_class"] is not None:
-            model.replay_buffer.set_task_name(task)
-        models_dict[task] = model
+            model.replay_buffer.set_task_name(task_name)
+        models_dict[task_name] = model
 
     if hparams["replay_buffer_class"] is not None:
         # link buffers relations
@@ -199,7 +197,7 @@ def create_models(env, logger, hparams):
             relations = (
                 env.envs[0]
                 .agent_conductor.get_task_from_name(task_name)
-                .get_relations()
+                .get_relations(nearest=hparams["only_use_nearest_children_data"])
             )
             models_dict[task_name].replay_buffer.init_datasharing(
                 relations, models_dict, agent_conductor=env.envs[0].agent_conductor
@@ -368,6 +366,14 @@ def get_hparams():
 
     if hparams["save_models"]:
         assert hparams["sequenced_episodes"], "not setup for non-sequenced episodes"
+
+    if hparams["only_use_nearest_children_data"]:
+        assert hparams["child_p_strat"] == "sequenced_direct_children"
+
+    if hparams["replay_buffer_kwargs"]["parent_child_split"]["strat"] == "all_success":
+        assert hparams[
+            "sequenced_episodes"
+        ]  # exploit_sequenced_success rates only work if doing full tree learning...
 
     return hparams
 
