@@ -5,6 +5,8 @@ import torch as th
 from gym import spaces
 from torch.nn import functional as F
 
+from llm_curriculum.utils.utils import get_grad_norm
+
 from stable_baselines3.common.buffers import ReplayBuffer
 from stable_baselines3.common.noise import ActionNoise
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
@@ -100,6 +102,7 @@ class TD3(OffPolicyAlgorithm):
         _init_setup_model: bool = True,
         # custom args:
         oracle_at_warmup=False,
+        task_name=None,
     ):
         super().__init__(
             policy,
@@ -130,6 +133,8 @@ class TD3(OffPolicyAlgorithm):
         self.policy_delay = policy_delay
         self.target_noise_clip = target_noise_clip
         self.target_policy_noise = target_policy_noise
+
+        self.task_name = task_name
 
         if _init_setup_model:
             self._setup_model()
@@ -238,6 +243,31 @@ class TD3(OffPolicyAlgorithm):
         if len(actor_losses) > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
         self.logger.record("train/critic_loss", np.mean(critic_losses))
+
+        if self.task_name is not None:
+            if len(actor_losses) > 0:
+                self.logger.record(
+                    f"train_custom/{self.task_name}_actor_loss", np.mean(actor_losses)
+                )
+                self.logger.record(
+                    f"train_custom/{self.task_name}_actor_grad_norm",
+                    get_grad_norm(self.actor),
+                )
+            self.logger.record(
+                f"train_custom/{self.task_name}_critic_loss", np.mean(critic_losses)
+            )
+            self.logger.record(
+                f"train_custom/{self.task_name}_critic_grad_norm",
+                get_grad_norm(self.critic),
+            )
+            self.logger.record(
+                f"train_custom/{self.task_name}_current_q1_mean",
+                current_q_values[0].mean().item(),
+            )
+            self.logger.record(
+                f"train_custom/{self.task_name}_batch_reward_mean",
+                replay_data.rewards.mean().item(),
+            )
 
     def learn(
         self: SelfTD3,
