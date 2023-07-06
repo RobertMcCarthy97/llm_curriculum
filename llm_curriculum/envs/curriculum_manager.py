@@ -349,6 +349,7 @@ class InitialStateCurriculumManager:
                     task_requiring_curriculum
                 )  # this checks if n_children > 1
                 if do_curriculum:
+                    assert False, "Not compatible with new 'move_to_next' time-limits"
                     self.curriculum_in_progress = True
                     self.task_requiring_curriculum = task_requiring_curriculum
                     self.completing_reset_task = completing_reset_task

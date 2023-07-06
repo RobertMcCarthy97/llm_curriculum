@@ -79,7 +79,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         # stats
         self.episode_n_steps = 0
         active_task = self.agent_conductor.get_active_task()
-        self.record_task_stats(prev_task, active_task, reset=True)
+        self.record_task_change_stats(prev_task, active_task, reset=True)
         assert active_task.name == info["active_task_name"]
         # return
         return obs, info
@@ -135,7 +135,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
                 obs, _, _, truncated, info = self.step(
                     action, reset_step=True
                 )  # Don't record till reset
-                _, reset_success = self.calc_reward(
+                _, reset_success = self.set_success_get_reward(
                     obs["observation"], reset_prev_active_task
                 )
                 # step reset_conductor
@@ -159,7 +159,7 @@ class CurriculumEnvWrapper(gym.Wrapper):
         self.active_state_obs = state_obs
 
         # calc reward
-        reward, success = self.calc_reward(
+        reward, success = self.set_success_get_reward(
             state_obs, prev_active_task
         )  # reward based on g_t, obs_t+1
 
@@ -182,16 +182,20 @@ class CurriculumEnvWrapper(gym.Wrapper):
         # truncated
         truncated = self.episode_n_steps >= self.max_ep_len
 
-        # stats
+        # Stats
         if not reset_step:
             # record stats
-            self.record_task_stats(prev_active_task, active_task)
-            if (success and info["goal_changed"]) or truncated:
+            self.record_task_change_stats(prev_active_task, active_task)
+            if (
+                (success and info["goal_changed"])
+                or (prev_active_task.move_to_next and info["goal_changed"])
+                or truncated
+            ):  # TODO: alot of redundancy here
                 self.agent_conductor.record_task_success_stat(prev_active_task, success)
 
         return obs, reward, terminated, truncated, info
 
-    def record_task_stats(self, prev_task, active_task, reset=False):
+    def record_task_change_stats(self, prev_task, active_task, reset=False):
         # check if task changed
         task_changed = prev_task.name != active_task.name
         if (task_changed or reset) and (self.active_task_steps > 0):
@@ -255,8 +259,8 @@ class CurriculumEnvWrapper(gym.Wrapper):
         # return
         return info
 
-    def calc_reward(self, state, active_task):
-        success, reward = active_task.active_task_check_and_set_success(state)
+    def set_success_get_reward(self, state, active_task):
+        success, reward = active_task.active_task_step(state)
         return reward, success
 
     def plot_state(self):

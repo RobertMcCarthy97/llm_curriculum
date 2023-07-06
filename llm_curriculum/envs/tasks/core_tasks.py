@@ -33,18 +33,24 @@ class Task:
         use_dense_reward_lowest_level=False,
         use_incremental_reward=False,
         complete_thresh=3,
+        leaf_max_steps=25,
+        use_time_limit=False,
     ):
         self.parent_task = parent_task
         self.level = level
         self.use_dense_reward_lowest_level = use_dense_reward_lowest_level
         self.complete_thresh = complete_thresh
         self.use_incremental_reward = use_incremental_reward
+        self.leaf_max_steps = leaf_max_steps
+        self.use_time_limit = use_time_limit
 
         self.next_task = None
 
         # completion tracking - within episode stats!!
         self.complete = False
+        self.move_to_next = False
         self.success_count = 0
+        self.steps_active = 0
 
     def set_state_parser_full_tree(self, env_type):
         assert env_type in ["core", "drawer"]
@@ -105,7 +111,7 @@ class Task:
     def check_next_task_exists(self):
         return self.next_task is not None
 
-    def active_task_check_and_set_success(self, current_state):
+    def active_task_step(self, current_state):
         # Check if task is complete
         success, reward = self.check_success_reward(current_state)
         if success:
@@ -126,7 +132,20 @@ class Task:
         # Check if subtasks complete
         self.check_and_set_subtasks_complete(self, current_state)
 
+        # Increment time_active
+        self.steps_active += 1
+        if self.steps_active > self.max_active_steps and self.use_time_limit:
+            self.move_to_next = True
+
         return success, reward
+
+    # within-episode stat setting
+    def set_complete(self, success):
+        if success:
+            self.success_count += 1
+            if self.success_count >= self.complete_thresh:
+                self.complete = True
+                self.move_to_next = True
 
     def check_and_set_subtasks_complete(self, task, current_state):
         if len(task.subtask_sequence) > 0:
@@ -258,19 +277,17 @@ class Task:
         else:
             return -1.0
 
-    # within-episode stat setting
-    def set_complete(self, is_complete):
-        if is_complete:
-            self.success_count += 1
-            if self.success_count >= self.complete_thresh:
-                self.complete = True
-
     def set_use_dense_reward(self, use_dense_reward):
         self.use_dense_reward = use_dense_reward
 
+    def set_max_steps(self, max_steps):
+        self.max_active_steps = max_steps
+
     def reset(self):
         self.complete = False
+        self.move_to_next = False
         self.success_count = 0
+        self.steps_active = 0
         if len(self.subtask_sequence) > 0:
             for subtask in self.subtask_sequence:
                 subtask.reset()

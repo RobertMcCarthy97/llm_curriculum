@@ -19,6 +19,7 @@ class AgentConductor:
         use_language_goals=False,
         dense_rew_tasks=[],
         use_incremental_reward=False,
+        use_time_limit=False,
         initial_state_curriculum_p=0.0,
     ):
         self.env = env  # TODO: unclear what this is doing
@@ -39,6 +40,7 @@ class AgentConductor:
         self.dense_reward_tasks = dense_rew_tasks
 
         self.use_incremental_reward = use_incremental_reward
+        self.use_time_limit = use_time_limit
         self.initial_state_curriculum_manager = InitialStateCurriculumManager(
             initial_state_curriculum_p, self
         )
@@ -51,8 +53,10 @@ class AgentConductor:
         self.task_names = self.get_task_names()
         self.task_idx_dict, self.n_tasks = self.init_oracle_goals()
         self.task_name2obj_dict = self.set_task_name2obj_dict()
+        # TODO: these should be done by task_tree_builder ?
         self.init_task_relations(self.task_names)
         self.init_child_proportions(self.task_names)
+        self.init_task_time_limits()
         if len(dense_rew_tasks) > 0:
             self.init_dense_reward_tasks(dense_rew_tasks)
 
@@ -90,6 +94,7 @@ class AgentConductor:
         tree_builder = TaskTreeBuilder(
             use_dense_reward_lowest_level=self.dense_rew_lowest,
             use_incremental_reward=self.use_incremental_reward,
+            use_time_limit=self.use_time_limit,
         )
         high_level_tasks = tree_builder.build_from_name_list(self.high_level_task_names)
         assert len(high_level_tasks) == 1, "only set for 1 task currently"
@@ -121,6 +126,22 @@ class AgentConductor:
         for task_name in task_names:
             task = self.get_task_from_name(task_name)
             task.record_child_proportions()
+
+    def init_task_time_limits(self):
+        def recursively_set_time_limits(task):
+            if len(task.subtask_sequence) > 0:
+                max_steps = 0
+                for subtask in task.subtask_sequence:
+                    subtask_max_steps = recursively_set_time_limits(subtask)
+                    max_steps += subtask_max_steps
+            else:
+                max_steps = task.leaf_max_steps
+            task.set_max_steps(max_steps)
+            return max_steps
+
+        assert len(self.high_level_task_list) == 1
+        for task in self.high_level_task_list:
+            recursively_set_time_limits(task)
 
     def init_dense_reward_tasks(self, dense_reward_tasks):
         # possible_task_names = self.get_possible_task_names()
@@ -215,6 +236,7 @@ class AgentConductor:
         return self.active_task
 
     def decompose_task(self, task, force_decompose=False):
+        assert not task.move_to_next, "unexpected behavior"
         # Never decompose single task or contained sequence
         if task.name == self.active_single_task_name:
             return task
@@ -256,6 +278,8 @@ class AgentConductor:
         return do_decompose
 
     def step_task_recursive(self, task):
+        if not self.use_time_limit:
+            assert task.move_to_next == task.complete
         # if using single tasks
         if task.name == self.active_single_task_name:
             return self.step_single_task(task)
@@ -269,7 +293,7 @@ class AgentConductor:
     def step_single_task(self, task):
         # contained sequence logic
         if self.contained_sequence:
-            if task.complete and task.check_next_task_exists():
+            if task.move_to_next and task.check_next_task_exists():
                 # jump to next task in sequence
                 self.active_single_task_name = task.next_task.name
                 return task.next_task
@@ -280,28 +304,49 @@ class AgentConductor:
         """
         Once gone down (via decompose_task), only ever come back up 1 level if finished a sub-task sequence
         """
-        if task.complete:
+        if task.move_to_next:
 
-            def step_sub_task(task):
-                assert (
-                    task.complete
-                ), f"Task {task.name} is not complete!"  # TODO: shouldn't assume that child sequence completes parent!
+            # If successful
+            if task.complete:
+
+                def step_completed_task(task):
+                    assert (
+                        task.complete
+                    ), f"Task {task.name} is not complete!"  # TODO: shouldn't assume that child sequence completes parent!
+                    # If completed task, parent exists, and next exist - replan from next_task
+                    if task.check_next_task_exists():
+                        assert task.parent_task is not None
+                        return self.decompose_task(task.next_task)
+                    else:
+                        # if high_level completed then just return self (nothing else to do!)
+                        if self.chosen_high_level_task.complete:
+                            return task
+                        # If no next but has parent, then go up to parent
+                        else:
+                            assert (
+                                task.parent_task is not None
+                            )  # if self is complete and high-level is not, then task must have parent - more work to do!
+                            return step_completed_task(task.parent_task)
+
+                return step_completed_task(task)
+
+            # If maxed out time-limit
+            else:
+                # Replan from next_task
                 if task.check_next_task_exists():
                     assert task.parent_task is not None
-                    # If completed task, parent exists, and next exist - replan from next_task
                     return self.decompose_task(task.next_task)
                 else:
-                    if self.chosen_high_level_task.complete:
-                        # if high_level completed then just return self (nothing else to do!)
-                        return task
-                    else:
+                    # Attempt with parent policy
+                    if task.parent_task is not None:
                         assert (
-                            task.parent_task is not None
-                        )  # if self is complete and high-level is not, then task must have parent - more work to do!
-                        # If no next but has parent, then go up to parent
-                        return step_sub_task(task.parent_task)
+                            not task.parent_task.complete
+                        ), "if final child not complete, then parent can't be"
+                        return task.parent_task
+                    # If no parent or next, just keep trying
+                    else:
+                        return task
 
-            return step_sub_task(task)
         else:
             # If task not complete, then keep trying!
             return task

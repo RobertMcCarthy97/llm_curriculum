@@ -30,6 +30,7 @@ def make_env(
     mtenv_task_idx=None,
     curriculum_manager_cls=None,
     use_incremental_reward=False,
+    use_task_time_limit=False,
     initial_state_curriculum_p=0.0,
     # drawer env
     is_closed_on_reset=True,
@@ -82,6 +83,7 @@ def make_env(
         contained_sequence=contained_sequence,
         use_language_goals=use_language_goals,
         use_incremental_reward=use_incremental_reward,
+        use_time_limit=use_task_time_limit,
         initial_state_curriculum_p=initial_state_curriculum_p,
     )
     env = CurriculumEnvWrapper(

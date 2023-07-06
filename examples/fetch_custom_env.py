@@ -7,21 +7,23 @@ from llm_curriculum.envs.cli import get_user_action
 if __name__ == "__main__":
 
     env = make_env(
+        max_ep_len=100,
         drawer_env=True,
         manual_decompose_p=1,
         dense_rew_lowest=False,
-        dense_rew_tasks=["move_gripper_to_cube", "move_cube_over_drawer"],
+        dense_rew_tasks=[],
         use_language_goals=False,
         render_mode="human",
         single_task_names=[],
-        high_level_task_names=["place_cube_open_drawer"],
+        high_level_task_names=["open_then_place_in_drawer"],
         contained_sequence=False,
         curriculum_manager_cls=None,
         use_incremental_reward=False,
+        use_task_time_limit=True,
         initial_state_curriculum_p=0,
         # drawer env
-        is_closed_on_reset=False,
-        cube_pos_on_reset="on_drawer",
+        is_closed_on_reset=True,
+        cube_pos_on_reset="table",
     )
 
     # set traversal mode
@@ -32,12 +34,12 @@ if __name__ == "__main__":
         obs = env.reset()
         print("env reset")
 
-        for _ in range(50):
-            print("cube_pos_obs: ", obs["observation"][3:6])
+        done = False
+        while not done:
             ## Actions
-            # action = env.action_space.sample()
+            action = env.action_space.sample()
             # action = get_user_action()
-            action = env.get_oracle_action(obs["observation"])
+            # action = env.get_oracle_action(obs["observation"])
 
             # step
             # obs, reward, terminated, truncated, info = env.step(action)
@@ -48,6 +50,10 @@ if __name__ == "__main__":
             # prints
             active_task = info["active_task_name"]
             print(f"Active Task: {active_task}")
+            print(
+                "active_task_steps: ",
+                env.agent_conductor.get_task_from_name(active_task).steps_active,
+            )
             # print(f"Goal: {obs['desired_goal']}")
             # print(f"Obs: {obs['observation'].shape}")
             # print(f"step count: {env.ep_steps}")

@@ -68,6 +68,7 @@ def create_env(hparams, eval=False, vec_norm_path=None):
             state_obs_only=True,
             curriculum_manager_cls=hparams["curriculum_manager_cls"],
             use_incremental_reward=hparams["incremental_reward"],
+            use_task_time_limit=hparams["use_task_time_limit"],
             initial_state_curriculum_p=hparams["initial_state_curriculum_p"],
             is_closed_on_reset=hparams["is_closed_on_reset"],
             cube_pos_on_reset=hparams["cube_pos_on_reset"],

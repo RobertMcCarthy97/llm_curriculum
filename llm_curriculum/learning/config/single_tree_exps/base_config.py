@@ -44,6 +44,7 @@ def get_config():
     config.curriculum_manager_cls = SeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
     config.sequenced_episodes = True
     config.contained_sequence = False
+    config.use_task_time_limit = False
     config.initial_state_curriculum_p = 0.0
     config.child_p_strat = "mean"
     config.decompose_p_clip = {"low": 0.1, "high": 0.9}
