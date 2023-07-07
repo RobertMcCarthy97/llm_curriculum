@@ -19,9 +19,10 @@ Rules:
 2. Do not use dynamic/action information in the states (e.g. velocities actions), only use static information.
 ---------------------------------------------------
 Follow this template: 
-[Thought:  ${description of reasoning process}]
-[repeat above any number of times needed...]
+Thought:  ${description of reasoning process}
+(repeat above any number of times needed...)
+
 The objectives are: 
-[#. ${short description of objective}]
-[repeat above any number of times needed...]
+#. ${short description of objective}
+(repeat above any number of times needed...)
 ---------------------------------------------------

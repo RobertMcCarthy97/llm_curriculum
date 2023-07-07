@@ -1,0 +1,53 @@
+The agent receives observations in json form. 
+
+Here is an example:
+
+{
+    "agent_info": {
+        "position": [1, 3],
+        "direction": 2,
+        "carrying": "nothing",
+    },
+    "field_of_view": {
+        "red_box": {
+            "position": [3, 6],
+            },
+        "green_circle": {
+            "position": [7, 8],
+        },
+    },
+}
+
+Write a function that takes in the observation and checks whether state '${state}' has been reached?
+You should explain how the function works at a high-level, and any assumptions made, in a comment at the top of the function.
+
+Rules: 
+1. Do not modify the function signature. 
+--------------------------------
+
+Here is an example for the state "agent is next to red box".
+
+def is_beside_red_box(observation):
+    """
+    This function checks if the agent is beside the red box.
+    
+    We're assuming that 'beside' means that the agent is one cell away from the box, 
+    either horizontally or vertically, but not diagonally. In other words, we're using 
+    the Manhattan distance with a distance of 1, and not the Euclidean distance.
+    
+    We're also assuming that the environment is a grid, and that the positions are 
+    given as (x, y) pairs, where x increases to the right, and y increases downward. 
+    That's why we can simply subtract the coordinates to calculate the distance.
+    
+    :param observation: A dictionary containing the observation.
+    :return: True if the agent is beside the red box, False otherwise.
+    """
+    agent_pos = observation['agent_info']['position']
+    red_box_pos = observation['observation']['red_box']['position']
+
+    dx = abs(agent_pos[0] - red_box_pos[0])
+    dy = abs(agent_pos[1] - red_box_pos[1])
+
+    return (dx, dy) in [(1, 0), (0, 1)]
+
+
