@@ -26,6 +26,17 @@ def obj_to_str(obj: WorldObj) -> str:
     return f"{obj.color}_{obj.type}"
 
 
+def describe_env(env: minigrid.minigrid_env.MiniGridEnv) -> str:
+    obj_str = ""
+    for obj in env.grid.grid:
+        if obj is None or obj.type in ("empty", "unseen", "wall"):
+            continue
+        obj_str += f"{obj_to_str(obj)}, "
+
+    text_obs = " a single room. " f"It contains: {obj_str}"
+    return text_obs
+
+
 def parse_field_of_view(img_obs: np.ndarray) -> Dict[str, Any]:
     """Describe the field of view of the agent"""
 

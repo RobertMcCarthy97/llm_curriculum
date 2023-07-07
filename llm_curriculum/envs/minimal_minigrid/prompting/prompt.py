@@ -13,6 +13,7 @@ from llm_curriculum.envs.minimal_minigrid.prompting.api import (
 from llm_curriculum.envs.minimal_minigrid.description import (
     parse_agent,
     parse_field_of_view,
+    describe_env,
 )
 
 DECOMPOSITION_PROMPT_TEMPLATE_PATH = (
@@ -31,8 +32,17 @@ def is_objective(string: str) -> bool:
     return bool(re.match(pattern, string))
 
 
+def parse_objective_tag(string):
+    pattern = "<objectives>(.*?)</objectives>"
+    match = re.search(pattern, string, re.DOTALL)
+    if match:
+        return match.group(1)
+    return None
+
+
 def parse_objectives(reply: str) -> List[str]:
     objectives = []
+    reply = parse_objective_tag(reply)
     lines = reply.split("\n")
     pattern = r"^\d+\.\s"  # This regular expression pattern matches one or more digits, followed by '. ', at the start of a string.
 
@@ -51,18 +61,12 @@ if __name__ == "__main__":
     env = FullyObsWrapper(env)
     obs, _ = env.reset()
 
-    llm_obs = {
-        "agent_info": parse_agent(env),
-        "field_of_view": parse_field_of_view(obs["image"]),
-    }
-    print(llm_obs)
-
-    llm_obs_str = json.dumps(llm_obs)
+    env_str = describe_env(env)
     mission_str = obs["mission"]
 
     print(" ****** DECOMPOSITION PROMPT ****** ")
     prompt_template = load_prompt_template(DECOMPOSITION_PROMPT_TEMPLATE_PATH)
-    prompt = prompt_template.replace("${environment}", llm_obs_str).replace(
+    prompt = prompt_template.replace("${environment}", env_str).replace(
         "${mission}", mission_str
     )
 

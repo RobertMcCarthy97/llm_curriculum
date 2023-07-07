@@ -17,12 +17,19 @@ Can you list the intermediate states that must be reached for the agent to compl
 Rules: 
 1. Do this in the same style as "Red box is beside green ball".  
 2. Do not use dynamic/action information in the states (e.g. velocities actions), only use static information.
+3. Always begin the list of intermediate states with <objectives> and end it with </objectives>
 ---------------------------------------------------
 Follow this template: 
 Thought:  ${description of reasoning process}
 (repeat above any number of times needed...)
 
 The objectives are: 
-#. ${short description of objective}
+<objectives>
+#. ${short description of intermediate state}
 (repeat above any number of times needed...)
+</objectives>
 ---------------------------------------------------
+Example of intermediate state:
+- 'Agent is next to grey door'
+- 'Agent is carrying yellow key'
+- 'Green door is open'
