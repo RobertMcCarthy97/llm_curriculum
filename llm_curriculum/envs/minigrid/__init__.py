@@ -6,19 +6,16 @@ register(
 )
 
 register(
+    id="MiniGrid-UnlockDecomposedAutomated-v1",
+    entry_point="llm_curriculum.envs.minigrid.env_wrapper:make_automated_unlock_env",
+)
+
+register(
     id="MiniGrid-UnlockPickupDecomposedAutomated-v0",
-    entry_point="llm_curriculum.envs.minigrid.env_wrapper:make_automated_env",
-    env_id="MiniGrid-UnlockPickup-v0",
+    entry_point="llm_curriculum.envs.minigrid.env_wrapper:make_automated_unlock_pickup_env",
 )
 
 register(
     id="MiniGrid-BlockedUnlockPickupDecomposedAutomated-v1",
-    entry_point="llm_curriculum.envs.minigrid.env_wrapper:make_automated_env",
-    env_id="MiniGrid-UnlockPickup-v0",
-)
-
-register(
-    id="MiniGrid-UnlockDecomposedAutomated-v1",
-    entry_point="llm_curriculum.envs.minigrid.env_wrapper:make_automated_env",
-    env_id="MiniGrid-UnlockPickup-v0",
+    entry_point="llm_curriculum.envs.minigrid.env_wrapper:make_automated_blocked_unlock_pickup_env",
 )

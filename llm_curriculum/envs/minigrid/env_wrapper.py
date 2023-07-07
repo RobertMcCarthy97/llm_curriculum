@@ -32,6 +32,12 @@ def env_to_str(env: gym.Env):
     return env_str
 
 
+class RoomgridLanguageWrapper(gym.ObservationWrapper):
+    """Wrap a Roomgrid environment with language observations"""
+
+    pass
+
+
 class MinigridTaskEnvWrapper(gym.Wrapper):
     """Wrap a Minigrid environment with a sequence of tasks
 
@@ -85,9 +91,7 @@ class MinigridTaskEnvWrapper(gym.Wrapper):
         return obs, reward, terminated, truncated, info
 
 
-def make_automated_env(*args, **kwargs):
-
-    env_id = kwargs.pop("env_id")
+def make_automated_env(env_id, *args, **kwargs):
     from llm_curriculum.envs.minigrid.prompting.prompt import (
         make_prompt,
         parse_task_descriptions,
@@ -119,6 +123,17 @@ def make_automated_env(*args, **kwargs):
     make_task_fn = lambda env: tasks
     env = MinigridTaskEnvWrapper(env, make_task_fn)
     return env
+
+
+make_automated_blocked_unlock_pickup_env = lambda *args, **kwargs: make_automated_env(
+    "MiniGrid-BlockedUnlockPickup-v0", *args, **kwargs
+)
+make_automated_unlock_pickup_env = lambda *args, **kwargs: make_automated_env(
+    "MiniGrid-UnlockPickup-v0", *args, **kwargs
+)
+make_automated_unlock_env = lambda *args, **kwargs: make_automated_env(
+    "MiniGrid-Unlock-v0", *args, **kwargs
+)
 
 
 def make_wrapped_pickup_unlock_env(*args, **kwargs):
