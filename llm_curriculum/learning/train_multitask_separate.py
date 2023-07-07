@@ -117,7 +117,7 @@ def setup_logging(hparams, train_env, base_freq=1000):
     # TODO: link train curriculum manager + agent_conductor to eval envs?? (so can get same decompositions in eval...)
 
     callback_list = []
-    if hparams["eval_policy"]:
+    if hparams["do_seperate_policy_eval"] or len(hparams["eval_traversal_modes"]) > 0:
         callback_list += [
             EvalCallbackMultiTask(
                 eval_env_non_seq,
@@ -127,6 +127,7 @@ def setup_logging(hparams, train_env, base_freq=1000):
                 seperate_policies=True,
                 single_task_names=single_task_names,
                 tree_traversal_modes=hparams["eval_traversal_modes"],
+                do_seperate_policy_eval=hparams["do_seperate_policy_eval"],
                 n_eval_episodes=10,
             )
         ]

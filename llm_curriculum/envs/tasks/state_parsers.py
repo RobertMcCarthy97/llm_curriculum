@@ -73,7 +73,7 @@ class CoreStateParser:
         self.gripper_closed_cube_thresh = (
             0.05  # distance between grippers when grasping cube
         )
-        self.cube_lifted_thresh = self.table_height + 2.5 * self.cube_width
+        self.cube_lifted_delta = 2.5 * self.cube_width
         self.cube_between_gripper_dist_thresh = self.cube_width
         self.gripper_open_thresh = 1.8 * self.cube_width
         self.gripper_stationary_thresh = 0.001
@@ -173,7 +173,7 @@ class CoreStateParser:
         return success, reward
 
     def check_cube_lifted(self, state):
-        thresh = self.cube_lifted_thresh
+        thresh = self.table_height + self.cube_lifted_delta
         cube_z = self.get_cube_pos(state)[2]
         success = cube_z > thresh
         reward = np.clip(-self.scale_cube_lifted * (thresh - cube_z), -1, 0)
@@ -359,6 +359,9 @@ class DrawerStateParser(CoreStateParser):
         dynamic_rect_volume = RectangularVolume(dynamic_min_point, dynamic_max_point)
         return dynamic_rect_volume
 
+    def get_drawer_static_rect_volume(self, state):
+        return self.drawer_static_rect_volume
+
     def get_over_drawer_dynamic_rect_volume(self, state):
         """
         Note, currently includes volume in drawer aswell as above...
@@ -531,7 +534,8 @@ class DrawerStateParser(CoreStateParser):
     def check_gripper_above_cube_in_drawer(self, state):
         # Check if cube in drawer
         cube_in_drawer, _ = self.check_cube_in_drawer(state)
-        assert cube_in_drawer
+        if not cube_in_drawer:
+            print("WARNING: cube not in drawer")  # TODO: deal with this better...
         # Check if gripper above cube
         dist_success, dense_reward = self.check_gripper_above_cube(state)
         # check if drawer open
@@ -547,3 +551,27 @@ class DrawerStateParser(CoreStateParser):
         else:
             success = False
             return success, dense_reward
+
+    # Override drawer_env=False version
+    def check_cube_lifted(self, state):
+        # establish threshold
+        cube_pos = self.get_cube_pos(state)
+        cube_within_static = self.get_drawer_static_rect_volume(state).contains_xy(
+            cube_pos
+        )
+        cube_within_dynamic = self.get_drawer_dynamic_rect_volume(state).contains_xy(
+            cube_pos
+        )
+        if cube_within_static:
+            thresh = self.get_drawer_static_max_point(state)[2] + self.cube_lifted_delta
+        elif cube_within_dynamic:
+            thresh = (
+                self.get_drawer_dynamic_min_point(state)[2] + self.cube_lifted_delta
+            )
+        else:
+            thresh = self.table_height + self.cube_lifted_delta
+        # do check
+        cube_z = cube_pos[2]
+        success = cube_z > thresh
+        reward = np.clip(-self.scale_cube_lifted * (thresh - cube_z), -1, 0)
+        return success, reward
