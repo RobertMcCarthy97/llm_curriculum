@@ -55,6 +55,22 @@ def parse_objectives(reply: str) -> List[str]:
     return objectives
 
 
+def parse_function(reply: str):
+    """Parse the function call from the assistant's reply"""
+    pattern = "```python(.*?)```"
+    match = re.search(pattern, reply, re.DOTALL)
+    if match:
+        return match.group(1)
+    return None
+
+
+def parse_function_name(reply: str):
+    lines = reply.split("\n")
+    for line in lines:
+        if line.startswith("def"):
+            return line.split()[1].split("(")[0]
+
+
 if __name__ == "__main__":
 
     env = gym.make("MiniGrid-IsNextTo-6x6-N2-v0", render_mode="human")
@@ -107,3 +123,23 @@ if __name__ == "__main__":
 
     reply = assistant_message["content"]
     print(reply)
+
+    # Parse the response
+    print(" ****** FUNCTION NAME ****** ")
+    function_name = parse_function_name(reply)
+    print(function_name)
+
+    print(" ****** FUNCTION DEFINITION ****** ")
+    function_call = parse_function(reply)
+    print(function_call)
+
+    # Evaluate the function as Python code to define it
+    exec(function_call)
+    # Execute the function
+    print(" ****** FUNCTION EXECUTION ****** ")
+    function_obs = {
+        "agent_info": parse_agent(env),
+        "field_of_view": parse_field_of_view(obs["image"]),
+    }
+    result = locals()[function_name](function_obs)
+    print(result)

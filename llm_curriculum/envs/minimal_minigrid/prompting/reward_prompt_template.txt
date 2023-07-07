@@ -22,12 +22,14 @@ Write a function that takes in the observation and checks whether state '${state
 You should explain how the function works at a high-level, and any assumptions made, in a comment at the top of the function.
 
 Rules: 
-1. Do not modify the function signature. 
+1. Define exactly one function. Do not define extra helper functions. 
+2. The function must be callable with a single argument, which is the observation. 
+3. The function returns a boolean. 
 --------------------------------
 
 Here is an example for the state "agent is next to red box".
 
-def is_beside_red_box(observation):
+def is_beside_red_box(observation) -> bool:
     """
     This function checks if the agent is beside the red box.
     
