@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import llm_curriculum.envs.minigrid  # noqa: F401
+import llm_curriculum.envs.minimal_minigrid.envs  # noqa: F401
 import gymnasium as gym
 import pygame
 from gymnasium import Env
