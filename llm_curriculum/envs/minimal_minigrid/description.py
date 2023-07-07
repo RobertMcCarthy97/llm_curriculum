@@ -9,6 +9,7 @@ from gymnasium.core import ObservationWrapper
 
 import minigrid
 from minigrid.core.roomgrid import Room, RoomGrid
+from minigrid.core.world_object import WorldObj
 from minigrid.core.constants import (
     STATE_TO_IDX,
     OBJECT_TO_IDX,
@@ -18,6 +19,11 @@ from minigrid.core.constants import (
 )
 
 IDX_TO_STATE = {v: k for k, v in STATE_TO_IDX.items()}
+
+
+def obj_to_str(obj: WorldObj) -> str:
+    """Convert a WorldObj to a string"""
+    return f"{obj.color}_{obj.type}"
 
 
 def parse_field_of_view(img_obs: np.ndarray) -> Dict[str, Any]:
@@ -30,10 +36,10 @@ def parse_field_of_view(img_obs: np.ndarray) -> Dict[str, Any]:
             obj = IDX_TO_OBJECT[obj_idx]
             color = IDX_TO_COLOR[color_idx]
 
-            if obj in ("empty", "unseen", "wall"):
+            if obj in ("empty", "unseen", "wall", "agent"):
                 continue
 
-            obj_dict = {"position": (x, y)}
+            obj_dict = {"position": (int(x), int(y))}
 
             if obj == "door":
                 state = IDX_TO_STATE[state_idx]
@@ -46,9 +52,14 @@ def parse_field_of_view(img_obs: np.ndarray) -> Dict[str, Any]:
 
 def parse_agent(env) -> Dict[str, Any]:
     """Describe the agent"""
+    carrying = env.carrying
+    if carrying:
+        carrying = obj_to_str(carrying)
+    else:
+        carrying = "nothing"
     dict_obs = {
-        "position": env.agent_pos,
-        "direction": env.agent_dir,
-        "carrying": env.carrying,
+        "position": (int(env.agent_pos[0]), int(env.agent_pos[1])),
+        "direction": int(env.agent_dir),
+        "carrying": carrying,
     }
     return dict_obs

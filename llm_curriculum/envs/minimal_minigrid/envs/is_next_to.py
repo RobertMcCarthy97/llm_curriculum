@@ -30,18 +30,10 @@ class IsNextToEnv(MiniGridEnv):
     Also, doesn't matter which object you pick up.
     """
 
-    def __init__(self, size=6, numObjs=2, max_steps: int | None = None, **kwargs):
+    def __init__(self, size=6, max_steps: int | None = None, **kwargs):
         self.size = size
-        self.numObjs = numObjs
-        self.obj_types = ["key", "ball", "box"]
         mission_space = MissionSpace(
             mission_func=self._gen_mission,
-            ordered_placeholders=[
-                COLOR_NAMES,
-                self.obj_types,
-                COLOR_NAMES,
-                self.obj_types,
-            ],
         )
 
         if max_steps is None:
@@ -58,10 +50,8 @@ class IsNextToEnv(MiniGridEnv):
         )
 
     @staticmethod
-    def _gen_mission(
-        move_color: str, move_type: str, target_color: str, target_type: str
-    ):
-        return f"{move_color} {move_type} is next to {target_color} {target_type}"
+    def _gen_mission():
+        return f"red ball is next to green key"
 
     def _gen_grid(self, width, height):
         self.grid = Grid(width, height)
@@ -103,12 +93,7 @@ class IsNextToEnv(MiniGridEnv):
         self.obj1_type = objs[1][0]
         self.obj1_color = objs[1][1]
 
-        self.mission = "{} {} is next to {} {}".format(
-            self.obj0_color,
-            self.obj0_type,
-            self.obj1_color,
-            self.obj1_type,
-        )
+        self.mission = self._gen_mission()
 
     def step(self, action):
         preCarrying = self.carrying

@@ -1,0 +1,27 @@
+I have an agent in a MiniGrid environment.
+
+The environment is:
+${environment}
+
+The agent can perform the following actions:
+- Move forward
+- Turn left 
+- Turn right
+- Pick up an object (max 1 at a time)
+- Place object (if currently holding one)
+- Open / close a door 
+
+The final state the agent must reach is: ${mission}.
+Can you list the intermediate states that must be reached for the agent to complete the task?
+
+Rules: 
+1. Do this in the same style as "Red box is beside green ball".  
+2. Do not use dynamic/action information in the states (e.g. velocities actions), only use static information.
+---------------------------------------------------
+Follow this template: 
+[Thought:  ${description of reasoning process}]
+[repeat above any number of times needed...]
+The objectives are: 
+[#. ${short description of objective}]
+[repeat above any number of times needed...]
+---------------------------------------------------

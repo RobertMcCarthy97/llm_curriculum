@@ -13,6 +13,10 @@ secrets = dotenv.dotenv_values(dotenv_path)
 openai.api_key = secrets["OPENAI_API_KEY"]
 
 
+def get_default_system_message() -> str:
+    return "You are ChatGPT, a large language model trained by OpenAI, based on the GPT-4 architecture. Knowledge cutoff: 2021-09. Current date: 2023-05-04. "
+
+
 @retry(wait=wait_random_exponential(min=1, max=40), stop=stop_after_attempt(3))
 def chat_completion_request(
     messages, functions=None, function_call=None, model=GPT_MODEL
