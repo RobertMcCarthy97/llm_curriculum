@@ -29,11 +29,17 @@ def parse_field_of_view(img_obs: np.ndarray) -> Dict[str, Any]:
             obj_idx, color_idx, state_idx = img_obs[y, x]
             obj = IDX_TO_OBJECT[obj_idx]
             color = IDX_TO_COLOR[color_idx]
-            state = IDX_TO_STATE[state_idx]
 
             if obj in ("empty", "unseen", "wall"):
                 continue
-            dict_obs[f"{color}_{obj}"] = (x, y)
+
+            obj_dict = {"position": (x, y)}
+
+            if obj == "door":
+                state = IDX_TO_STATE[state_idx]
+                obj_dict["state"] = state
+
+            dict_obs[f"{color}_{obj}"] = obj_dict
 
     return dict_obs
 
