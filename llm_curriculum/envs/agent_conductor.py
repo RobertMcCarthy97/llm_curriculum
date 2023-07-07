@@ -90,6 +90,7 @@ class AgentConductor:
         tree_builder = TaskTreeBuilder(
             use_dense_reward_lowest_level=self.dense_rew_lowest,
             use_incremental_reward=self.use_incremental_reward,
+            drawer_env=self.env.add_drawer,
         )
         high_level_tasks = tree_builder.build_from_name_list(self.high_level_task_names)
         assert len(high_level_tasks) == 1, "only set for 1 task currently"

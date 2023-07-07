@@ -19,6 +19,13 @@ class RectangularVolume:
             and self.min_point[2] <= point[2] <= self.max_point[2]
         )
 
+    def contains_xy(self, point):
+        # checks if a point is in the xy plane of the volume
+        return (
+            self.min_point[0] <= point[0] <= self.max_point[0]
+            and self.min_point[1] <= point[1] <= self.max_point[1]
+        )
+
     def get_center(self):
         return (self.min_point + self.max_point) / 2
 
@@ -512,3 +519,31 @@ class DrawerStateParser(CoreStateParser):
         success = between_success and length_success and height_success
         reward = None  # TODO
         return success, reward
+
+    def check_both_grippers_within_dynamic_drawer_xy(self, state):
+        min_gripper_pos, max_gripper_pos = self.get_gripper_min_max_pos(state)
+        dynamic_drawer_volume = self.get_drawer_dynamic_rect_volume(state)
+        min_within = dynamic_drawer_volume.contains_xy(min_gripper_pos)
+        max_within = dynamic_drawer_volume.contains_xy(max_gripper_pos)
+        return (min_within and max_within), None
+
+    # For when cube is in the drawer
+    def check_gripper_above_cube_in_drawer(self, state):
+        # Check if cube in drawer
+        cube_in_drawer, _ = self.check_cube_in_drawer(state)
+        assert cube_in_drawer
+        # Check if gripper above cube
+        dist_success, dense_reward = self.check_gripper_above_cube(state)
+        # check if drawer open
+        drawer_open, _ = self.check_drawer_open(state)
+        # check if grippers within drawer x-y
+        grippers_within_drawer, _ = self.check_both_grippers_within_dynamic_drawer_xy(
+            state
+        )
+        # return
+        if drawer_open and grippers_within_drawer:
+            success = dist_success
+            return success, dense_reward
+        else:
+            success = False
+            return success, dense_reward

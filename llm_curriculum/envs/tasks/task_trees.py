@@ -25,6 +25,7 @@ from llm_curriculum.envs.tasks.drawer_tasks import (
     PlaceGraspedCubeOnDrawerTopTask,
     MoveCubeOverDrawerTopTask,
     ReleaseCubeOnDrawerTopTask,
+    MoveGripperToCubeInDrawerTask,
 )
 
 """
@@ -282,7 +283,7 @@ cube_on_table_to_cube_on_drawer_tree = {
 cube_in_drawer_to_cube_at_target_tree = {
     MoveCubeToTargetTask: {
         PickUpCubeTask: {
-            MoveGripperToCubeTask: None,
+            MoveGripperToCubeInDrawerTask: None,
             GraspCubeTask: {
                 CubeBetweenGripperTask: None,
                 CloseGripperCubeTask: None,

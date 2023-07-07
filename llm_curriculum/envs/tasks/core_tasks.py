@@ -33,12 +33,14 @@ class Task:
         use_dense_reward_lowest_level=False,
         use_incremental_reward=False,
         complete_thresh=3,
+        drawer_env=False,
     ):
         self.parent_task = parent_task
         self.level = level
         self.use_dense_reward_lowest_level = use_dense_reward_lowest_level
         self.complete_thresh = complete_thresh
         self.use_incremental_reward = use_incremental_reward
+        self.is_drawer_env = drawer_env
 
         self.next_task = None
 

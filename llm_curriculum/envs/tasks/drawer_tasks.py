@@ -353,3 +353,48 @@ class ReleaseCubeOnDrawerTopTask(Task):
         """
         gripper_open = True
         return np.array([0, 0, 0]), gripper_open
+
+
+############# Pick cube from IN drawer
+
+
+class MoveGripperToCubeInDrawerTask(Task):
+    """
+    TODO: refactor as MoveGripperToObjectTask - takes the object as input (so can deal with different objects...)
+    """
+
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
+        self.name = "move_gripper_to_cube_in_drawer"
+        self.str_description = "Go to cube"
+
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
+
+    def _check_success_reward(self, current_state):
+        success, dense_reward = self.state_parser.check_gripper_above_cube_in_drawer(
+            current_state
+        )
+        if self.use_dense_reward:
+            if success:
+                reward = 0
+            else:
+                # can be improved, but fine for now
+                reward = np.clip(
+                    dense_reward, -1, -self.state_parser.cube_target_dist_threshold
+                )  # TODO: this is quite dodgy...
+        else:
+            # TODO: make sure revert for MTRL!!
+            reward = self.binary_reward(success)
+        return success, reward
+
+    def get_oracle_action(self, state):
+        # move gripper above cube
+        cube_pos = (
+            self.state_parser.get_cube_pos(state) + self.state_parser.cube_height_offset
+        )
+        gripper_pos = self.state_parser.get_gripper_pos(state)
+        direction = cube_pos - gripper_pos
+        gripper_open = True
+        print("WARNING: oracle actions incorrect for task: ", self.name)
+        return direction, gripper_open
