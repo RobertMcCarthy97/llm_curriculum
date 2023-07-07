@@ -1,16 +1,33 @@
 from __future__ import annotations
 
+from typing import Tuple
 from minigrid.core.constants import COLOR_NAMES
 from minigrid.core.grid import Grid
 from minigrid.core.mission import MissionSpace
-from minigrid.core.world_object import Ball, Box, Key
+from minigrid.core.world_object import Ball, Key
 from minigrid.minigrid_env import MiniGridEnv
 
 
-class MyPutNearEnv(MiniGridEnv):
+def get_obj_pos(grid: Grid, type: str, color: str) -> Tuple[int, int]:
+    for obj in grid.grid:
+        if obj is None:
+            continue
+        if obj.type == type and obj.color == color:
+            return obj.cur_pos
+    raise ValueError(f"Object {type} {color} not found")
+
+
+def is_next_to(coord_a, coord_b):
+    dx = coord_a[0] - coord_b[0]
+    dy = coord_a[1] - coord_b[1]
+    return abs(dx) + abs(dy) <= 1
+
+
+class IsNextToEnv(MiniGridEnv):
 
     """
-    Same as PutNearEnv but fixed object types
+    Same as PutNearEnv but fixed object types.
+    Also, doesn't matter which object you pick up.
     """
 
     def __init__(self, size=6, numObjs=2, max_steps: int | None = None, **kwargs):
@@ -44,7 +61,7 @@ class MyPutNearEnv(MiniGridEnv):
     def _gen_mission(
         move_color: str, move_type: str, target_color: str, target_type: str
     ):
-        return f"put the {move_color} {move_type} near the {target_color} {target_type}"
+        return f"{move_color} {move_type} is next to {target_color} {target_type}"
 
     def _gen_grid(self, width, height):
         self.grid = Grid(width, height)
@@ -55,7 +72,7 @@ class MyPutNearEnv(MiniGridEnv):
         self.grid.vert_wall(0, 0)
         self.grid.vert_wall(width - 1, 0)
 
-        objs_to_place = [("ball", "red"), ("box", "green")]
+        objs_to_place = [("ball", "red"), ("key", "green")]
         objs = []
         objPos = []
 
@@ -74,8 +91,8 @@ class MyPutNearEnv(MiniGridEnv):
                 obj = Key(objColor)
             elif objType == "ball":
                 obj = Ball(objColor)
-            elif objType == "box":
-                obj = Box(objColor)
+            elif objType == "key":
+                obj = key(objColor)
             pos = self.place_obj(obj, reject_fn=near_obj)
             objs.append((objType, objColor))
             objPos.append(pos)
@@ -83,48 +100,30 @@ class MyPutNearEnv(MiniGridEnv):
         # Randomize the agent start position and orientation
         self.place_agent()
 
-        # Choose a random object to be moved
-        objIdx = self._rand_int(0, len(objs))
-        self.move_type, self.moveColor = objs[objIdx]
-        self.move_pos = objPos[objIdx]
+        self.obj0_type = objs[0][0]
+        self.obj0_color = objs[0][1]
+        self.obj1_type = objs[1][0]
+        self.obj1_color = objs[1][1]
 
-        # Choose a target object (to put the first object next to)
-        while True:
-            targetIdx = self._rand_int(0, len(objs))
-            if targetIdx != objIdx:
-                break
-        self.target_type, self.target_color = objs[targetIdx]
-        self.target_pos = objPos[targetIdx]
-
-        self.mission = "put the {} {} near the {} {}".format(
-            self.moveColor,
-            self.move_type,
-            self.target_color,
-            self.target_type,
+        self.mission = "{} {} is next to {} {}".format(
+            self.obj0_color,
+            self.obj0_type,
+            self.obj1_color,
+            self.obj1_type,
         )
 
     def step(self, action):
         preCarrying = self.carrying
-
         obs, reward, terminated, truncated, info = super().step(action)
 
-        u, v = self.dir_vec
-        ox, oy = (self.agent_pos[0] + u, self.agent_pos[1] + v)
-        tx, ty = self.target_pos
-
-        # If we picked up the wrong object, terminate the episode
-        if action == self.actions.pickup and self.carrying:
-            if (
-                self.carrying.type != self.move_type
-                or self.carrying.color != self.moveColor
-            ):
+        if preCarrying is not None and action == self.actions.drop:
+            green_key_pos = get_obj_pos(self.grid, "key", "green")
+            red_ball_pos = get_obj_pos(self.grid, "ball", "red")
+            if is_next_to(green_key_pos, red_ball_pos):
+                reward = self._reward()
                 terminated = True
-
-        # If successfully dropping an object near the target
-        if action == self.actions.drop and preCarrying:
-            if self.grid.get(ox, oy) is preCarrying:
-                if abs(ox - tx) <= 1 and abs(oy - ty) <= 1:
-                    reward = self._reward()
-            terminated = True
+        else:
+            reward = 0
+            terminated = False
 
         return obs, reward, terminated, truncated, info
