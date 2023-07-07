@@ -91,8 +91,6 @@ class IsNextToEnv(MiniGridEnv):
                 obj = Key(objColor)
             elif objType == "ball":
                 obj = Ball(objColor)
-            elif objType == "key":
-                obj = key(objColor)
             pos = self.place_obj(obj, reject_fn=near_obj)
             objs.append((objType, objColor))
             objPos.append(pos)
