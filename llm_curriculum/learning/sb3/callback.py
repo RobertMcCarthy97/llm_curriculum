@@ -46,6 +46,7 @@ class VideoRecorderCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self._render_freq == 0:
+            sync_envs_normalization(self.training_env, self._eval_env)
             self._record_video(deterministic=True)
             self._record_video(deterministic=False)
         return True
@@ -322,6 +323,7 @@ class EvalCallbackMultiTask(EventCallback):
         seperate_policies: bool = False,
         single_task_names: List[str] = None,
         tree_traversal_modes: List[str] = ["train"],
+        do_seperate_policy_eval: bool = True,
     ):
         super().__init__(callback_after_eval, verbose=verbose)
 
@@ -341,6 +343,7 @@ class EvalCallbackMultiTask(EventCallback):
         self.single_task_names = single_task_names
         assert len(single_task_names) > 0
         self.tree_traversal_modes = tree_traversal_modes
+        self.do_seperate_policy_eval = do_seperate_policy_eval
 
         # Convert to VecEnv for consistency
         if not isinstance(eval_env, VecEnv):
@@ -421,7 +424,8 @@ class EvalCallbackMultiTask(EventCallback):
                     ), "Not checked if can handle more than 1 env"
 
             # Test on each task individually
-            self.seperate_episodes_eval()
+            if self.do_seperate_policy_eval:
+                self.seperate_episodes_eval()
 
             # Test on sequenced episodes
             if self.eval_env_sequenced is not None:
