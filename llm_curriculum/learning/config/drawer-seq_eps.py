@@ -21,12 +21,12 @@ def get_config():
     config.help = False
     config.seed = 0
     # env
-    config.drawer_env = False
+    config.drawer_env = True
     config.incremental_reward = False
     config.manual_decompose_p = None
     config.dense_rew_lowest = False
     config.dense_rew_tasks = [
-        "move_gripper_to_cube",
+        "move_gripper_to_cube_in_drawer",
         # "move_cube_towards_target_grasp",
     ]
     config.use_language_goals = False
@@ -34,11 +34,11 @@ def get_config():
     config.oracle_at_warmup = {"use_oracle": False, "oracle_steps": 0}
     config.max_ep_len = 50
     config.use_baseline_env = False
-    config.is_closed_on_reset = True
-    config.cube_pos_on_reset = "table"
+    config.is_closed_on_reset = False
+    config.cube_pos_on_reset = "in_drawer"
     # task / curriculum
     config.single_task_names = []
-    config.high_level_task_names = ["pick_up_cube"]
+    config.high_level_task_names = ["pick_up_cube_in_drawer"]
     config.sequenced_episodes = True
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
@@ -73,11 +73,11 @@ def get_config():
     config.wandb.entity = "robertmccarthy11"
     config.wandb.group = "child_p_strat-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "pick_up_cube-test_rl_stats"
+    config.wandb.name = "test-pick_up_cube_in_drawer"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = False
-    config.eval_policy = True
+    config.do_seperate_policy_eval = True
     config.eval_traversal_modes = ["train", "leaf", "exploit"]
 
     config.exp_group = "merge-validation"

@@ -78,7 +78,7 @@ def get_config():
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = True
-    config.eval_policy = True
+    config.do_seperate_policy_eval = True
     config.eval_traversal_modes = ["train", "leaf", "exploit"]
 
     # config.exp_group = "merge-validation"
