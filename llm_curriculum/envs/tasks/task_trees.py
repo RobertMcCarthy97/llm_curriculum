@@ -27,6 +27,12 @@ from llm_curriculum.envs.tasks.drawer_tasks import (
     ReleaseCubeOnDrawerTopTask,
 )
 
+"""
+TODO:
+- Add assertions about intial state of envirtonmnet for each task? (e.g. some tasks assume drawer is open, cube is in drawer, etc.)
+
+"""
+
 ######################
 # Define high-level task trees
 ######################
@@ -182,10 +188,116 @@ self.str_description = "pick and place mini"
 self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask, CloseGripperCubeTask, LiftCubeTask, MoveCubeTowardsTargetGraspTask]
 """
 
+##############################
+# 0-shot pretrianing trees
+##############################
 
-################################
-# Define some 0-shot adapt trees
-################################
+### V1
+cube_on_table_to_cube_at_target_tree = {
+    MoveCubeToTargetTask: {
+        PickUpCubeTask: {
+            MoveGripperToCubeTask: None,
+            GraspCubeTask: {
+                CubeBetweenGripperTask: None,
+                CloseGripperCubeTask: None,
+            },
+            LiftCubeTask: None,
+        },
+        PlaceCubeAtTargetTask: {
+            MoveCubeTowardsTargetGraspTask: None,
+        },
+    }
+}
+
+cube_on_drawer_to_cube_in_drawer_tree = {
+    PlaceCubeDrawerTask: {
+        PickUpCubeTask: {
+            MoveGripperToCubeTask: None,
+            GraspCubeTask: {
+                CubeBetweenGripperTask: None,
+                CloseGripperCubeTask: None,
+            },
+            LiftCubeTask: None,
+        },
+        PlaceGraspedCubeDrawerTask: {
+            MoveCubeOverDrawerTask: None,
+            ReleaseCubeInDrawerTask: None,
+        },
+    }
+}
+
+### V2
+cube_on_table_to_cube_in_drawer_tree = {
+    PlaceCubeDrawerTask: {
+        PickUpCubeTask: {
+            MoveGripperToCubeTask: None,
+            GraspCubeTask: {
+                CubeBetweenGripperTask: None,
+                CloseGripperCubeTask: None,
+            },
+            LiftCubeTask: None,
+        },
+        PlaceGraspedCubeDrawerTask: {
+            MoveCubeOverDrawerTask: None,
+            ReleaseCubeInDrawerTask: None,
+        },
+    }
+}
+
+cube_on_drawer_to_cube_at_target_tree = {
+    MoveCubeToTargetTask: {
+        PickUpCubeTask: {
+            MoveGripperToCubeTask: None,
+            GraspCubeTask: {
+                CubeBetweenGripperTask: None,
+                CloseGripperCubeTask: None,
+            },
+            LiftCubeTask: None,
+        },
+        PlaceCubeAtTargetTask: {
+            MoveCubeTowardsTargetGraspTask: None,
+        },
+    }
+}
+
+### V3
+
+cube_on_table_to_cube_on_drawer_tree = {
+    PlaceCubeOnDrawerTopTask: {
+        PickUpCubeTask: {
+            MoveGripperToCubeTask: None,
+            GraspCubeTask: {
+                CubeBetweenGripperTask: None,
+                CloseGripperCubeTask: None,
+            },
+            LiftCubeTask: None,
+        },
+        PlaceGraspedCubeOnDrawerTopTask: {
+            MoveCubeOverDrawerTopTask: None,
+            ReleaseCubeOnDrawerTopTask: None,
+        },
+    }
+}
+
+cube_in_drawer_to_cube_at_target_tree = {
+    MoveCubeToTargetTask: {
+        PickUpCubeTask: {
+            MoveGripperToCubeTask: None,
+            GraspCubeTask: {
+                CubeBetweenGripperTask: None,
+                CloseGripperCubeTask: None,
+            },
+            LiftCubeTask: None,
+        },
+        PlaceCubeAtTargetTask: {
+            MoveCubeTowardsTargetGraspTask: None,
+        },
+    }
+}
+
+######################################
+# Define some 0-shot adaptation trees
+######################################
 
 cube_in_open_drawer_to_cube_at_target_tree = {
     # Mix 'cube_on_table -> cube_at_target' with 'cube_in_open_drawer -> 'cube on drawer'
@@ -234,10 +346,17 @@ TASK_TREES = {
     "place_cube_drawer_top": place_cube_drawer_top_tree,
     "open_then_place_in_drawer": open_then_place_in_drawer_tree,
     "open_then_place_drawer_then_close": open_then_place_drawer_then_close_tree,
-    ## 0-shot adapt tasks
-    "open_drawer_then_pickup_cube": open_drawer_then_pick_cube,
-    "open_drawer_to_target_adapt": cube_in_open_drawer_to_cube_at_target_tree,
-    "closed_drawer_to_target_adapt": cube_in_closed_drawer_to_cube_at_target_tree,
+    ## 0-shot Pretraining tasks
+    "cube_on_table_to_cube_at_target": cube_on_table_to_cube_at_target_tree,
+    "cube_on_drawer_to_cube_in_drawer": cube_on_drawer_to_cube_in_drawer_tree,
+    "cube_on_table_to_cube_in_drawer": cube_on_table_to_cube_in_drawer_tree,
+    "cube_on_drawer_to_cube_at_target": cube_on_drawer_to_cube_at_target_tree,
+    "cube_on_table_to_cube_on_drawer": cube_on_table_to_cube_on_drawer_tree,
+    "cube_in_drawer_to_cube_at_target": cube_in_drawer_to_cube_at_target_tree,
+    ## 0-shot Adapt tasks
+    "ADAPT-open_drawer_then_pickup_cube": open_drawer_then_pick_cube,
+    "ADAPT-open_drawer_to_target_adapt": cube_in_open_drawer_to_cube_at_target_tree,
+    "ADAPT-closed_drawer_to_target_adapt": cube_in_closed_drawer_to_cube_at_target_tree,
 }
 
 ######################

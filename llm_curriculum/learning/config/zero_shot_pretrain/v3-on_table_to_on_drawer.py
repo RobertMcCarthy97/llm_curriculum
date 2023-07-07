@@ -10,9 +10,9 @@ def get_config():
     config.is_closed_on_reset = False
     config.cube_pos_on_reset = "table"
 
-    config.dense_rew_tasks = ["move_gripper_to_cube", "move_cube_towards_target_grasp"]
-    config.high_level_task_names = ["move_cube_to_target"]
+    config.dense_rew_tasks = ["move_gripper_to_cube", "move_cube_over_drawer_top"]
+    config.high_level_task_names = ["cube_on_table_to_cube_on_drawer"]
 
-    config.wandb.name = "move_cube_to_target-single_tree"
+    config.wandb.name = "cube_on_table_to_cube_on_drawer-pretrain-v3"
 
     return config

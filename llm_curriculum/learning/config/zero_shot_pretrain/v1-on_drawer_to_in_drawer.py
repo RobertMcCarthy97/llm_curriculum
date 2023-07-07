@@ -11,9 +11,9 @@ def get_config():
     config.cube_pos_on_reset = "on_drawer"
 
     config.dense_rew_tasks = ["move_gripper_to_cube", "move_cube_over_drawer"]
-    config.high_level_task_names = ["place_cube_open_drawer"]
+    config.high_level_task_names = ["cube_on_drawer_to_cube_in_drawer"]
 
-    config.wandb.name = "on_drawer_to_in_drawer-single_tree"
+    config.wandb.name = "on_drawer_to_in_drawer-pretrain-v1"
 
     raise NotImplementedError("TODO: fix this")
     """
