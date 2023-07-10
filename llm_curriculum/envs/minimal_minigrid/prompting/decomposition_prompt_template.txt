@@ -11,11 +11,11 @@ The agent can perform the following actions:
 - Place object (if currently holding one)
 - Open / close a door 
 
-The final state the agent must reach is: ${mission}.
+The final state the agent must reach is: '${mission}'.
 Can you list the intermediate states that must be reached for the agent to complete the task?
 
 Rules: 
-1. Do this in the same style as "Red box is beside green ball".  
+1. Do this in the same style as 'red box is next to green ball'.  
 2. Do not use dynamic/action information in the states (e.g. velocities actions), only use static information.
 3. Always begin the list of intermediate states with <objectives> and end it with </objectives>
 ---------------------------------------------------

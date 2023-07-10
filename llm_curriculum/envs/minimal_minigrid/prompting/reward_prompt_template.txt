@@ -1,6 +1,6 @@
 The agent receives observations in json form. 
 
-Here is an example:
+Here is an example of an observation:
 
 {
     "agent_info": {
