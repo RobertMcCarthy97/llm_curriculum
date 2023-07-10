@@ -35,8 +35,9 @@ class ManualControl:
 
     def step(self, action: Actions):
         obs, reward, terminated, truncated, _ = self.env.step(action)
-        rew_fn_obs = self.env.get_reward_function_obs(self.env, obs)
-        print("rew_fn_obs", rew_fn_obs)
+        if hasattr(self.env, "get_reward_function_obs"):
+            rew_fn_obs = self.env.get_reward_function_obs(self.env, obs)
+            print("rew_fn_obs", rew_fn_obs)
         print("Mission: ", obs["mission"])
         print(f"step={self.env.step_count}, reward={reward:.2f}")
 

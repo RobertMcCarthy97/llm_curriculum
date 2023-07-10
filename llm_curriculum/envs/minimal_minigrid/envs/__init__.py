@@ -42,12 +42,10 @@ for i, env_prefix in enumerate(env_prefixes):
             )
             reward_functions = []
             for objective in objectives:
-                print("objective", objective)
                 rew_fn_str = load_obj(
                     data_dir
                     / f"reward_function_reward_{orig_env_id}_{objective}_0.json"
                 )
-                print("rew_fn_str", rew_fn_str)
                 rew_fn_name = parse_function_name(rew_fn_str)
                 exec(rew_fn_str)
                 rew_fn = locals()[rew_fn_name]

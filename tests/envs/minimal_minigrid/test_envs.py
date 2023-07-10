@@ -15,3 +15,11 @@ import llm_curriculum.envs.minimal_minigrid.envs
 def test_env(env_id):
     env = gym.make(env_id)
     obs, info = env.reset()
+
+    for trial in range(5):
+        obs, info = env.reset()
+        for i in range(100):
+            action = env.action_space.sample()
+            obs, reward, terminated, truncated, info = env.step(action)
+            if terminated:
+                break

@@ -99,7 +99,7 @@ class IsNextToEnv(MiniGridEnv):
         preCarrying = self.carrying
         obs, reward, terminated, truncated, info = super().step(action)
 
-        if preCarrying is not None and action == self.actions.drop:
+        if preCarrying is not None and self.carrying is None:
             green_key_pos = get_obj_pos(self.grid, "key", "green")
             red_ball_pos = get_obj_pos(self.grid, "ball", "red")
             if is_next_to(green_key_pos, red_ball_pos):
