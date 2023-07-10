@@ -41,9 +41,9 @@ def parse_field_of_view(img_obs: np.ndarray) -> Dict[str, Any]:
     """Describe the field of view of the agent"""
 
     dict_obs = {}
-    for y in range(img_obs.shape[0]):
-        for x in range(img_obs.shape[1]):
-            obj_idx, color_idx, state_idx = img_obs[y, x]
+    for y in range(img_obs.shape[1]):
+        for x in range(img_obs.shape[0]):
+            obj_idx, color_idx, state_idx = img_obs[x, y]
             obj = IDX_TO_OBJECT[obj_idx]
             color = IDX_TO_COLOR[color_idx]
 

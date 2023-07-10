@@ -35,15 +35,9 @@ class ManualControl:
 
     def step(self, action: Actions):
         obs, reward, terminated, truncated, _ = self.env.step(action)
-
-        from llm_curriculum.envs.minimal_minigrid.description import (
-            parse_agent,
-            parse_field_of_view,
-        )
-
-        agent_info = parse_agent(self.env)
-        print(agent_info)
-        print(parse_field_of_view(obs["image"]))
+        rew_fn_obs = self.env.get_reward_function_obs(self.env, obs)
+        print("rew_fn_obs", rew_fn_obs)
+        print("Mission: ", obs["mission"])
         print(f"step={self.env.step_count}, reward={reward:.2f}")
 
         if terminated:

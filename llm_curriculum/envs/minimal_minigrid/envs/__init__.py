@@ -4,6 +4,7 @@ from gymnasium import register
 
 from minigrid.wrappers import FullyObsWrapper
 from llm_curriculum.envs.minimal_minigrid.envs.wrappers import DecomposedRewardWrapper
+from llm_curriculum.envs.minimal_minigrid.prompting.prompt import parse_function_name
 from llm_curriculum.envs.minimal_minigrid.prompting.message import (
     load_obj,
 )
@@ -26,21 +27,39 @@ def make_decomposed_reward_env(env_id, objectives, reward_functions, **kwargs):
     return env
 
 
-root_dir = pathlib.Path(__file__).parent.parent.parent
+root_dir = pathlib.Path(__file__).parent.parent.parent.parent.parent
 data_dir = root_dir / "llm_curriculum/envs/minimal_minigrid/prompting/data"
 
 env_prefixes = ["MiniGrid-IsNextTo-6x6-N2", "MiniGrid-UnlockRed"]
-for env_prefix in env_prefixes:
-    orig_env_id = f"{env_prefix}-v0"
-    objectives = load_obj(data_dir / f"objectives_decomposition_{orig_env_id}_0.json")
-    reward_functions = load_obj(
-        data_dir / f"reward_function_reward_{orig_env_id}_0.json"
-    )
-    make_env_fn = lambda: make_decomposed_reward_env(
-        orig_env_id, objectives, reward_functions
-    )
+
+for i, env_prefix in enumerate(env_prefixes):
+
+    def make_env_factory(env_prefix):
+        def make_env(**kwargs):
+            orig_env_id = f"{env_prefix}-v0"
+            objectives = load_obj(
+                data_dir / f"objectives_decomposition_{orig_env_id}_0.json"
+            )
+            reward_functions = []
+            for objective in objectives:
+                print("objective", objective)
+                rew_fn_str = load_obj(
+                    data_dir
+                    / f"reward_function_reward_{orig_env_id}_{objective}_0.json"
+                )
+                print("rew_fn_str", rew_fn_str)
+                rew_fn_name = parse_function_name(rew_fn_str)
+                exec(rew_fn_str)
+                rew_fn = locals()[rew_fn_name]
+                reward_functions.append(rew_fn)
+
+            return make_decomposed_reward_env(
+                orig_env_id, objectives, reward_functions, **kwargs
+            )
+
+        return make_env
 
     register(
         f"{env_prefix}-DecomposedReward-v0",
-        entry_point=make_env_fn,
+        entry_point=make_env_factory(env_prefix),
     )
