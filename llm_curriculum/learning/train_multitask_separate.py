@@ -5,7 +5,7 @@ import os
 
 # from stable_baselines3 import TD3
 from llm_curriculum.learning.sb3.td3_custom import TD3
-from stable_baselines3.common.logger import configure
+from stable_baselines3.common.logger import configure, HumanOutputFormat
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize, VecMonitor
 from stable_baselines3.common.callbacks import CallbackList
 from stable_baselines3.common.utils import set_random_seed
@@ -95,6 +95,9 @@ def setup_logging(hparams, train_env, base_freq=1000):
 
     # Logger and callbacks
     logger = configure(hparams["log_path"], ["stdout", "csv", "tensorboard"])
+    for output_format in logger.output_formats:
+        if isinstance(output_format, HumanOutputFormat):
+            output_format.max_length = 50
 
     # create eval envs
     if hparams["sequenced_episodes"]:

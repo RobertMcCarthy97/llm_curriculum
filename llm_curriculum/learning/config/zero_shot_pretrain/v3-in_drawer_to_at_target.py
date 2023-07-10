@@ -10,7 +10,10 @@ def get_config():
     config.is_closed_on_reset = False
     config.cube_pos_on_reset = "in_drawer"
 
-    config.dense_rew_tasks = ["move_gripper_to_cube", "move_cube_towards_target_grasp"]
+    config.dense_rew_tasks = [
+        "move_gripper_to_cube_in_drawer",
+        "move_cube_towards_target_grasp",
+    ]
     config.high_level_task_names = ["cube_in_drawer_to_cube_at_target"]
 
     config.do_seperate_policy_eval = (
