@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from gymnasium import spaces
 from minigrid.core.mission import MissionSpace
 from minigrid.core.roomgrid import RoomGrid
 
@@ -55,7 +56,7 @@ class UnlockEnv(RoomGrid):
 
     def __init__(self, max_steps: int | None = None, **kwargs):
         room_size = 6
-        mission_space = MissionSpace(mission_func=self._gen_mission)
+        mission_space = spaces.Text(max_length=256)
 
         if max_steps is None:
             max_steps = 8 * room_size**2

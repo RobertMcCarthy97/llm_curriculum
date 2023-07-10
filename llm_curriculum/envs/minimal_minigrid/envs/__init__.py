@@ -51,6 +51,14 @@ for i, env_prefix in enumerate(env_prefixes):
                 rew_fn = locals()[rew_fn_name]
                 reward_functions.append(rew_fn)
 
+            def preprocess_objective(objective):
+                objective = (
+                    objective.replace(".", "").replace("'", "").replace("_", " ")
+                )
+                return objective
+
+            objectives = [preprocess_objective(o) for o in objectives]
+
             return make_decomposed_reward_env(
                 orig_env_id, objectives, reward_functions, **kwargs
             )

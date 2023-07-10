@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from typing import Tuple
+
+from gymnasium import spaces
 from minigrid.core.constants import COLOR_NAMES
 from minigrid.core.grid import Grid
 from minigrid.core.mission import MissionSpace
@@ -32,9 +34,7 @@ class IsNextToEnv(MiniGridEnv):
 
     def __init__(self, size=6, max_steps: int | None = None, **kwargs):
         self.size = size
-        mission_space = MissionSpace(
-            mission_func=self._gen_mission,
-        )
+        mission_space = spaces.Text(max_length=256)
 
         if max_steps is None:
             max_steps = 5 * size
