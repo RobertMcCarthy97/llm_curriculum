@@ -1,6 +1,7 @@
 import pytest
 import gymnasium as gym
 import llm_curriculum.envs.minimal_minigrid.envs
+from minigrid.wrappers import FlatObsWrapper
 
 
 @pytest.mark.parametrize(
@@ -14,6 +15,7 @@ import llm_curriculum.envs.minimal_minigrid.envs
 )
 def test_env(env_id):
     env = gym.make(env_id)
+    env = FlatObsWrapper(env)
     obs, info = env.reset()
 
     for trial in range(5):
