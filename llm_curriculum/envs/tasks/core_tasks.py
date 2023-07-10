@@ -339,7 +339,7 @@ class MoveGripperToCubeTask(Task):
             if success:
                 reward = 0
             else:
-                reward = np.clip(dense_reward * 6, -1, 0)
+                reward = np.clip(dense_reward, -1, 0)
         else:
             # TODO: make sure revert for MTRL!!
             reward = self.binary_reward(success)
@@ -467,7 +467,7 @@ class MoveCubeTowardsTargetGraspTask(Task):
             if success:
                 reward = 0
             else:
-                reward = np.clip(dense_reward * 3, -1, 0)
+                reward = np.clip(dense_reward, -1, 0)
         else:
             # # old shaped sparse reward:
             # success, dense_reward = self.state_parser.check_cube_moving_to_target(current_state)
