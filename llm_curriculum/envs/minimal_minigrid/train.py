@@ -14,7 +14,7 @@ from stable_baselines3.common.utils import set_random_seed
 
 # Register custom envs
 import minigrid
-import llm_curriculum.envs.minigrid  # noqa: F401 pytype: disable=import-error
+import llm_curriculum.envs.minimal_minigrid.envs  # noqa: F401 pytype: disable=import-error
 import rl_zoo3.import_envs  # noqa: F401 pytype: disable=import-error
 
 # from rl_zoo3.exp_manager import ExperimentManager
