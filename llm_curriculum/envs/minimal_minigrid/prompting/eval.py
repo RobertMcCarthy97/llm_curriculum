@@ -2,6 +2,7 @@ import llm_curriculum.envs.minimal_minigrid.envs
 import gymnasium as gym
 import json
 import re
+import collections
 
 from typing import List
 from pathlib import Path
@@ -19,6 +20,7 @@ from llm_curriculum.envs.minimal_minigrid.prompting.prompt import (
     load_prompt_template,
     parse_objectives,
     parse_function,
+    parse_function_name,
 )
 from llm_curriculum.envs.minimal_minigrid.prompting.message import (
     save_messages,
@@ -26,13 +28,6 @@ from llm_curriculum.envs.minimal_minigrid.prompting.message import (
     save_obj,
     load_obj,
 )
-from copy import deepcopy
-
-DECOMPOSITION_PROMPT_TEMPLATE_PATH = (
-    Path(__file__).parent / "decomposition_prompt_template.txt"
-)
-REWARD_PROMPT_TEMPLATE_PATH = Path(__file__).parent / "reward_prompt_template.txt"
-
 
 ENV_IDS = ["MiniGrid-IsNextTo-6x6-N2-v0", "MiniGrid-UnlockRed-v0"]
 
@@ -41,127 +36,87 @@ SAVE_DIR = Path(__file__).parent / "data"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def make_decomposition_prompt(env_id: str) -> str:
-    env = gym.make(env_id, render_mode="human")
-    env = FullyObsWrapper(env)
-    obs, _ = env.reset()
-
-    env_str = describe_env(env)
-    mission_str = obs["mission"]
-
-    prompt_template = load_prompt_template(DECOMPOSITION_PROMPT_TEMPLATE_PATH)
-    prompt = prompt_template.replace("${environment}", env_str).replace(
-        "${mission}", mission_str
-    )
-    return prompt
-
-
-def make_reward_prompt(objective) -> str:
-    prompt_template = load_prompt_template(REWARD_PROMPT_TEMPLATE_PATH)
-    prompt = prompt_template.replace("${state}", objective)
-    return prompt
-
-
-def validate_response(response):
-    response = response.json()
-    assert "choices" in response
-
-    # Ensure top reply is valid and complete
-    assert response["choices"][0]["finish_reason"] == "stop"
-
-
-def send_message(messages: List[dict]):
-    response = chat_completion_request(messages)
-    validate_response(response)
-    assistant_message = response.json()["choices"][0]["message"]
-    # Add response to history
-    messages.append(assistant_message)
-    reply = assistant_message["content"]
-    return messages, reply
-
-
-def get_decomposition(decomposition_prompt):
-    messages = [
-        {"role": "system", "content": get_default_system_message()},
-        {"role": "user", "content": decomposition_prompt},
-    ]
-    response = chat_completion_request(messages)
-    validate_response(response)
-
-    assistant_message = response.json()["choices"][0]["message"]
-    # Add response to history
-    messages.append(assistant_message)
-    reply = assistant_message["content"]
-    objectives = parse_objectives(reply)
-    return messages, objectives
-
-
-def eval_decomposition(env_ids=ENV_IDS, n_trials=2):
-
+def load_decompositions(save_dir=SAVE_DIR):
+    decompositions = []
     prompt_type = "decomposition"
-    for env_id in env_ids:
-        decomposition_prompt = make_decomposition_prompt(env_id)
-        print(" ****** DECOMPOSITION PROMPT ****** ")
-        print(decomposition_prompt)
-
-        for trial in range(n_trials):
-            print(f" ****** TRIAL {trial} ****** ")
-            messages, objectives = get_decomposition(decomposition_prompt)
-            print(f"Objectives: ")
-            print(objectives)
-
-            # Save messages
-            message_filepath = (
-                SAVE_DIR / f"messages_{prompt_type}_{env_id}_{trial}.json"
+    for env_id in ENV_IDS:
+        for trial in range(2):
+            objectives_filepath = (
+                SAVE_DIR / f"objectives_{prompt_type}_{env_id}_{trial}.json"
             )
-            save_messages(messages, message_filepath)
-            print(f"Saved messages to {message_filepath}")
+            if not objectives_filepath.exists():
+                print(f"Skipping {objectives_filepath} because it doesn't exist")
+                continue
+            env_decompositions = load_obj(objectives_filepath)
+            decompositions.append((env_id, trial, env_decompositions))
+    return decompositions
 
-            # Save objectives
-            obj_filepath = SAVE_DIR / f"objectives_{prompt_type}_{env_id}_{trial}.json"
-            save_obj(objectives, SAVE_DIR / obj_filepath)
-            print(f"Saved objectives to {SAVE_DIR / obj_filepath}")
+
+def validate_decomposition(d):
+    env_id, trial, objectives = d
+    assert isinstance(objectives, List)
+    for objective in objectives:
+        assert isinstance(objective, str)
 
 
-def eval_reward(env_ids=ENV_IDS, n_trials=2):
+def load_rewards(save_dir=SAVE_DIR):
+    rewards = []
     prompt_type = "reward"
-    for env_id in env_ids:
-
-        decomposition_messages = load_messages(
-            SAVE_DIR / f"messages_decomposition_{env_id}_0.json"
-        )
-        decomposition_objectives = load_obj(
-            SAVE_DIR / f"objectives_decomposition_{env_id}_0.json"
-        )
-        for objective in decomposition_objectives:
-            reward_prompt = make_reward_prompt(objective)
-            print(" ****** REWARD PROMPT ****** ")
-            print(reward_prompt)
-            for trial in range(n_trials):
-                print(f" ****** TRIAL {trial} ****** ")
-                reward_messages = deepcopy(decomposition_messages)
-                reward_messages.append({"role": "user", "content": reward_prompt})
-                messages, reply = send_message(reward_messages)
-
-                reward_function = parse_function(reply)
-                print(f"Reward function: ")
-                print(reward_function)
-
-                # Save messages
-                message_filepath = (
-                    SAVE_DIR / f"messages_{prompt_type}_{env_id}_{trial}.json"
-                )
-                save_messages(messages, message_filepath)
-                print(f"Saved messages to {message_filepath}")
-
-                # Save reward function
+    for env_id in ENV_IDS:
+        for trial in range(2):
+            objectives_filepath = SAVE_DIR / f"objectives_decomposition_{env_id}_0.json"
+            if not objectives_filepath.exists():
+                print(f"Skipping {objectives_filepath} because it doesn't exist")
+                continue
+            objectives = load_obj(objectives_filepath)
+            for objective in objectives:
                 reward_function_filepath = (
-                    SAVE_DIR / f"reward_function_{prompt_type}_{env_id}_{trial}.json"
+                    SAVE_DIR
+                    / f"reward_function_{prompt_type}_{env_id}_{objective}_{trial}.json"
                 )
-                save_obj(reward_function, reward_function_filepath)
-                print(f"Saved reward function to {reward_function_filepath}")
+                if not reward_function_filepath.exists():
+                    print(
+                        f"Skipping {reward_function_filepath} because it doesn't exist"
+                    )
+                    continue
+                reward_function = load_obj(reward_function_filepath)
+                rewards.append((env_id, objective, trial, reward_function))
+    return rewards
+
+
+def validate_rewards(r):
+    env_id, objective, trial, reward_function = r
+    assert isinstance(objective, str)
+    assert isinstance(reward_function, str)
+    assert reward_function.strip().startswith("def ")
+
+    # Check if function is well-formatted and callable
+    function_name = parse_function_name(reward_function)
+    exec(reward_function)
+    function = locals()[function_name]
+    assert callable(function)
+
+    # Unit test on sample input
+    create_obj = lambda: {"position": (0, 0)}
+    sample_input = {
+        "agent_info": {"position": (0, 0), "direction": 0, "carrying": "nothing"},
+        # Defaultdict creates objects on the fly
+        "field_of_view": collections.defaultdict(create_obj),
+    }
+    retval = function(sample_input)
+    assert isinstance(retval, bool)
 
 
 if __name__ == "__main__":
-    # eval_decomposition()
-    eval_reward()
+    decompositions = load_decompositions()
+    for d in decompositions:
+        validate_decomposition(d)
+        print(d)
+
+    rewards = load_rewards()
+    for r in rewards:
+        validate_rewards(r)
+        env_id, objective, trial, reward_function = r
+        print(" ****** ******")
+        print("objective: ", objective)
+        print(reward_function)

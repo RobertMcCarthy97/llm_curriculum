@@ -25,10 +25,12 @@ Rules:
 1. Define exactly one function. Do not define extra helper functions. 
 2. The function must be callable with a single argument, which is the observation. 
 3. The function returns a boolean. 
+4. Always enclose your code in a Python code block, e.g. ```python {your code here} ```
 --------------------------------
 
 Here is an example for the state "agent is next to red box".
 
+```python
 def is_beside_red_box(observation) -> bool:
     """
     This function checks if the agent is beside the red box.
@@ -51,5 +53,4 @@ def is_beside_red_box(observation) -> bool:
     dy = abs(agent_pos[1] - red_box_pos[1])
 
     return (dx, dy) in [(1, 0), (0, 1)]
-
-
+```
