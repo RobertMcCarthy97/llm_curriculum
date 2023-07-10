@@ -18,6 +18,7 @@ from llm_curriculum.envs.minimal_minigrid.description import (
 from llm_curriculum.envs.minimal_minigrid.prompting.prompt import (
     load_prompt_template,
     parse_objectives,
+    parse_function,
 )
 from llm_curriculum.envs.minimal_minigrid.prompting.message import (
     save_messages,
@@ -25,6 +26,7 @@ from llm_curriculum.envs.minimal_minigrid.prompting.message import (
     save_obj,
     load_obj,
 )
+from copy import deepcopy
 
 DECOMPOSITION_PROMPT_TEMPLATE_PATH = (
     Path(__file__).parent / "decomposition_prompt_template.txt"
@@ -39,7 +41,7 @@ SAVE_DIR = Path(__file__).parent / "data"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def make_prompt(env_id: str) -> str:
+def make_decomposition_prompt(env_id: str) -> str:
     env = gym.make(env_id, render_mode="human")
     env = FullyObsWrapper(env)
     obs, _ = env.reset()
@@ -54,12 +56,28 @@ def make_prompt(env_id: str) -> str:
     return prompt
 
 
+def make_reward_prompt(objective) -> str:
+    prompt_template = load_prompt_template(REWARD_PROMPT_TEMPLATE_PATH)
+    prompt = prompt_template.replace("${state}", objective)
+    return prompt
+
+
 def validate_response(response):
     response = response.json()
     assert "choices" in response
 
     # Ensure top reply is valid and complete
     assert response["choices"][0]["finish_reason"] == "stop"
+
+
+def send_message(messages: List[dict]):
+    response = chat_completion_request(messages)
+    validate_response(response)
+    assistant_message = response.json()["choices"][0]["message"]
+    # Add response to history
+    messages.append(assistant_message)
+    reply = assistant_message["content"]
+    return messages, reply
 
 
 def get_decomposition(decomposition_prompt):
@@ -82,7 +100,7 @@ def eval_decomposition(env_ids=ENV_IDS, n_trials=2):
 
     prompt_type = "decomposition"
     for env_id in env_ids:
-        decomposition_prompt = make_prompt(env_id)
+        decomposition_prompt = make_decomposition_prompt(env_id)
         print(" ****** DECOMPOSITION PROMPT ****** ")
         print(decomposition_prompt)
 
@@ -105,6 +123,45 @@ def eval_decomposition(env_ids=ENV_IDS, n_trials=2):
             print(f"Saved objectives to {SAVE_DIR / obj_filepath}")
 
 
+def eval_reward(env_ids=ENV_IDS, n_trials=2):
+    prompt_type = "reward"
+    for env_id in env_ids:
+
+        decomposition_messages = load_messages(
+            SAVE_DIR / f"messages_decomposition_{env_id}_0.json"
+        )
+        decomposition_objectives = load_obj(
+            SAVE_DIR / f"objectives_decomposition_{env_id}_0.json"
+        )
+        for objective in decomposition_objectives:
+            reward_prompt = make_reward_prompt(objective)
+            print(" ****** REWARD PROMPT ****** ")
+            print(reward_prompt)
+            for trial in range(n_trials):
+                print(f" ****** TRIAL {trial} ****** ")
+                reward_messages = deepcopy(decomposition_messages)
+                reward_messages.append({"role": "user", "content": reward_prompt})
+                messages, reply = send_message(reward_messages)
+
+                reward_function = parse_function(reply)
+                print(f"Reward function: ")
+                print(reward_function)
+
+                # Save messages
+                message_filepath = (
+                    SAVE_DIR / f"messages_{prompt_type}_{env_id}_{trial}.json"
+                )
+                save_messages(messages, message_filepath)
+                print(f"Saved messages to {message_filepath}")
+
+                # Save reward function
+                reward_function_filepath = (
+                    SAVE_DIR / f"reward_function_{prompt_type}_{env_id}_{trial}.json"
+                )
+                save_obj(reward_function, reward_function_filepath)
+                print(f"Saved reward function to {reward_function_filepath}")
+
+
 if __name__ == "__main__":
-    eval_decomposition()
-    # eval_reward()
+    # eval_decomposition()
+    eval_reward()
