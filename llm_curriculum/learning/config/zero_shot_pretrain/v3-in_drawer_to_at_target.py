@@ -17,6 +17,7 @@ def get_config():
         False  # Oracle actions not working when cube starts in drawer
     )
 
-    config.wandb.name = "in_drawer_to_at_target-pretrain-v3"
+    config.total_timesteps = 5e5
+    config.wandb.name = "v3-in_drawer_to_at_target-pretrain-v3"
 
     return config

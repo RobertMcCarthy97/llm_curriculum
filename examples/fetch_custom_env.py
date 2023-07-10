@@ -10,18 +10,18 @@ if __name__ == "__main__":
         drawer_env=True,
         manual_decompose_p=1,
         dense_rew_lowest=False,
-        dense_rew_tasks=["move_gripper_to_cube_in_drawer"],
+        dense_rew_tasks=[],
         use_language_goals=False,
         render_mode="human",
         single_task_names=[],
-        high_level_task_names=["pick_up_cube_in_drawer"],
+        high_level_task_names=["cube_on_drawer_to_cube_at_target"],
         contained_sequence=False,
         curriculum_manager_cls=None,
         use_incremental_reward=False,
         initial_state_curriculum_p=0,
         # drawer env
         is_closed_on_reset=False,
-        cube_pos_on_reset="in_drawer",
+        cube_pos_on_reset="on_drawer",
     )
 
     # set traversal mode
@@ -36,8 +36,8 @@ if __name__ == "__main__":
             print("cube_pos_obs: ", obs["observation"][3:6])
             ## Actions
             # action = env.action_space.sample()
-            action = get_user_action()
-            # action = env.get_oracle_action(obs["observation"])
+            # action = get_user_action()
+            action = env.get_oracle_action(obs["observation"])
 
             # step
             # obs, reward, terminated, truncated, info = env.step(action)

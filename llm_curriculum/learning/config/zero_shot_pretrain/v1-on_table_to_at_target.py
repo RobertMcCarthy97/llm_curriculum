@@ -13,6 +13,7 @@ def get_config():
     config.dense_rew_tasks = ["move_gripper_to_cube", "move_cube_towards_target_grasp"]
     config.high_level_task_names = ["cube_on_table_to_cube_at_target"]
 
-    config.wandb.name = "on_table_to_at_target-pretrain-v1"
+    config.total_timesteps = 3e5
+    config.wandb.name = "v1-on_table_to_at_target-pretrain-v1"
 
     return config

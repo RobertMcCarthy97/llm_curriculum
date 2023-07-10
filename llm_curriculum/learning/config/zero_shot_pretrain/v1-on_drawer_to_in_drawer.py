@@ -13,6 +13,7 @@ def get_config():
     config.dense_rew_tasks = ["move_gripper_to_cube", "move_cube_over_drawer"]
     config.high_level_task_names = ["cube_on_drawer_to_cube_in_drawer"]
 
-    config.wandb.name = "on_drawer_to_in_drawer-pretrain-v1"
+    config.total_timesteps = 3e5
+    config.wandb.name = "v1-on_drawer_to_in_drawer-pretrain-v1"
 
     return config
