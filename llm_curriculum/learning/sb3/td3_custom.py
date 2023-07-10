@@ -298,3 +298,11 @@ class TD3(OffPolicyAlgorithm):
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
         state_dicts = ["policy", "actor.optimizer", "critic.optimizer"]
         return state_dicts, []
+
+    def set_obs_norm_stats_for_save(self) -> None:
+        venv = self.get_vec_normalize_env()
+        self.obs_norm_save_stats = {
+            "obs_rms": venv.obs_rms,
+            "epsilon": venv.epsilon,
+            "clip_obs": venv.clip_obs,
+        }

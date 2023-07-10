@@ -148,13 +148,27 @@ class SuccessCallback(BaseCallback):
 
 class SuccessCallbackSeperatePolicies(BaseCallback):
     """
-    Custom callback for plotting additional values in tensorboard.
+    - Custom callback for success rate and curriculum stats
+    - Also saves models
     """
 
-    def __init__(self, verbose=0, log_freq=1000):
+    def __init__(
+        self,
+        verbose=0,
+        log_freq=1000,
+        do_save_models=False,
+        save_dir=None,
+        single_task_names=None,
+    ):
         super().__init__(verbose)
         self.log_freq = log_freq
         self.num_timesteps_multi_run = 0
+        self.do_save_models = do_save_models
+        if self.do_save_models:
+            assert save_dir is not None, "need to specify save_dir if do_save_models"
+            self.save_dir = save_dir
+            # os.makedirs(self.save_dir, exist_ok=True)
+            self.task_best_success = {task_name: 0.0 for task_name in single_task_names}
 
     def _on_step(self) -> bool:
         # Dump
@@ -221,10 +235,16 @@ class SuccessCallbackSeperatePolicies(BaseCallback):
                         model.replay_buffer.calc_child_p(),
                     )
 
-            # dump and reset
+            # Save models
+            if self.do_save_models:
+                self.save_models(stats)
+
+            # dump data
             self.logger.dump(
                 self.num_timesteps
             )  # very dodgy, but curreently using num_timesteps of whatever model is assigned to the callback as anchor timestep for logging...??
+
+            # reset
             env.agent_conductor.reset_epoch_stats()
             cm.reset_epoch_stats()
 
@@ -232,6 +252,43 @@ class SuccessCallbackSeperatePolicies(BaseCallback):
         self.num_timesteps_multi_run += 1
 
         return True
+
+    def save_models(self, stats):
+        for task_name, model in self.locals["models_dict"].items():
+            # Prepare obs stats for saving
+            model.set_obs_norm_stats_for_save()
+            # Save path
+            model_path = os.path.join(self.save_dir, "models", task_name)
+            # Save latest
+            model.save(model_path + "_latest")
+            # Save best
+            env = self.locals["env"].envs[0]
+            stats = env.agent_conductor.get_stats()
+            epoch_chosen_n = stats["chosen_n"]["epoch"][task_name]
+            epoch_success = stats["success"]["epoch"][task_name]
+            best_success = self.task_best_success[task_name]
+            # If exceeds previous best, save
+            if epoch_chosen_n is not None and epoch_success is not None:
+                if epoch_chosen_n > 10 and epoch_success > best_success:
+                    model.save(model_path + f"_best")
+                    model.save(model_path + f"_best_{self.num_timesteps_multi_run}")
+                    self.task_best_success[task_name] = epoch_success
+
+            # if hparams.wandb.track:
+            #     artifact = wandb.Artifact(
+            #         hparams.wandb.name + "_" + task_name, type="model"
+            #     )
+            #     artifact.add_file(save_path + ".zip")
+            #     run.log_artifact(artifact)
+
+        env_path = os.path.join(self.save_dir, "vec_norm_env.pkl")
+        model.get_vec_normalize_env().save(env_path)
+        # if hparams.wandb.track:
+        #     artifact = wandb.Artifact(
+        #         hparams.wandb.name + "_" + "vec_norm_env", type="env"
+        #     )
+        #     artifact.add_file(save_path)
+        #     run.log_artifact(artifact, aliases=["v0", "latest"])
 
 
 class GradientCallback(BaseCallback):

@@ -132,7 +132,14 @@ def setup_logging(hparams, train_env, base_freq=1000):
             )
         ]
     if not hparams["use_baseline_env"]:
-        callback_list += [SuccessCallbackSeperatePolicies(log_freq=log_freq)]
+        callback_list += [
+            SuccessCallbackSeperatePolicies(
+                log_freq=log_freq,
+                do_save_models=hparams["save_models"],
+                save_dir=os.path.join("./models", hparams.wandb.name),
+                single_task_names=single_task_names,
+            )
+        ]
     callback_list += [
         VideoRecorderCallback(
             video_env,
@@ -282,9 +289,6 @@ def training_loop_sequential(
     log_interval=4,
     callback=None,
     save_freq=20000,
-    do_save=False,
-    hparams=None,
-    run=None,
 ):  # TODO: log interval
 
     rollout_collector = SequencedRolloutCollector(env, models_dict)
@@ -318,33 +322,6 @@ def training_loop_sequential(
                     model.train(
                         batch_size=model.batch_size, gradient_steps=gradient_steps
                     )
-
-        # Save models
-        if do_save and timesteps_count >= save_after:
-            save_models(models_dict, hparams, run)
-            save_after += save_freq
-
-
-def save_models(models_dict, hparams, run, save_env=True):
-    save_dir = os.path.join("./models", hparams.wandb.name)
-    for task_name, model in models_dict.items():
-        save_path = os.path.join(save_dir, "models", task_name)
-        model.save(save_path)
-        if hparams.wandb.track:
-            artifact = wandb.Artifact(
-                hparams.wandb.name + "_" + task_name, type="model"
-            )
-            artifact.add_file(save_path + ".zip")
-            run.log_artifact(artifact)
-    if save_env:
-        save_path = os.path.join(save_dir, "vec_norm_env.pkl")
-        model.get_vec_normalize_env().save(save_path)
-        if hparams.wandb.track:
-            artifact = wandb.Artifact(
-                hparams.wandb.name + "_" + "vec_norm_env", type="env"
-            )
-            artifact.add_file(save_path)
-            run.log_artifact(artifact, aliases=["v0", "latest"])
 
 
 def get_hparams():
@@ -431,9 +408,6 @@ def main(argv):
             hparams["total_timesteps"],
             logger,
             callback=callback,
-            do_save=hparams["save_models"],
-            hparams=hparams,
-            run=run,
         )
     else:
         training_loop(models_dict, env, hparams["total_timesteps"], callback=callback)
