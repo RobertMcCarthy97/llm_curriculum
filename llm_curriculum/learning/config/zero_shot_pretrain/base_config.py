@@ -45,7 +45,7 @@ def get_config():
     config.sequenced_episodes = True
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
-    config.child_p_strat = "mean"
+    config.child_p_strat = "sequenced"
     config.decompose_p_clip = {"low": 0.1, "high": 0.9}
     # algo
     config.algo = TD3

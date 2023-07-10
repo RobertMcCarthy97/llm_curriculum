@@ -13,6 +13,10 @@ def get_config():
     config.dense_rew_tasks = ["move_gripper_to_cube", "move_cube_towards_target_grasp"]
     config.high_level_task_names = ["cube_in_drawer_to_cube_at_target"]
 
-    config.wandb.name = "cube_in_drawer_to_cube_at_target-pretrain-v3"
+    config.do_seperate_policy_eval = (
+        False  # Oracle actions not working when cube starts in drawer
+    )
+
+    config.wandb.name = "in_drawer_to_at_target-pretrain-v3"
 
     return config
