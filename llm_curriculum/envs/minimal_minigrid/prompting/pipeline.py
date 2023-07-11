@@ -34,7 +34,7 @@ DECOMPOSITION_PROMPT_TEMPLATE_PATH = (
 REWARD_PROMPT_TEMPLATE_PATH = Path(__file__).parent / "reward_prompt_template.txt"
 
 
-ENV_IDS = ["MiniGrid-IsNextTo-6x6-N2-v0", "MiniGrid-UnlockRed-v0"]
+ENV_PREFIXES = ["MiniGrid-IsNextTo", "MiniGrid-UnlockRed"]
 
 # Run decomposition 5x per environment
 SAVE_DIR = Path(__file__).parent / "data"
@@ -96,11 +96,11 @@ def get_decomposition(decomposition_prompt):
     return messages, objectives
 
 
-def get_decomposition(env_ids=ENV_IDS, n_trials=2):
+def get_decomposition(env_prefixes=ENV_PREFIXES, n_trials=2):
 
     prompt_type = "decomposition"
-    for env_id in env_ids:
-        decomposition_prompt = make_decomposition_prompt(env_id)
+    for env_prefix in env_prefixes:
+        decomposition_prompt = make_decomposition_prompt(env_prefix)
         print(" ****** DECOMPOSITION PROMPT ****** ")
         print(decomposition_prompt)
 
@@ -112,26 +112,28 @@ def get_decomposition(env_ids=ENV_IDS, n_trials=2):
 
             # Save messages
             message_filepath = (
-                SAVE_DIR / f"messages_{prompt_type}_{env_id}_{trial}.json"
+                SAVE_DIR / f"messages_{prompt_type}_{env_prefix}_{trial}.json"
             )
             save_messages(messages, message_filepath)
             print(f"Saved messages to {message_filepath}")
 
             # Save objectives
-            obj_filepath = SAVE_DIR / f"objectives_{prompt_type}_{env_id}_{trial}.json"
+            obj_filepath = (
+                SAVE_DIR / f"objectives_{prompt_type}_{env_prefix}_{trial}.json"
+            )
             save_obj(objectives, SAVE_DIR / obj_filepath)
             print(f"Saved objectives to {SAVE_DIR / obj_filepath}")
 
 
-def get_reward(env_ids=ENV_IDS, n_trials=2):
+def get_reward(env_prefixes=ENV_PREFIXES, n_trials=2):
     prompt_type = "reward"
-    for env_id in env_ids:
+    for env_prefix in env_prefixes:
 
         decomposition_messages = load_messages(
-            SAVE_DIR / f"messages_decomposition_{env_id}_0.json"
+            SAVE_DIR / f"messages_decomposition_{env_prefix}_0.json"
         )
         decomposition_objectives = load_obj(
-            SAVE_DIR / f"objectives_decomposition_{env_id}_0.json"
+            SAVE_DIR / f"objectives_decomposition_{env_prefix}_0.json"
         )
         for objective in decomposition_objectives:
             reward_prompt = make_reward_prompt(objective)
@@ -153,7 +155,7 @@ def get_reward(env_ids=ENV_IDS, n_trials=2):
                 # Save messages
                 message_filepath = (
                     SAVE_DIR
-                    / f"messages_{prompt_type}_{env_id}_{objective}_{trial}.json"
+                    / f"messages_{prompt_type}_{env_prefix}_{objective}_{trial}.json"
                 )
                 save_messages(messages, message_filepath)
                 print(f"Saved messages to {message_filepath}")
@@ -161,12 +163,12 @@ def get_reward(env_ids=ENV_IDS, n_trials=2):
                 # Save reward function
                 reward_function_filepath = (
                     SAVE_DIR
-                    / f"reward_function_{prompt_type}_{env_id}_{objective}_{trial}.json"
+                    / f"reward_function_{prompt_type}_{env_prefix}_{objective}_{trial}.json"
                 )
                 save_obj(reward_function, reward_function_filepath)
                 print(f"Saved reward function to {reward_function_filepath}")
 
 
 if __name__ == "__main__":
-    # get_decomposition()
+    get_decomposition()
     get_reward()
