@@ -3,7 +3,10 @@ import pathlib
 from gymnasium import register
 
 from minigrid.wrappers import FullyObsWrapper
-from llm_curriculum.envs.minimal_minigrid.envs.wrappers import DecomposedRewardWrapper
+from llm_curriculum.envs.minimal_minigrid.envs.wrappers import (
+    DecomposedRewardWrapper,
+    FullyObsInfoWrapper,
+)
 from llm_curriculum.envs.minimal_minigrid.prompting.prompt import parse_function_name
 from llm_curriculum.envs.minimal_minigrid.prompting.message import (
     load_obj,
@@ -34,7 +37,7 @@ register(
 
 def make_decomposed_reward_env(env_id, objectives, reward_functions, **kwargs):
     env = gym.make(env_id, **kwargs)
-    env = FullyObsWrapper(env)
+    env = FullyObsInfoWrapper(env)
     env = DecomposedRewardWrapper(env, objectives, reward_functions)
     return env
 
