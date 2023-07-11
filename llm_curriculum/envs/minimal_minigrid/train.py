@@ -37,6 +37,9 @@ def train() -> None:
         "--eval-env", type=str, default=None, help="Eval environment ID"
     )
     parser.add_argument(
+        "--record-video", action="store_true", default=False, help="Record video"
+    )
+    parser.add_argument(
         "-tb", "--tensorboard-log", help="Tensorboard log dir", default="", type=str
     )
     parser.add_argument(
@@ -369,6 +372,7 @@ def train() -> None:
         args.pruner,
         args.optimization_log_path,
         eval_env_id=eval_env_id,
+        record_video=args.record_video,
         n_startup_trials=args.n_startup_trials,
         n_evaluations=args.n_evaluations,
         truncate_last_trajectory=args.truncate_last_trajectory,
