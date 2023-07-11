@@ -9,8 +9,12 @@ from minigrid.wrappers import FlatObsWrapper
     [
         "MiniGrid-IsNextTo-6x6-v0",
         "MiniGrid-IsNextTo-6x6-DecomposedReward-v0",
+        "MiniGrid-IsNextTo-12x12-v0",
+        "MiniGrid-IsNextTo-12x12-DecomposedReward-v0",
         "MiniGrid-UnlockRed-6x6-v0",
         "MiniGrid-UnlockRed-6x6-DecomposedReward-v0",
+        "MiniGrid-UnlockRed-12x12-v0",
+        "MiniGrid-UnlockRed-12x12-DecomposedReward-v0",
     ],
 )
 def test_env(env_id):
