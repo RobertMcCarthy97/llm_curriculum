@@ -29,3 +29,21 @@ def test_env(env_id):
             obs, reward, terminated, truncated, info = env.step(action)
             if terminated:
                 break
+
+
+@pytest.mark.parametrize(
+    "env_id",
+    [
+        "MiniGrid-IsNextTo-6x6-v0",
+        "MiniGrid-IsNextTo-6x6-DecomposedReward-v0",
+        "MiniGrid-IsNextTo-12x12-v0",
+        "MiniGrid-IsNextTo-12x12-DecomposedReward-v0",
+        "MiniGrid-UnlockRed-6x6-v0",
+        "MiniGrid-UnlockRed-6x6-DecomposedReward-v0",
+        "MiniGrid-UnlockRed-12x12-v0",
+        "MiniGrid-UnlockRed-12x12-DecomposedReward-v0",
+    ],
+)
+def test_env_image_shape(env_id):
+    env = gym.make(env_id)
+    assert env.observation_space["image"].shape == (7, 7, 3)
