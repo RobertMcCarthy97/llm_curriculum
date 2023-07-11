@@ -40,17 +40,32 @@ class DecomposedRewardWrapper(gym.Wrapper):
     Note: currently only works with FullyObsInfoWrapper
     """
 
-    def __init__(self, env, objectives: List[str], reward_functions: List[Callable]):
-        """objectives"""
+    def __init__(
+        self,
+        env,
+        objectives: List[str],
+        reward_functions: List[Callable],
+        enable_mission: bool = True,
+        enable_reward: bool = True,
+    ):
+        """
+        :param: enable_mission: whether to overwrite default mission with subtasks
+        :param: enable_reward: whether to shape default reward with subtasks
+        """
         super().__init__(env)
         self.objectives = objectives
         self.reward_functions = reward_functions
         self.current_objective_idx = 0
+        self.enable_mission = enable_mission
+        self.enable_reward = enable_reward
 
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
         self.current_objective_idx = 0
-        obs["mission"] = self.objectives[self.current_objective_idx]
+
+        if self.enable_mission:
+            obs["mission"] = self.objectives[self.current_objective_idx]
+
         return obs, info
 
     def get_current_objective(self):
@@ -88,19 +103,21 @@ class DecomposedRewardWrapper(gym.Wrapper):
         if self.all_subtasks_complete():
             return obs, orig_rew, term, trunc, info
 
-        # Shape the reward with intermediate objectives
-        function_obs = self.get_reward_function_obs(self.env, full_obs)
-        objective_completion = self.get_current_reward_function()(function_obs)
-        if objective_completion:
-            self.current_objective_idx += 1
-            # Add back orig reward
-            # Ensure we don't diminish original reward signal
-            sub_reward = orig_rew + 1
-        else:
-            sub_reward = orig_rew
+        if self.enable_reward:
+            # Shape the reward with intermediate objectives
+            function_obs = self.get_reward_function_obs(self.env, full_obs)
+            objective_completion = self.get_current_reward_function()(function_obs)
+            if objective_completion:
+                self.current_objective_idx += 1
+                # Add back orig reward
+                # Ensure we don't diminish original reward signal
+                sub_reward = orig_rew + 1
+            else:
+                sub_reward = orig_rew
 
         # Overwrite the mission with the current objective
-        if not self.all_subtasks_complete():
-            obs["mission"] = self.get_current_objective()
+        if self.enable_mission:
+            if not self.all_subtasks_complete():
+                obs["mission"] = self.get_current_objective()
 
         return obs, sub_reward, term, trunc, info

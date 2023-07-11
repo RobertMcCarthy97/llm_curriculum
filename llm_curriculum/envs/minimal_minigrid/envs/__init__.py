@@ -46,10 +46,19 @@ register(
 )
 
 
-def make_decomposed_reward_env(env_id, objectives, reward_functions, **kwargs):
+def make_decomposed_reward_env(
+    env_id,
+    objectives,
+    reward_functions,
+    enable_mission: bool,
+    enable_reward: bool,
+    **kwargs,
+):
     env = gym.make(env_id, **kwargs)
     env = FullyObsInfoWrapper(env)
-    env = DecomposedRewardWrapper(env, objectives, reward_functions)
+    env = DecomposedRewardWrapper(
+        env, objectives, reward_functions, enable_mission, enable_reward
+    )
     return env
 
 
@@ -78,42 +87,56 @@ def camel_to_snake(camelcase_string):
     return snakecase_string
 
 
-for i, orig_env_id in enumerate(env_ids):
+for orig_env_id in env_ids:
+    for enable_mission in [True, False]:
+        for enable_reward in [True, False]:
 
-    def make_env_factory(orig_env_id):
-        def make_env(**kwargs):
-            env_type = orig_env_id.split("-")[1]
-            env_dir = data_dir / camel_to_snake(env_type)
+            def make_env_factory(orig_env_id, enable_mission, enable_reward):
+                def make_env(**kwargs):
+                    env_type = orig_env_id.split("-")[1]
+                    env_dir = data_dir / camel_to_snake(env_type)
 
-            objectives = load_obj(
-                env_dir / f"objectives_decomposition_{env_type}_0.json"
+                    objectives = load_obj(
+                        env_dir / f"objectives_decomposition_{env_type}_0.json"
+                    )
+                    reward_functions = []
+                    for objective in objectives:
+                        rew_fn_str = load_obj(
+                            env_dir
+                            / f"reward_function_reward_{env_type}_{objective}_0.json"
+                        )
+                        rew_fn_name = parse_function_name(rew_fn_str)
+                        exec(rew_fn_str)
+                        rew_fn = locals()[rew_fn_name]
+                        reward_functions.append(rew_fn)
+
+                    def preprocess_objective(objective):
+                        objective = (
+                            objective.replace(".", "")
+                            .replace("'", "")
+                            .replace("_", " ")
+                        )
+                        return objective
+
+                    objectives = [preprocess_objective(o) for o in objectives]
+
+                    return make_decomposed_reward_env(
+                        orig_env_id,
+                        objectives,
+                        reward_functions,
+                        enable_mission,
+                        enable_reward,
+                        **kwargs,
+                    )
+
+                return make_env
+
+            enable_mission_str = "" if enable_mission else "NoMission-"
+            enable_reward_str = "" if enable_reward else "NoReward-"
+            new_env_id = f"{orig_env_id[:-3]}-DecomposedReward-{enable_mission_str}{enable_reward_str}v0"
+            register(
+                new_env_id,
+                entry_point=make_env_factory(
+                    orig_env_id, enable_mission, enable_reward
+                ),
             )
-            reward_functions = []
-            for objective in objectives:
-                rew_fn_str = load_obj(
-                    env_dir / f"reward_function_reward_{env_type}_{objective}_0.json"
-                )
-                rew_fn_name = parse_function_name(rew_fn_str)
-                exec(rew_fn_str)
-                rew_fn = locals()[rew_fn_name]
-                reward_functions.append(rew_fn)
-
-            def preprocess_objective(objective):
-                objective = (
-                    objective.replace(".", "").replace("'", "").replace("_", " ")
-                )
-                return objective
-
-            objectives = [preprocess_objective(o) for o in objectives]
-
-            return make_decomposed_reward_env(
-                orig_env_id, objectives, reward_functions, **kwargs
-            )
-
-        return make_env
-
-    new_env_id = f"{orig_env_id[:-3]}-DecomposedReward-v0"
-    register(
-        new_env_id,
-        entry_point=make_env_factory(orig_env_id),
-    )
