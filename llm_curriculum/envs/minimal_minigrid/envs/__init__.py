@@ -34,6 +34,17 @@ register(
     kwargs={"room_size": 12},
 )
 
+register(
+    "MiniGrid-UnlockPickup-6x6-v0",
+    entry_point="llm_curriculum.envs.minimal_minigrid.envs.unlock_pickup:UnlockPickupEnv",
+)
+
+register(
+    "MiniGrid-UnlockPickup-12x12-v0",
+    entry_point="llm_curriculum.envs.minimal_minigrid.envs.unlock_pickup:UnlockPickupEnv",
+    kwargs={"room_size": 12},
+)
+
 
 def make_decomposed_reward_env(env_id, objectives, reward_functions, **kwargs):
     env = gym.make(env_id, **kwargs)
@@ -50,6 +61,8 @@ env_ids = [
     "MiniGrid-IsNextTo-12x12-v0",
     "MiniGrid-UnlockRed-6x6-v0",
     "MiniGrid-UnlockRed-12x12-v0",
+    "MiniGrid-UnlockPickup-6x6-v0",
+    "MiniGrid-UnlockPickup-12x12-v0",
 ]
 
 
