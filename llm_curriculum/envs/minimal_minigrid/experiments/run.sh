@@ -1,5 +1,5 @@
-WANDB_GROUP=${1:-None}
-TRACK=$( [[ -n "$WANDB_GROUP" ]] && echo "--track" || echo "" )
+WANDB_GROUP=${1:-""}
+WANDB_STR=$( [[ -n "$WANDB_GROUP" ]] && echo "--wandb-group-name $WANDB_GROUP --track" || echo "" )
 ENV_IDS=(
     "MiniGrid-IsNextTo-6x6-v0"
     "MiniGrid-IsNextTo-6x6-DecomposedReward-v0"
@@ -21,8 +21,8 @@ echo "WANDB_GROUP: $WANDB_GROUP"
 for env_id in ${ENV_IDS[@]}
 do
     python llm_curriculum/envs/minimal_minigrid/train.py \
-        --algo ppo \
+        --algo ppo $WANDB_STR \
         --env $env_id \
         --conf-file llm_curriculum/envs/minimal_minigrid/hyperparams/ppo.yml \
-        --wandb-group-name $WANDB_GROUP $TRACK
+        --record-video
 done
