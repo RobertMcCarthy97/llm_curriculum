@@ -370,6 +370,18 @@ MiniGrid-IsNextTo-6x6-DecomposedReward-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 3e5
 
+MiniGrid-IsNextTo-6x6-DecomposedReward-NoMission-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-IsNextTo-6x6-DecomposedReward-NoReward-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-IsNextTo-6x6-DecomposedReward-NoMission-NoReward-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
 MiniGrid-IsNextTo-12x12-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 3e5
