@@ -12,3 +12,4 @@ openai
 requests
 scipy
 python-dotenv
+moviepy

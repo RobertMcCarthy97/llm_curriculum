@@ -346,19 +346,35 @@ MiniGrid-UnlockPickup-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 1e6
 
-MiniGrid-UnlockRed-v0:
+MiniGrid-UnlockRed-6x6-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 3e5
 
-MiniGrid-UnlockRed-DecomposedReward-v0:
+MiniGrid-UnlockRed-6x6-DecomposedReward-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 3e5
 
-MiniGrid-IsNextTo-6x6-N2-v0:
+MiniGrid-UnlockRed-12x12-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 3e5
 
-MiniGrid-IsNextTo-6x6-N2-DecomposedReward-v0:
+MiniGrid-UnlockRed-12x12-DecomposedReward-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-IsNextTo-6x6-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-IsNextTo-6x6-DecomposedReward-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-IsNextTo-12x12-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-IsNextTo-12x12-DecomposedReward-v0:
   <<: *minigrid-defaults
   n_timesteps: !!float 3e5
 

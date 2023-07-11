@@ -18,7 +18,7 @@ import llm_curriculum.envs.minimal_minigrid.envs  # noqa: F401 pytype: disable=i
 import rl_zoo3.import_envs  # noqa: F401 pytype: disable=import-error
 
 # from rl_zoo3.exp_manager import ExperimentManager
-from llm_curriculum.envs.minigrid.exp_manager import MyExperimentManager
+from llm_curriculum.envs.minimal_minigrid.exp_manager import MyExperimentManager
 from rl_zoo3.utils import ALGOS, StoreDict
 
 

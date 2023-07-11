@@ -15,6 +15,6 @@ do
         --algo ppo \
         --env $env_id \
         --conf-file llm_curriculum/envs/minimal_minigrid/hyperparams/ppo.yml \
-        --wandb-group-name minimal_minigrid_2 \
+        --wandb-group-name debug \
         --track
 done
