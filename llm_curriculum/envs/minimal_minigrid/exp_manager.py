@@ -30,8 +30,9 @@ class MyExperimentManager(ExperimentManager):
         # Overwrite env kwargs to create env with render_mode="rgb_array"
         self.orig_env_kwargs = self.env_kwargs.copy()
         self.env_kwargs["render_mode"] = "rgb_array"
+        eval_env = self.create_envs(1, eval_env=True)
         video_callback = VideoRecorderCallback(
-            self.create_envs(1, eval_env=True),
+            eval_env,
             render_freq=10000 // self.n_envs,
         )
         self.env_kwargs = self.orig_env_kwargs
