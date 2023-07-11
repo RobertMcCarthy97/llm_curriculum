@@ -53,6 +53,11 @@ class VideoRecorderCallback(BaseCallback):
                 deterministic=self._deterministic,
             )
             self.logger.record(
+                "trajectory/video_len",
+                len(screens),
+                exclude=("stdout", "log", "json", "csv"),
+            )
+            self.logger.record(
                 "trajectory/video",
                 Video(th.ByteTensor([screens]), fps=40),
                 exclude=("stdout", "log", "json", "csv"),
