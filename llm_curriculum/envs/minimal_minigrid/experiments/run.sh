@@ -1,4 +1,4 @@
-WANDB_GROUP=$1:minimal_minigrid
+WANDB_GROUP=${1:-minimal_minigrid}
 ENV_IDS=(
     "MiniGrid-IsNextTo-6x6-v0"
     "MiniGrid-IsNextTo-6x6-DecomposedReward-v0"
