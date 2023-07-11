@@ -66,7 +66,7 @@ Added a new hyperparamter help; when True, the program will exit after printing 
 python llm_curriculum/learning/train_multitask_separate.py \
     --config llm_curriculum/learning/config/default.py \
     --config.help=True
-
+```
 
 ## Documentation
 

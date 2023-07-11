@@ -327,6 +327,8 @@ def evaluate_sequenced_policy(
     n_envs = env.num_envs
     episode_rewards = []
     episode_lengths = []
+    episode_success = []
+    episode_high_level_task_successes = []
 
     episode_counts = np.zeros(n_envs, dtype="int")
     # Divides episodes among different sub environments in the vector as evenly as possible
@@ -336,6 +338,7 @@ def evaluate_sequenced_policy(
 
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
+    current_high_level_task_successes = np.zeros(n_envs, dtype="int")
     observations = env.reset()
     states = None
     episode_starts = np.ones((env.num_envs,), dtype=bool)
@@ -354,6 +357,8 @@ def evaluate_sequenced_policy(
         observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1
+        assert len(infos) == 1
+        current_high_level_task_successes += infos[0]["overall_task_success"]
         for i in range(n_envs):
             if episode_counts[i] < episode_count_targets[i]:
                 # unpack values so that the callback can access the local variables
@@ -361,6 +366,7 @@ def evaluate_sequenced_policy(
                 done = dones[i]
                 info = infos[i]
                 episode_starts[i] = done
+                high_level_task_success = info["overall_task_success"]
 
                 if callback is not None:
                     callback(locals(), globals())
@@ -376,14 +382,23 @@ def evaluate_sequenced_policy(
                             # has been wrapped with it. Use those rewards instead.
                             episode_rewards.append(info["episode"]["r"])
                             episode_lengths.append(info["episode"]["l"])
+                            episode_success.append(info["episode"]["is_success"])
+                            episode_high_level_task_successes.append(
+                                np.mean(current_high_level_task_successes)
+                            )
                             # Only increment at the real end of an episode
                             episode_counts[i] += 1
                     else:
                         episode_rewards.append(current_rewards[i])
                         episode_lengths.append(current_lengths[i])
+                        episode_success.append(info["is_success"])
+                        episode_high_level_task_successes.append(
+                            np.mean(current_high_level_task_successes)
+                        )
                         episode_counts[i] += 1
                     current_rewards[i] = 0
                     current_lengths[i] = 0
+                    current_high_level_task_successes[i] = 0
 
         if render:
             env.render()
@@ -396,5 +411,11 @@ def evaluate_sequenced_policy(
             f"{mean_reward:.2f} < {reward_threshold:.2f}"
         )
     if return_episode_rewards:
-        return episode_rewards, episode_lengths
-    return mean_reward, std_reward
+        return (
+            episode_rewards,
+            episode_lengths,
+            episode_success,
+            episode_high_level_task_successes,
+        )
+    else:
+        return mean_reward, std_reward

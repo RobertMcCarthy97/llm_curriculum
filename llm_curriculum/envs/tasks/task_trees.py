@@ -311,12 +311,21 @@ cube_in_drawer_to_cube_at_target_tree = {
 # Define some 0-shot adaptation trees
 ######################################
 
-cube_in_open_drawer_to_cube_at_target_tree = {
+## V1
+
+cube_on_drawer_to_cube_at_target_adapt = {
     # Mix 'cube_on_table -> cube_at_target' with 'cube_in_open_drawer -> 'cube on drawer'
     MoveCubeToTargetTask: {PickUpCubeTask: None, PlaceCubeAtTargetTask: None},
 }
 
-cube_in_closed_drawer_to_cube_at_target_tree = {
+cube_on_table_to_cube_in_drawer_adapt = {
+    PlaceCubeDrawerTask: {
+        PickUpCubeTask: None,
+        PlaceGraspedCubeDrawerTask: None,
+    }
+}
+
+cube_in_closed_drawer_to_cube_at_target_adapt = {
     # Mix 'cube_on_table -> cube_at_target' with 'cube_in_open_drawer -> 'cube on drawer'
     MoveCubeToTargetTask: {
         OpenDrawerTask: None,
@@ -325,20 +334,41 @@ cube_in_closed_drawer_to_cube_at_target_tree = {
     },
 }
 
-open_drawer_then_cube_in_drawer = {
+open_drawer_then_cube_in_drawer_adapt = {
     PlaceCubeDrawerTask: {
         OpenDrawerTask: None,
         PlaceCubeDrawerTask: None,  # TODO: this should be different from parent
     }
 }
 
-open_drawer_then_pick_cube = {
+open_drawer_then_pick_cube_adapt = {
     PickUpCubeTask: {
         OpenDrawerTask: None,
         PickUpCubeTask: None,  # TODO: this should be different from parent
     }
 }
 
+## V2
+
+cube_on_drawer_to_cube_in_drawer_adapt = {
+    PlaceCubeDrawerTask: {
+        PickUpCubeTask: None,
+        PlaceGraspedCubeDrawerTask: None,
+    }
+}
+
+cube_on_table_to_cube_at_target_adapt = {
+    MoveCubeToTargetTask: {PickUpCubeTask: None, PlaceCubeAtTargetTask: None},
+}
+
+## V3
+
+cube_in_drawer_to_cube_on_drawer_adapt = {
+    PlaceCubeOnDrawerTopTask: {
+        PickUpCubeTask: None,
+        PlaceGraspedCubeOnDrawerTopTask: None,
+    }
+}
 
 ######################################
 # record all valid trees in this dict
@@ -367,9 +397,18 @@ TASK_TREES = {
     "cube_on_table_to_cube_on_drawer": cube_on_table_to_cube_on_drawer_tree,
     "cube_in_drawer_to_cube_at_target": cube_in_drawer_to_cube_at_target_tree,
     ## 0-shot Adapt tasks
-    "ADAPT-open_drawer_then_pickup_cube": open_drawer_then_pick_cube,
-    "ADAPT-open_drawer_to_target_adapt": cube_in_open_drawer_to_cube_at_target_tree,
-    "ADAPT-closed_drawer_to_target_adapt": cube_in_closed_drawer_to_cube_at_target_tree,
+    # V1
+    "cube_on_drawer_to_cube_at_target_adapt": cube_on_drawer_to_cube_at_target_adapt,
+    "cube_on_table_to_cube_in_drawer_adapt": cube_on_table_to_cube_in_drawer_adapt,
+    # V2
+    "cube_on_drawer_to_cube_in_drawer_adapt": cube_on_drawer_to_cube_in_drawer_adapt,
+    "cube_on_table_to_cube_at_target_adapt": cube_on_table_to_cube_at_target_adapt,
+    # V3
+    "cube_in_drawer_to_cube_on_drawer_adapt": cube_in_drawer_to_cube_on_drawer_adapt,
+    # Other
+    "cube_in_closed_drawer_to_cube_at_target_adapt": cube_in_closed_drawer_to_cube_at_target_adapt,
+    "open_drawer_then_cube_in_drawer_adapt": open_drawer_then_cube_in_drawer_adapt,
+    "open_drawer_then_pick_cube_adapt": open_drawer_then_pick_cube_adapt,
 }
 
 ######################

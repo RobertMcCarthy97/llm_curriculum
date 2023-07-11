@@ -551,7 +551,12 @@ class EvalCallbackMultiTask(EventCallback):
             # Reset success rate buffer
             self._is_success_buffer = []
             # collect episodes
-            episode_rewards, episode_lengths = evaluate_sequenced_policy(
+            (
+                episode_rewards,
+                episode_lengths,
+                episode_successes,
+                episode_high_level_task_successes,
+            ) = evaluate_sequenced_policy(
                 self.locals["models_dict"],
                 self.eval_env_sequenced,
                 n_eval_episodes=self.n_eval_episodes,
