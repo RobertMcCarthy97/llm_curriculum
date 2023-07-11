@@ -88,25 +88,20 @@ class IsNextToEnv(MiniGridEnv):
         # Randomize the agent start position and orientation
         self.place_agent()
 
-        self.obj0_type = objs[0][0]
-        self.obj0_color = objs[0][1]
-        self.obj1_type = objs[1][0]
-        self.obj1_color = objs[1][1]
-
         self.mission = self._gen_mission()
 
     def step(self, action):
         preCarrying = self.carrying
-        obs, reward, terminated, truncated, info = super().step(action)
+        obs, _, _, _, info = super().step(action)
 
+        reward = 0
+        terminated = False
+        truncated = False
         if preCarrying is not None and self.carrying is None:
             green_key_pos = get_obj_pos(self.grid, "key", "green")
             red_ball_pos = get_obj_pos(self.grid, "ball", "red")
             if is_next_to(green_key_pos, red_ball_pos):
                 reward = self._reward()
                 terminated = True
-        else:
-            reward = 0
-            terminated = False
 
         return obs, reward, terminated, truncated, info
