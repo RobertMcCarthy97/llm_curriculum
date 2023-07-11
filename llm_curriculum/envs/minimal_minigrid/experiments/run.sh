@@ -1,4 +1,5 @@
-WANDB_GROUP=${1:-minimal_minigrid}
+WANDB_GROUP=${1:-None}
+TRACK=$( [[ -n "$WANDB_GROUP" ]] && echo "--track" || echo "" )
 ENV_IDS=(
     "MiniGrid-IsNextTo-6x6-v0"
     "MiniGrid-IsNextTo-6x6-DecomposedReward-v0"
@@ -23,6 +24,5 @@ do
         --algo ppo \
         --env $env_id \
         --conf-file llm_curriculum/envs/minimal_minigrid/hyperparams/ppo.yml \
-        --wandb-group-name $WANDB_GROUP
-        # --track
+        --wandb-group-name $WANDB_GROUP $TRACK
 done
