@@ -21,6 +21,8 @@ def get_config():
     ]
     config.high_level_task_names = ["open_then_place_drawer_then_close"]
 
+    config.do_seperate_policy_eval = False  # sometimes doesn't reach...
+
     config.wandb.name = "open_then_place_drawer_then_close-single_tree"
 
     return config
