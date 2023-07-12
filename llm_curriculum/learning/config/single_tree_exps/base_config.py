@@ -38,6 +38,7 @@ def get_config():
     config.use_baseline_env = False
     config.is_closed_on_reset = True
     config.cube_pos_on_reset = "table"
+    config.task_complete_thresh = 3
     # task
     config.single_task_names = []
     config.high_level_task_names = ["pick_up_cube"]

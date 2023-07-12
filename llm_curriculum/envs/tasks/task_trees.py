@@ -190,18 +190,68 @@ pick_up_cube_in_drawer_tree = {
     },
 }
 
-"""
-TODO: create these trees
+##############################
+# Low-level only trees
+##############################
 
-self.str_description = "grasp cube mini"
-self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask]
+pick_up_cube_no_grasp_decomp_low_level_tree = {
+    PickUpCubeTask: {
+        MoveGripperToCubeTask: None,
+        GraspCubeTask: None,
+        LiftCubeTask: None,
+    }
+}
 
-self.str_description = "pick and place mini"
-self.subtask_cls_seq = [MoveGripperToCubeTask, CubeBetweenGripperTask, CloseGripperCubeTask, LiftCubeTask, MoveCubeTowardsTargetGraspTask]
-"""
+place_cube_drawer_top_low_level_tree = {
+    PlaceCubeOnDrawerTopTask: {
+        MoveGripperToCubeTask: None,
+        CubeBetweenGripperTask: None,
+        CloseGripperCubeTask: None,
+        LiftCubeTask: None,
+        MoveCubeOverDrawerTopTask: None,
+        ReleaseCubeOnDrawerTopTask: None,
+    }
+}
+
+place_cube_drawer_top_no_grasp_decomp_low_level_tree = {
+    PlaceCubeOnDrawerTopTask: {
+        MoveGripperToCubeTask: None,
+        CubeBetweenGripperTask: None,
+        GraspCubeTask: None,
+        MoveCubeOverDrawerTopTask: None,
+        ReleaseCubeOnDrawerTopTask: None,
+    }
+}
+
+open_then_place_in_drawer_low_level_tree = {
+    PlaceCubeDrawerTask: {
+        MoveGripperToDrawerTask: None,
+        GraspHandleTask: None,
+        PullHandleToOpenTask: None,
+        MoveGripperToCubeTask: None,
+        CubeBetweenGripperTask: None,
+        CloseGripperCubeTask: None,
+        LiftCubeTask: None,
+        MoveCubeOverDrawerTask: None,
+        ReleaseCubeInDrawerTask: None,
+    }
+}
+
+open_then_place_in_drawer_no_grasp_decomp_low_level_tree = {
+    PlaceCubeDrawerTask: {
+        MoveGripperToDrawerTask: None,
+        GraspHandleTask: None,
+        PullHandleToOpenTask: None,
+        MoveGripperToCubeTask: None,
+        GraspCubeTask: None,
+        LiftCubeTask: None,
+        MoveCubeOverDrawerTask: None,
+        ReleaseCubeInDrawerTask: None,
+    }
+}
 
 ##############################
-# 0-shot pretrianing trees
+# 0-shot pretraining trees
 ##############################
 
 ### V1
@@ -389,6 +439,13 @@ TASK_TREES = {
     "open_then_place_in_drawer": open_then_place_in_drawer_tree,
     "open_then_place_drawer_then_close": open_then_place_drawer_then_close_tree,
     "pick_up_cube_in_drawer": pick_up_cube_in_drawer_tree,
+    # low-level-sequence tasks
+    "pick_up_low": pick_up_cube_mini_tree,
+    "pick_up_low_(no_grasp_decomp)": pick_up_cube_no_grasp_decomp_low_level_tree,
+    "place_cube_drawer_top_low": place_cube_drawer_top_low_level_tree,
+    "place_cube_drawer_top_low_(no_grasp_decomp)": place_cube_drawer_top_no_grasp_decomp_low_level_tree,
+    "open_then_place_drawer_low": open_then_place_in_drawer_low_level_tree,
+    "open_then_place_drawer_low_(no_grasp_decomp)": open_then_place_in_drawer_no_grasp_decomp_low_level_tree,
     ## 0-shot Pretraining tasks
     "cube_on_table_to_cube_at_target": cube_on_table_to_cube_at_target_tree,
     "cube_on_drawer_to_cube_in_drawer": cube_on_drawer_to_cube_in_drawer_tree,

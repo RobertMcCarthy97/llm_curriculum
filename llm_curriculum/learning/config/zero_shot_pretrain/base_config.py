@@ -27,7 +27,7 @@ def get_config():
     config.seed = 0
     # env
     config.drawer_env = True
-    config.incremental_reward = False
+    config.incremental_reward = False  # False, "v1", "v2"
     config.manual_decompose_p = None
     config.dense_rew_lowest = False
     config.dense_rew_tasks = ["move_gripper_to_cube"]
@@ -38,6 +38,7 @@ def get_config():
     config.use_baseline_env = False
     config.is_closed_on_reset = False
     config.cube_pos_on_reset = "table"
+    config.task_complete_thresh = 3
     # task
     config.single_task_names = []
     config.high_level_task_names = ["pick_up_cube"]

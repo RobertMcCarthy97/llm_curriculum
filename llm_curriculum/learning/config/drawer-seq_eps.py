@@ -22,7 +22,7 @@ def get_config():
     config.seed = 0
     # env
     config.drawer_env = False
-    config.incremental_reward = False
+    config.incremental_reward = False  # False, "v1", "v2"
     config.manual_decompose_p = None
     config.dense_rew_lowest = False
     config.dense_rew_tasks = [
@@ -36,9 +36,10 @@ def get_config():
     config.use_baseline_env = False
     config.is_closed_on_reset = False
     config.cube_pos_on_reset = "in_drawer"
+    config.task_complete_thresh = 3
     # task / curriculum
     config.single_task_names = []
-    config.high_level_task_names = ["pick_up_cube"]
+    config.high_level_task_names = ["pick_up_low"]
     config.sequenced_episodes = True
     config.contained_sequence = False
     config.initial_state_curriculum_p = 0.0
@@ -68,16 +69,16 @@ def get_config():
     config.batch_size = 100
     # logging
     config.wandb = config_dict.ConfigDict()
-    config.wandb.track = False
+    config.wandb.track = True
     config.wandb.project = "llm-curriculum"
     config.wandb.entity = "robertmccarthy11"
-    config.wandb.group = "child_p_strat-testing"
+    config.wandb.group = "low_level_only-testing"
     config.wandb.job_type = "training"
-    config.wandb.name = "test-pick_up_cube"
+    config.wandb.name = "pick_up_cube-low_level_only"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
-    config.save_models = True
-    config.do_seperate_policy_eval = True
+    config.save_models = False
+    config.do_seperate_policy_eval = False
     config.eval_traversal_modes = ["train", "leaf", "exploit"]
 
     config.exp_group = "merge-validation"

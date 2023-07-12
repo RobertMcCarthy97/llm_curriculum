@@ -20,9 +20,11 @@ class AgentConductor:
         dense_rew_tasks=[],
         use_incremental_reward=False,
         initial_state_curriculum_p=0.0,
+        task_complete_thresh=3,
     ):
         self.env = env  # TODO: unclear what this is doing
         self.manual_decompose_p = manual_decompose_p
+        self.task_complete_thresh = task_complete_thresh
 
         self.single_task_names = single_task_names
 
@@ -91,6 +93,7 @@ class AgentConductor:
             use_dense_reward_lowest_level=self.dense_rew_lowest,
             use_incremental_reward=self.use_incremental_reward,
             drawer_env=self.env.add_drawer,
+            complete_thresh=self.task_complete_thresh,
         )
         high_level_tasks = tree_builder.build_from_name_list(self.high_level_task_names)
         assert len(high_level_tasks) == 1, "only set for 1 task currently"
@@ -391,8 +394,12 @@ class AgentConductor:
         """
         if len(task.subtask_sequence) > 0:
             task_success = self.task_stats["success"].get_task_edma(task.name)
-            sequence_success = self.get_sequence_exploit_success(task.subtask_sequence)
-            return sequence_success > task_success
+            subtask_sequence_success = self.get_sequence_exploit_success(
+                task.subtask_sequence
+            )
+            return (
+                subtask_sequence_success >= task_success
+            )  # Favour subtask when equal (if both at 0, subtask likley better)
         else:
             return False
 

@@ -14,14 +14,15 @@ if __name__ == "__main__":
         use_language_goals=False,
         render_mode="human",
         single_task_names=[],
-        high_level_task_names=["cube_on_drawer_to_cube_at_target"],
+        high_level_task_names=["open_then_place_drawer_low"],
         contained_sequence=False,
         curriculum_manager_cls=None,
         use_incremental_reward=False,
+        task_complete_thresh=3,
         initial_state_curriculum_p=0,
         # drawer env
-        is_closed_on_reset=False,
-        cube_pos_on_reset="on_drawer",
+        is_closed_on_reset=True,
+        cube_pos_on_reset="table",
     )
 
     # set traversal mode

@@ -17,6 +17,7 @@ hparams = {
     # Important params
     "wandb_name": "cube_in_drawer_to_cube_on_drawer_adapt-v3_1",
     "manual_decompose_p": 1,
+    "task_complete_thresh": 3,
     "drawer_env": True,
     "is_closed_on_reset": False,
     "cube_pos_on_reset": "in_drawer",
@@ -30,7 +31,7 @@ pretrained_models = [
         "high_level_task_name": "cube_on_table_to_cube_on_drawer",
         "wandb_name": "cube_on_table_to_cube_on_drawer-pretrain-v3",
         "model_tag": "_best",
-        "tasks_to_use": ["place_cube_drawer_top"],
+        "tasks_to_use": ["place_grasped_cube_on_drawer_top"],
     },
     # Cube in drawer -> cube at target
     {

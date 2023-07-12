@@ -23,13 +23,15 @@ from stable_baselines3.common.logger import Video
 ############################
 
 # Choose run
-from llm_curriculum.learning.config.zero_shot_adapt.v2_2 import (
+from llm_curriculum.learning.config.zero_shot_adapt.v3_2 import (
     hparams,
     pretrained_models,
 )
 
+hparams["render_mode"] = "rgb_array"
+
 # W&B tracking
-do_wandb = True
+do_wandb = False
 
 ##############################
 # End of settings
@@ -142,10 +144,11 @@ class ZeroShotNormedPolicy:
 # Create env
 if do_wandb:
     hparams["render_mode"] = "rgb_array"
-venv = create_env(
+norm_venv = create_env(
     hparams,
     eval=True,
-).venv
+)
+venv = norm_venv.venv  # Extracts inner env from vec_normalize env
 
 # Create models
 models_dict = {}
@@ -183,13 +186,13 @@ for pretrained in pretrained_models:
 ) = evaluate_sequenced_policy(
     models_dict,
     venv,
-    n_eval_episodes=20,
+    n_eval_episodes=40,
     render=True,
     deterministic=True,
     return_episode_rewards=True,
     warn=True,
     callback=None,
-    verbose=1,
+    verbose=0,
 )
 print("episode_rewards:", episode_rewards)
 print("episode_lengths: ", episode_lengths)

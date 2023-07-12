@@ -128,6 +128,13 @@ class Task:
         # Check if subtasks complete
         self.check_and_set_subtasks_complete(self, current_state)
 
+        # Now everything set and checked, can do incremental reward
+        if self.use_incremental_reward == "v1":
+            reward += self.get_incremental_reward_v1(self)
+        elif self.use_incremental_reward == "v2":
+            reward += self.get_incremental_reward_v2(self, current_state)
+        reward = np.clip(reward, -1, 0)
+
         return success, reward
 
     def check_and_set_subtasks_complete(self, task, current_state):
@@ -146,9 +153,6 @@ class Task:
 
     def check_success_reward(self, current_state):
         success, reward = self._check_success_reward(current_state)
-        if self.use_incremental_reward:
-            reward += self.get_incremental_reward(self)
-            reward = np.clip(reward, -1, 0)
         return success, reward
 
     def _check_success_reward(self, current_state):
@@ -162,26 +166,71 @@ class Task:
                 return task.get_oracle_action(state)
         return task.get_oracle_action(state)
 
-    def get_incremental_reward(self, task, inc_rew_mag=0.1):
+    def get_incremental_reward_v1(self, task, inc_rew_mag=0.1):
         """
-        Currently just add 0.1 to reward for each child complete
-        - and recursively go down tree
+        - Currently just permanently add 0.1 to reward for each child complete
+        - And recursively go down tree (incremental reward scaled by proportion of parent the subtask completes)
+        - Assumes current timestep successes already cheked and set
 
         TODO: instead do inc_rew = 0.1 * subtask reward?
 
         """
+        assert self.use_incremental_reward == "v1"
         inc_rew = 0
         if len(task.subtask_sequence) > 0:
             assert len(task.subtask_sequence) <= 3
             for subtask in task.subtask_sequence:
+                # if subtask has been complete in this epsiode, give reward
                 if subtask.success_count > 0:
                     inc_rew += inc_rew_mag
+                # Else check for subtask's children
                 else:
                     subtask_n_childs = len(subtask.subtask_sequence)
                     if subtask_n_childs > 0:
-                        child_inc_rew = self.get_incremental_reward(subtask)
+                        child_inc_rew = self.get_incremental_reward_v1(subtask)
+                        inc_rew += (
+                            child_inc_rew / subtask_n_childs
+                        )  # scale by number of children
+                    break
+        assert inc_rew < 1.0
+        return inc_rew
+
+    def get_incremental_reward_v2(self, task, current_state, inc_rew_mag=0.1):
+        """
+        - Complete_thresh == 1
+        - add 0.1 to reward only once (when the subtask is intially complete)
+        - Forced to follow subtask sequence in order (can't skip to a reward from a later subtask)
+
+        """
+        assert self.complete_thresh == 1
+        assert self.use_incremental_reward == "v2"
+        inc_rew = 0
+        if len(task.subtask_sequence) > 0:
+            assert len(task.subtask_sequence) <= 3
+            for subtask in task.subtask_sequence:
+                assert subtask.complete_thresh == 1
+
+                # If subtask success, and hasn't been given incremental reward yet
+                if subtask.success_count > 0:
+                    if not subtask.has_given_incremental_reward_v2:
+                        assert subtask.check_success_reward(current_state)[
+                            0
+                        ], "subtask should be success if this is the case!"
+                        inc_rew += inc_rew_mag
+                        subtask.set_has_given_incremental_reward_v2()  # set to 'given' so dont give again
+                        break  # Note, this means last child will be skipped
+                    else:
+                        continue
+                # Else, check subtask's children
+                else:
+                    subtask_n_childs = len(subtask.subtask_sequence)
+                    if subtask_n_childs > 0:
+                        child_inc_rew = self.get_incremental_reward_v2(
+                            subtask, current_state
+                        )
                         inc_rew += child_inc_rew / subtask_n_childs
                     break
+        assert inc_rew < 1.0
         return inc_rew
 
     def record_relations(self):
@@ -270,9 +319,13 @@ class Task:
     def set_use_dense_reward(self, use_dense_reward):
         self.use_dense_reward = use_dense_reward
 
+    def set_has_given_incremental_reward_v2(self):
+        self.has_given_incremental_reward_v2 = True
+
     def reset(self):
         self.complete = False
         self.success_count = 0
+        self.has_given_incremental_reward_v2 = False
         if len(self.subtask_sequence) > 0:
             for subtask in self.subtask_sequence:
                 subtask.reset()

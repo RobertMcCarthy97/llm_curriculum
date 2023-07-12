@@ -21,8 +21,8 @@ def get_config():
     config.help = False
     config.seed = 0
     # env
-    config.drawer_env = True
-    config.incremental_reward = False
+    config.drawer_env = False
+    config.incremental_reward = False  # False, "v1", "v2"
     config.manual_decompose_p = 1
     config.dense_rew_lowest = False
     config.dense_rew_tasks = []
@@ -33,8 +33,9 @@ def get_config():
     config.use_baseline_env = False
     config.is_closed_on_reset = False
     config.cube_pos_on_reset = "on_drawer"
+    config.task_complete_thresh = 1
     # task
-    config.single_task_names = ["lift_cube"]
+    config.single_task_names = ["pick_up_cube"]
     config.high_level_task_names = ["move_cube_to_target"]
     config.curriculum_manager_cls = DummySeperateEpisodesCM  # DummySeperateEpisodesCM, SeperateEpisodesCM (CM decides 'decompose_p' based on success rates)
     config.sequenced_episodes = False
@@ -67,9 +68,9 @@ def get_config():
     config.wandb.track = True
     config.wandb.project = "llm-curriculum"
     config.wandb.entity = "robertmccarthy11"
-    config.wandb.group = "drawer-env-testing"
+    config.wandb.group = "incremental-rewards"
     config.wandb.job_type = "training"
-    config.wandb.name = "lift_cube-on_drawer-single"
+    config.wandb.name = "pick_up_cube-incemental_rew_v1-single"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
     config.save_models = False

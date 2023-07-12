@@ -74,6 +74,7 @@ def create_env(hparams, eval=False, vec_norm_path=None):
             cube_pos_on_reset=hparams["cube_pos_on_reset"],
             child_p_strat=hparams["child_p_strat"],
             decompose_p_clip=hparams["decompose_p_clip"],
+            task_complete_thresh=hparams["task_complete_thresh"],
         )
 
     # Vec Env

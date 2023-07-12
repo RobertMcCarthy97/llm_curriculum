@@ -31,6 +31,7 @@ def make_env(
     curriculum_manager_cls=None,
     use_incremental_reward=False,
     initial_state_curriculum_p=0.0,
+    task_complete_thresh=3,
     # drawer env
     is_closed_on_reset=True,
     cube_pos_on_reset="table",
@@ -83,6 +84,7 @@ def make_env(
         use_language_goals=use_language_goals,
         use_incremental_reward=use_incremental_reward,
         initial_state_curriculum_p=initial_state_curriculum_p,
+        task_complete_thresh=task_complete_thresh,
     )
     env = CurriculumEnvWrapper(
         env,

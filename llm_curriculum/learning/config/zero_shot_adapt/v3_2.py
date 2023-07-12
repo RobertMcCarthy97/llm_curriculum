@@ -17,6 +17,7 @@ hparams = {
     # Important params
     "wandb_name": "cube_on_table_to_cube_at_target_adapt-v3_2",
     "manual_decompose_p": 1,
+    "task_complete_thresh": 3,
     "drawer_env": True,
     "is_closed_on_reset": False,
     "cube_pos_on_reset": "table",
