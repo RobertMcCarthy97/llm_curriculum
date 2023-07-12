@@ -1,10 +1,13 @@
 WANDB_GROUP=${1:-""}
 WANDB_STR=$( [[ -n "$WANDB_GROUP" ]] && echo "--wandb-group-name $WANDB_GROUP --track" || echo "" )
 ENV_IDS=(
+    "MiniGrid-UnlockPickup-v0"
+    "MiniGrid-UnlockPickup-OracleDecomposedReward-v0"
+    "MiniGrid-PutNext-6x6-N2-v0"
     "MiniGrid-IsNextTo-6x6-v0"
-    "MiniGrid-IsNextTo-6x6-DecomposedReward-v0"
-    "MiniGrid-IsNextTo-6x6-DecomposedReward-NoMission-v0"
-    "MiniGrid-IsNextTo-6x6-DecomposedReward-NoReward-v0"
+    # "MiniGrid-IsNextTo-6x6-DecomposedReward-v0"
+    # "MiniGrid-IsNextTo-6x6-DecomposedReward-NoMission-v0"
+    # "MiniGrid-IsNextTo-6x6-DecomposedReward-NoReward-v0"
     "MiniGrid-IsNextTo-6x6-DecomposedReward-NoMission-NoReward-v0"
     # "MiniGrid-IsNextTo-12x12-v0"
     # "MiniGrid-IsNextTo-12x12-DecomposedReward-v0"

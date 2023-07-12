@@ -6,6 +6,7 @@ from minigrid.wrappers import FullyObsWrapper
 from llm_curriculum.envs.minimal_minigrid.envs.wrappers import (
     DecomposedRewardWrapper,
     FullyObsInfoWrapper,
+    OracleRewardWrapper,
 )
 from llm_curriculum.envs.minimal_minigrid.prompting.prompt import parse_function_name
 from llm_curriculum.envs.minimal_minigrid.prompting.message import (
@@ -87,6 +88,61 @@ def camel_to_snake(camelcase_string):
     return snakecase_string
 
 
+def make_oracle_decomposed_reward_env(
+    env_id,
+    tasks,
+    **kwargs,
+):
+    env = gym.make(env_id, **kwargs)
+    make_tasks_fn = lambda env: tasks
+    env = OracleRewardWrapper(env, make_tasks_fn)
+    return env
+
+
+# Register oracle-decomposed envs
+from llm_curriculum.envs.minimal_minigrid.envs.tasks import (
+    GoToObjectTask,
+    PickUpObjectTask,
+    OpenDoorTask,
+)
+from llm_curriculum.envs.minimal_minigrid.envs.grid_utils import ObjectDescription
+
+make_is_next_to_tasks = lambda env: [
+    GoToObjectTask(ObjectDescription("ball", "red")),
+    PickUpObjectTask(ObjectDescription("ball", "red")),
+    GoToObjectTask(ObjectDescription("key", "green")),
+]
+register(
+    "MiniGrid-IsNextTo-6x6-OracleDecomposedReward-v0",
+    entry_point=lambda: make_oracle_decomposed_reward_env(
+        "MiniGrid-IsNextTo-6x6-v0", make_is_next_to_tasks()
+    ),
+)
+
+register(
+    "MiniGrid-IsNextTo-12x12-OracleDecomposedReward-v0",
+    entry_point=lambda: make_oracle_decomposed_reward_env(
+        "MiniGrid-IsNextTo-12x12-v0", make_is_next_to_tasks()
+    ),
+)
+
+make_unlock_pickup_tasks = lambda env: [
+    GoToObjectTask(ObjectDescription("key", "any")),
+    PickUpObjectTask(ObjectDescription("key", "any")),
+    GoToObjectTask(ObjectDescription("door", "any")),
+    OpenDoorTask(ObjectDescription("door", "any")),
+    GoToObjectTask(ObjectDescription("box", "any")),
+    PickUpObjectTask(ObjectDescription("box", "any")),
+]
+
+register(
+    "MiniGrid-UnlockPickup-OracleDecomposedReward-v0",
+    entry_point=lambda: make_oracle_decomposed_reward_env(
+        "MiniGrid-UnlockPickup-v0", make_unlock_pickup_tasks()
+    ),
+)
+
+# Register GPT-decomposed envs
 for orig_env_id in env_ids:
     for enable_mission in [True, False]:
         for enable_reward in [True, False]:

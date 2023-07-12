@@ -4,6 +4,7 @@ from llm_curriculum.envs.minimal_minigrid.prompting.prompt import (
     parse_agent,
     parse_field_of_view,
 )
+from llm_curriculum.envs.minimal_minigrid.envs.tasks import BaseTask
 import collections
 import numpy as np
 
@@ -118,3 +119,51 @@ class DecomposedRewardWrapper(gym.Wrapper):
                 obs["mission"] = self.get_current_objective()
 
         return obs, sub_reward, term, trunc, info
+
+
+class OracleRewardWrapper(gym.Wrapper):
+    """Wrap a Minigrid environment with a sequence of tasks
+
+    Replace 'mission' with subtask
+    Replace reward with subtask reward
+    """
+
+    def __init__(
+        self, env: gym.Env, make_tasks_fn: Callable[[gym.Env], List[BaseTask]]
+    ):
+        super().__init__(env)
+        self.make_tasks_fn = make_tasks_fn
+
+    def get_current_task(self):
+        return self.tasks[self.current_task_idx]
+
+    def has_tasks_remaining(self):
+        return self.current_task_idx < len(self.tasks)
+
+    def reset(self, *args, **kwargs):
+        obs, info = self.env.reset(*args, **kwargs)
+        self.tasks = self.make_tasks_fn(self.env)
+        self.current_task_idx = 0
+        info["overall_mission"] = obs["mission"]
+        obs["mission"] = self.get_current_task().to_string()
+        return obs, info
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+
+        # If no subtasks remain
+        if not self.has_tasks_remaining():
+            return obs, reward, terminated, truncated, info
+
+        else:
+            # If subtask is completed
+            task = self.get_current_task()
+            task_success = task.check_success(self.env)
+            if task_success:
+                reward += 1
+                self.current_task_idx += 1
+
+        info["overall_mission"] = obs["mission"]
+        obs["mission"] = self.get_current_task().to_string()
+
+        return obs, reward, terminated, truncated, info
