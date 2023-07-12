@@ -344,7 +344,15 @@ MiniGrid-Unlock-v0:
 
 MiniGrid-UnlockPickup-v0:
   <<: *minigrid-defaults
-  n_timesteps: !!float 1e6
+  n_timesteps: !!float 3e5
+
+MiniGrid-PutNext-6x6-N2-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockPickup-OracleDecomposedReward-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
 
 MiniGrid-UnlockRed-6x6-v0:
   <<: *minigrid-defaults
