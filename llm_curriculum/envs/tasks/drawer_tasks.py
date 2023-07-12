@@ -30,6 +30,25 @@ class PlaceCubeDrawerTask(Task):
         return success, reward
 
 
+class PlaceCubeClosedDrawerTask(Task):
+    """
+    The parent task for the FetchPickPlace environment
+    """
+
+    def __init__(
+        self, parent_task=None, level=0, use_dense_reward_lowest_level=False, **kwargs
+    ):
+        self.name = "place_cube_closed_drawer"
+        self.str_description = "Place cube in closed drawer"
+
+        super().__init__(parent_task, level, use_dense_reward_lowest_level, **kwargs)
+
+    def _check_success_reward(self, current_state):
+        success, _ = self.state_parser.check_cube_in_closed_drawer(current_state)
+        reward = self.binary_reward(success)
+        return success, reward
+
+
 class PlaceGraspedCubeDrawerTask(Task):
     """
     The parent task for the FetchPickPlace environment

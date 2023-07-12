@@ -10,16 +10,22 @@ if __name__ == "__main__":
         drawer_env=True,
         manual_decompose_p=1,
         dense_rew_lowest=False,
-        dense_rew_tasks=[],
+        dense_rew_tasks=[
+            "move_gripper_to_drawer",
+            "move_gripper_to_cube",
+            "move_cube_over_drawer",
+            "move_gripper_to_drawer_2",
+        ],
         use_language_goals=False,
         render_mode="human",
         single_task_names=[],
-        high_level_task_names=["open_then_place_drawer_low"],
+        high_level_task_names=["open_then_place_drawer_then_close_low"],
         contained_sequence=False,
         curriculum_manager_cls=None,
         use_incremental_reward=False,
         task_complete_thresh=3,
         initial_state_curriculum_p=0,
+        max_ep_len=100,
         # drawer env
         is_closed_on_reset=True,
         cube_pos_on_reset="table",
@@ -32,8 +38,9 @@ if __name__ == "__main__":
 
         obs = env.reset()
         print("env reset")
+        done = False
 
-        for _ in range(100):
+        while not done:
             print("cube_pos_obs: ", obs["observation"][3:6])
             ## Actions
             # action = env.action_space.sample()

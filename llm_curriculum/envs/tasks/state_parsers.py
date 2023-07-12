@@ -438,6 +438,13 @@ class DrawerStateParser(CoreStateParser):
         reward = None
         return success, reward
 
+    def check_cube_in_closed_drawer(self, state):
+        cube_in_drawer_success, _ = self.check_cube_in_drawer(state)
+        drawer_closed_success, _ = self.check_drawer_closed(state)
+        success = cube_in_drawer_success and drawer_closed_success
+        reward = None
+        return success, reward
+
     def check_cube_over_dynamic_drawer(self, state):
         """
         For now, just check if cube is over drawer, regardless of whether open or closed

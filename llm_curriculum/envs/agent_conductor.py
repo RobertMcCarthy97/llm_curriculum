@@ -50,9 +50,19 @@ class AgentConductor:
 
         # tasks
         self.high_level_task_list = self.init_possible_tasks(env)
-        self.task_names = self.get_task_names()
-        self.task_idx_dict, self.n_tasks = self.init_oracle_goals()
-        self.task_name2obj_dict = self.set_task_name2obj_dict()
+        (
+            self.task_name2obj_dict,
+            self.renamed_to_og_name_mapping,
+        ) = self.set_task_name2obj_dict()
+        self.task_names = list(self.task_name2obj_dict.keys())
+
+        (
+            self.task_idx_dict,
+            self.n_tasks,
+        ) = (
+            self.init_oracle_goals()
+        )  # TODO: this currently maps duplicate identical tasks to different indexes
+
         self.init_task_relations(self.task_names)
         self.init_child_proportions(self.task_names)
         if len(dense_rew_tasks) > 0:
@@ -61,7 +71,7 @@ class AgentConductor:
         # check single tasks are contained within high-level task tree
         if len(self.single_task_names) > 0:
             assert len(self.high_level_task_list) == 1, "only deal with this for now..."
-            all_task_names = self.get_task_names()
+            all_task_names = self.task_names
             assert all(
                 [
                     single_task in all_task_names
@@ -114,6 +124,7 @@ class AgentConductor:
         for task in self.high_level_task_list:
             task_embeddings_dict.update(recursively_get_embeddings(task))
 
+        assert False, "may not work when duplicate tasks"
         return task_embeddings_dict
 
     def init_task_relations(self, task_names):
@@ -133,39 +144,42 @@ class AgentConductor:
             task = self.get_task_from_name(task_name)
             task.set_use_dense_reward(True)
 
-    def get_task_names(self):
-        def recursively_get_names(task):
-            task_names = [task.name]
-            if len(task.subtask_sequence) > 0:
-                for subtask in task.subtask_sequence:
-                    subtask_names = recursively_get_names(subtask)
-                    task_names += subtask_names
-            return task_names
-
-        assert len(self.high_level_task_list) == 1
-        task_names = []
-        for task in self.high_level_task_list:
-            task_names += recursively_get_names(task)
-
-        return task_names
-
     def set_task_name2obj_dict(self):
         assert len(self.high_level_task_list) == 1
-        # find task object
+
+        task_counts = {}
+        rename_map = {}
+
         def recursively_search_for_tasks(task):
+            og_name = task.name
+            # If task name already exists, rename it by appending count
+            if og_name in task_counts:
+                task_counts[og_name] += 1
+                # rename
+                new_name = f"{og_name}_{task_counts[og_name]}"
+                task.name = new_name
+                if task_counts[og_name] > 1:
+                    # map back to original name
+                    rename_map[new_name] = og_name
+            else:
+                task_counts[og_name] = 1
+
             name2obj_dict = {task.name: task}
+
             if len(task.subtask_sequence) > 0:
                 for subtask in task.subtask_sequence:
                     name2obj_dict.update(recursively_search_for_tasks(subtask))
+
             return name2obj_dict
 
+        assert len(self.high_level_task_list) == 1
         high_level_task = self.high_level_task_list[0]
         assert (
             high_level_task.next_task is None
         ), "Can't have next task if no parent task."
 
         name2obj_dict = recursively_search_for_tasks(high_level_task)
-        return name2obj_dict
+        return name2obj_dict, rename_map
 
     def get_single_task_names(self):
         return self.single_task_names
@@ -366,6 +380,9 @@ class AgentConductor:
         return self.task_name2obj_dict[task_name]
 
     def get_possible_task_names(self):
+        """
+        - Returns tasks that may be active during rollouts (i.e., tasks that may have to be learned by a policy)
+        """
         if len(self.single_task_names) > 0:
             if self.contained_sequence:
                 assert len(self.single_task_names) == 1
@@ -380,6 +397,15 @@ class AgentConductor:
                 return self.single_task_names
         else:
             return self.get_task_names()
+
+    def get_task_names(self):
+        """
+        Return the names of all tasks within the hig-level task trees
+        """
+        return self.task_names
+
+    def get_renamed_to_og_name_mapping(self):
+        return self.renamed_to_og_name_mapping
 
     ###############
     # Exploit mode
@@ -397,9 +423,9 @@ class AgentConductor:
             subtask_sequence_success = self.get_sequence_exploit_success(
                 task.subtask_sequence
             )
-            return (
-                subtask_sequence_success >= task_success
-            )  # Favour subtask when equal (if both at 0, subtask likley better)
+            return (subtask_sequence_success >= task_success) or (
+                self.manual_decompose_p == 1
+            )  # Retrun True if children better or if doing manual decompose == 1  # Favour subtask when equal (if both at 0, subtask likley better)
         else:
             return False
 

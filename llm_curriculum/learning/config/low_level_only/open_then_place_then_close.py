@@ -1,4 +1,4 @@
-from llm_curriculum.learning.config.single_tree_exps.base_config import (
+from llm_curriculum.learning.config.low_level_only.base_config import (
     get_config as get_base_config,
 )
 
@@ -7,6 +7,7 @@ def get_config():
     """Returns the default config"""
     config = get_base_config()
 
+    config.drawer_env = True
     config.is_closed_on_reset = True
     config.cube_pos_on_reset = "table"
 
@@ -21,6 +22,6 @@ def get_config():
     ]
     config.high_level_task_names = ["open_then_place_drawer_then_close"]
 
-    config.wandb.name = "open_then_place_drawer_then_close-single_tree"
+    config.wandb.name = "open_then_place_drawer_then_close-low_level_only"
 
     return config

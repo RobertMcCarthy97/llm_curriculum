@@ -18,6 +18,7 @@ from llm_curriculum.envs.tasks.drawer_tasks import (
     CloseDrawerTask,
     PushHandleToCloseTask,
     PlaceCubeDrawerTask,
+    PlaceCubeClosedDrawerTask,
     PlaceGraspedCubeDrawerTask,
     MoveCubeOverDrawerTask,
     ReleaseCubeInDrawerTask,
@@ -153,7 +154,7 @@ open_then_place_in_drawer_tree = {
 }
 
 open_then_place_drawer_then_close_tree = {
-    PlaceCubeDrawerTask: {
+    PlaceCubeClosedDrawerTask: {
         OpenDrawerTask: {
             MoveGripperToDrawerTask: None,
             GraspHandleTask: None,
@@ -249,6 +250,23 @@ open_then_place_in_drawer_no_grasp_decomp_low_level_tree = {
         ReleaseCubeInDrawerTask: None,
     }
 }
+
+# open_then_place_drawer_then_close_low_level_tree = {
+#     PlaceCubeClosedDrawerTask: {
+#         MoveGripperToDrawerTask: None,
+#         GraspHandleTask: None,
+#         PullHandleToOpenTask: None,
+#         MoveGripperToCubeTask: None,
+#         CubeBetweenGripperTask: None,
+#         CloseGripperCubeTask: None,
+#         LiftCubeTask: None,
+#         MoveCubeOverDrawerTask: None,
+#         ReleaseCubeInDrawerTask: None,
+#         MoveGripperToDrawerTask: None,
+#         GraspHandleTask: None,
+#         PushHandleToCloseTask: None,
+#     }
+# } # TODO: Doesn't work because of the two MoveGripperToDrawerTasks
 
 ##############################
 # 0-shot pretraining trees
@@ -446,6 +464,7 @@ TASK_TREES = {
     "place_cube_drawer_top_low_(no_grasp_decomp)": place_cube_drawer_top_no_grasp_decomp_low_level_tree,
     "open_then_place_drawer_low": open_then_place_in_drawer_low_level_tree,
     "open_then_place_drawer_low_(no_grasp_decomp)": open_then_place_in_drawer_no_grasp_decomp_low_level_tree,
+    # "open_then_place_drawer_then_close_low": open_then_place_drawer_then_close_low_level_tree, # TODO: fix issue
     ## 0-shot Pretraining tasks
     "cube_on_table_to_cube_at_target": cube_on_table_to_cube_at_target_tree,
     "cube_on_drawer_to_cube_in_drawer": cube_on_drawer_to_cube_in_drawer_tree,

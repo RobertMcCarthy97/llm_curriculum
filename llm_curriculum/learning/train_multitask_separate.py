@@ -219,6 +219,14 @@ def create_models(env, logger, hparams):
             )
         # TODO: print / save these relations to ensure all correct...
 
+    # TODO #### For now we just use seperate policies, even if it is the same task...
+    # renamed_to_og_name_mapping = env.envs[0].agent_conductor.get_renamed_to_og_name_mapping()
+    # import pdb; pdb.set_trace()
+    # if len(renamed_to_og_name_mapping) > 0:
+    #     for new_name, og_name in renamed_to_og_name_mapping.items():
+    #         new_relations = models_dict[new_name].replay_buffer.get_relations()
+    #         models_dict[new_name] = models_dict[og_name]
+
     return models_dict
 
 
@@ -292,12 +300,10 @@ def training_loop_sequential(
     logger,
     log_interval=4,
     callback=None,
-    save_freq=20000,
 ):  # TODO: log interval
 
     rollout_collector = SequencedRolloutCollector(env, models_dict)
     timesteps_count = 0
-    save_after = save_freq
 
     while timesteps_count < total_timesteps:
         # Collect data

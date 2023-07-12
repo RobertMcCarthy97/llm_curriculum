@@ -78,7 +78,7 @@ def get_config():
     config.wandb.name = "pickup_cube-default_exp"
 
     config.log_path = "./logs/" + f"{datetime.now().strftime('%d_%m_%Y-%H_%M_%S')}"
-    config.save_models = True
+    config.save_models = False
     config.do_seperate_policy_eval = True
     config.eval_traversal_modes = ["train", "leaf", "exploit"]
 
