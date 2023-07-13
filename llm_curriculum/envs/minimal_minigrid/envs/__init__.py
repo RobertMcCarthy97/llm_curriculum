@@ -46,6 +46,17 @@ register(
     kwargs={"room_size": 12},
 )
 
+register(
+    "MiniGrid-UnlockIsNextTo-6x6-v0",
+    entry_point="llm_curriculum.envs.minimal_minigrid.envs.unlock_is_next_to:UnlockIsNextToEnv",
+)
+
+register(
+    "MiniGrid-UnlockIsNextTo-12x12-v0",
+    entry_point="llm_curriculum.envs.minimal_minigrid.envs.unlock_is_next_to:UnlockIsNextToEnv",
+    kwargs={"room_size": 12},
+)
+
 
 def camel_to_snake(camelcase_string):
     snakecase_string = ""

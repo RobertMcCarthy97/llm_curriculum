@@ -34,7 +34,12 @@ DECOMPOSITION_PROMPT_TEMPLATE_PATH = (
 REWARD_PROMPT_TEMPLATE_PATH = Path(__file__).parent / "reward_prompt_template.txt"
 
 
-ENV_IDS = ["MiniGrid-UnlockPickupFixed-6x6-v0"]
+ENV_IDS = [
+    # "MiniGrid-IsNextTo-6x6-v0",
+    # "MiniGrid-UnlockRed-6x6-v0",
+    # "MiniGrid-UnlockPickupFixed-6x6-v0",
+    "MiniGrid-UnlockIsNextTo-6x6-v0",
+]
 
 # Run decomposition 5x per environment
 SAVE_DIR = Path(__file__).parent / "data"

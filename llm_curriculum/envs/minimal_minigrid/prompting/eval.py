@@ -33,7 +33,8 @@ from llm_curriculum.envs.minimal_minigrid.prompting.pipeline import camel_to_sna
 ENV_IDS = [
     # "MiniGrid-IsNextTo-6x6-v0",
     # "MiniGrid-UnlockRed-6x6-v0",
-    "MiniGrid-UnlockPickupFixed-6x6-v0"
+    # "MiniGrid-UnlockPickupFixed-6x6-v0",
+    "MiniGrid-UnlockIsNextTo-6x6-v0",
 ]
 
 SAVE_DIR = Path(__file__).parent / "data"
