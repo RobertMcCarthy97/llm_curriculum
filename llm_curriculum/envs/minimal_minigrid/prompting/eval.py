@@ -28,10 +28,14 @@ from llm_curriculum.envs.minimal_minigrid.prompting.message import (
     save_obj,
     load_obj,
 )
+from llm_curriculum.envs.minimal_minigrid.prompting.pipeline import camel_to_snake
 
-ENV_IDS = ["MiniGrid-IsNextTo-6x6-N2-v0", "MiniGrid-UnlockRed-v0"]
+ENV_IDS = [
+    # "MiniGrid-IsNextTo-6x6-v0",
+    # "MiniGrid-UnlockRed-6x6-v0",
+    "MiniGrid-UnlockPickupFixed-6x6-v0"
+]
 
-# Run decomposition 5x per environment
 SAVE_DIR = Path(__file__).parent / "data"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -40,9 +44,11 @@ def load_decompositions(save_dir=SAVE_DIR):
     decompositions = []
     prompt_type = "decomposition"
     for env_id in ENV_IDS:
+        env_type = env_id.split("-")[1]
+        env_save_dir = SAVE_DIR / camel_to_snake(env_type)
         for trial in range(2):
             objectives_filepath = (
-                SAVE_DIR / f"objectives_{prompt_type}_{env_id}_{trial}.json"
+                env_save_dir / f"objectives_{prompt_type}_{env_type}_{trial}.json"
             )
             if not objectives_filepath.exists():
                 print(f"Skipping {objectives_filepath} because it doesn't exist")
@@ -63,16 +69,20 @@ def load_rewards(save_dir=SAVE_DIR):
     rewards = []
     prompt_type = "reward"
     for env_id in ENV_IDS:
+        env_type = env_id.split("-")[1]
+        env_save_dir = SAVE_DIR / camel_to_snake(env_type)
         for trial in range(2):
-            objectives_filepath = SAVE_DIR / f"objectives_decomposition_{env_id}_0.json"
+            objectives_filepath = (
+                env_save_dir / f"objectives_decomposition_{env_type}_0.json"
+            )
             if not objectives_filepath.exists():
                 print(f"Skipping {objectives_filepath} because it doesn't exist")
                 continue
             objectives = load_obj(objectives_filepath)
             for objective in objectives:
                 reward_function_filepath = (
-                    SAVE_DIR
-                    / f"reward_function_{prompt_type}_{env_id}_{objective}_{trial}.json"
+                    env_save_dir
+                    / f"reward_function_{prompt_type}_{env_type}_{objective}_{trial}.json"
                 )
                 if not reward_function_filepath.exists():
                     print(
@@ -97,9 +107,14 @@ def validate_rewards(r):
     assert callable(function)
 
     # Unit test on sample input
-    create_obj = lambda: {"position": (0, 0)}
+    create_obj = lambda: {"position": (0, 0), "state": "open"}
     sample_input = {
-        "agent_info": {"position": (0, 0), "direction": 0, "carrying": "nothing"},
+        "agent_info": {
+            "position": (0, 0),
+            "direction": 0,
+            "carrying": "nothing",
+            "room": (0, 0),
+        },
         # Defaultdict creates objects on the fly
         "field_of_view": collections.defaultdict(create_obj),
     }
@@ -115,8 +130,8 @@ if __name__ == "__main__":
 
     rewards = load_rewards()
     for r in rewards:
-        validate_rewards(r)
         env_id, objective, trial, reward_function = r
         print(" ****** ******")
         print("objective: ", objective)
         print(reward_function)
+        validate_rewards(r)
