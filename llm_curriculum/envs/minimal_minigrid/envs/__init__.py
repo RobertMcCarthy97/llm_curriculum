@@ -71,8 +71,6 @@ env_ids = [
     "MiniGrid-IsNextTo-12x12-v0",
     "MiniGrid-UnlockRed-6x6-v0",
     "MiniGrid-UnlockRed-12x12-v0",
-    "MiniGrid-UnlockPickup-6x6-v0",
-    "MiniGrid-UnlockPickup-12x12-v0",
 ]
 
 
@@ -91,11 +89,13 @@ def camel_to_snake(camelcase_string):
 def make_oracle_decomposed_reward_env(
     env_id,
     tasks,
+    enable_mission: bool,
+    enable_reward: bool,
     **kwargs,
 ):
     env = gym.make(env_id, **kwargs)
     make_tasks_fn = lambda env: tasks
-    env = OracleRewardWrapper(env, make_tasks_fn)
+    env = OracleRewardWrapper(env, make_tasks_fn, enable_mission, enable_reward)
     return env
 
 
@@ -107,26 +107,45 @@ from llm_curriculum.envs.minimal_minigrid.envs.tasks import (
 )
 from llm_curriculum.envs.minimal_minigrid.envs.grid_utils import ObjectDescription
 
-make_is_next_to_tasks = lambda: [
+is_next_to_tasks = [
     GoToObjectTask(ObjectDescription("ball", "red")),
     PickUpObjectTask(ObjectDescription("ball", "red")),
     GoToObjectTask(ObjectDescription("key", "green")),
 ]
-register(
-    "MiniGrid-IsNextTo-6x6-OracleDecomposedReward-v0",
-    entry_point=lambda: make_oracle_decomposed_reward_env(
-        "MiniGrid-IsNextTo-6x6-v0", make_is_next_to_tasks()
-    ),
-)
 
-register(
-    "MiniGrid-IsNextTo-12x12-OracleDecomposedReward-v0",
-    entry_point=lambda: make_oracle_decomposed_reward_env(
-        "MiniGrid-IsNextTo-12x12-v0", make_is_next_to_tasks()
-    ),
-)
+for enable_mission in [True, False]:
+    for enable_reward in [True, False]:
+        enable_mission_str = "" if enable_mission else "NoMission-"
+        enable_reward_str = "" if enable_reward else "NoReward-"
+        env_id = f"MiniGrid-IsNextTo-6x6-OracleDecomposedReward-{enable_mission_str}{enable_reward_str}v0"
+        register(
+            env_id,
+            entry_point=lambda **kwargs: make_oracle_decomposed_reward_env(
+                "MiniGrid-IsNextTo-6x6-v0",
+                unlock_pickup_tasks,
+                enable_mission=enable_mission,
+                enable_reward=enable_reward,
+                **kwargs,
+            ),
+        )
 
-make_unlock_pickup_tasks = lambda: [
+for enable_mission in [True, False]:
+    for enable_reward in [True, False]:
+        enable_mission_str = "" if enable_mission else "NoMission-"
+        enable_reward_str = "" if enable_reward else "NoReward-"
+        env_id = f"MiniGrid-IsNextTo-12x12-OracleDecomposedReward-{enable_mission_str}{enable_reward_str}v0"
+        register(
+            env_id,
+            entry_point=lambda **kwargs: make_oracle_decomposed_reward_env(
+                "MiniGrid-IsNextTo-12x12-v0",
+                unlock_pickup_tasks,
+                enable_mission=enable_mission,
+                enable_reward=enable_reward,
+                **kwargs,
+            ),
+        )
+
+unlock_pickup_tasks = [
     GoToObjectTask(ObjectDescription("key", "any")),
     PickUpObjectTask(ObjectDescription("key", "any")),
     GoToObjectTask(ObjectDescription("door", "any")),
@@ -135,12 +154,22 @@ make_unlock_pickup_tasks = lambda: [
     PickUpObjectTask(ObjectDescription("box", "any")),
 ]
 
-register(
-    "MiniGrid-UnlockPickup-OracleDecomposedReward-v0",
-    entry_point=lambda: make_oracle_decomposed_reward_env(
-        "MiniGrid-UnlockPickup-v0", make_unlock_pickup_tasks()
-    ),
-)
+for enable_mission in [True, False]:
+    for enable_reward in [True, False]:
+        enable_mission_str = "" if enable_mission else "NoMission-"
+        enable_reward_str = "" if enable_reward else "NoReward-"
+        env_id = f"MiniGrid-UnlockPickup-OracleDecomposedReward-{enable_mission_str}{enable_reward_str}v0"
+        register(
+            env_id,
+            entry_point=lambda **kwargs: make_oracle_decomposed_reward_env(
+                "MiniGrid-UnlockPickup-v0",
+                unlock_pickup_tasks,
+                enable_mission=enable_mission,
+                enable_reward=enable_reward,
+                **kwargs,
+            ),
+        )
+
 
 # Register GPT-decomposed envs
 for orig_env_id in env_ids:
