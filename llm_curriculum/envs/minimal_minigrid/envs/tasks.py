@@ -20,7 +20,11 @@ class GoToObjectTask(BaseTask):
     def check_success(self, env) -> bool:
         agent_pos = env.agent_pos
         object_pos = grid_utils.get_object_pos(env.grid, self.object_desc)
-        assert object_pos != (-1, -1)
+        if object_pos == (-1, -1):
+            assert env.carrying is not None
+            assert self.object_desc.match(env.carrying)
+            # agent is carrying object
+            return False
         agent_x, agent_y = agent_pos
         object_y, object_x = object_pos
         return abs(agent_x - object_x) + abs(agent_y - object_y) <= 1

@@ -172,7 +172,7 @@ class OracleRewardWrapper(gym.Wrapper):
                 reward += 1
                 self.current_task_idx += 1
 
-        if self.enable_mission:
+        if self.enable_mission and self.has_tasks_remaining():
             info["overall_mission"] = obs["mission"]
             obs["mission"] = self.get_current_task().to_string()
 

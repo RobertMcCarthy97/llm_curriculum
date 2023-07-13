@@ -123,7 +123,7 @@ for enable_mission in [True, False]:
             def make_env(**kwargs):
                 return make_oracle_decomposed_reward_env(
                     "MiniGrid-IsNextTo-6x6-v0",
-                    unlock_pickup_tasks,
+                    is_next_to_tasks,
                     enable_mission=enable_mission,
                     enable_reward=enable_reward,
                     **kwargs,
@@ -143,7 +143,7 @@ for enable_mission in [True, False]:
             def make_env(**kwargs):
                 return make_oracle_decomposed_reward_env(
                     "MiniGrid-IsNextTo-12x12-v0",
-                    unlock_pickup_tasks,
+                    is_next_to_tasks,
                     enable_mission=enable_mission,
                     enable_reward=enable_reward,
                     **kwargs,
