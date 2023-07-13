@@ -108,10 +108,15 @@ class DecomposedRewardWrapper(gym.Wrapper):
         if self.enable_reward:
             # Shape the reward with intermediate objectives
             function_obs = self.get_reward_function_obs(self.env, full_obs)
-            objective_completion = self.get_current_reward_function()(function_obs)
-            if objective_completion:
+            try:
+                objective_completion = self.get_current_reward_function()(function_obs)
+                if objective_completion:
+                    self.current_objective_idx += 1
+                    sub_reward += 1
+            except Exception as e:
+                print(e)
+                print("Failed to execute reward function. Skipping...")
                 self.current_objective_idx += 1
-                sub_reward += 1
 
         # Overwrite the mission with the current objective
         if self.enable_mission:

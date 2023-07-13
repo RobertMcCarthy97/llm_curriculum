@@ -196,6 +196,8 @@ env_ids = [
     "MiniGrid-UnlockRed-12x12-v0",
     "MiniGrid-UnlockPickupFixed-6x6-v0",
     "MiniGrid-UnlockPickupFixed-12x12-v0",
+    "MiniGrid-UnlockIsNextTo-6x6-v0",
+    "MiniGrid-UnlockIsNextTo-12x12-v0",
 ]
 
 # Register GPT-decomposed envs
