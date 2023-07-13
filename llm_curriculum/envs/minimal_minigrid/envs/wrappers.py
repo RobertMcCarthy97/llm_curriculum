@@ -129,10 +129,16 @@ class OracleRewardWrapper(gym.Wrapper):
     """
 
     def __init__(
-        self, env: gym.Env, make_tasks_fn: Callable[[gym.Env], List[BaseTask]]
+        self,
+        env: gym.Env,
+        make_tasks_fn: Callable[[gym.Env], List[BaseTask]],
+        enable_mission: bool = True,
+        enable_reward: bool = True,
     ):
         super().__init__(env)
         self.make_tasks_fn = make_tasks_fn
+        self.enable_mission = enable_mission
+        self.enable_reward = enable_reward
 
     def get_current_task(self):
         return self.tasks[self.current_task_idx]
@@ -144,8 +150,10 @@ class OracleRewardWrapper(gym.Wrapper):
         obs, info = self.env.reset(*args, **kwargs)
         self.tasks = self.make_tasks_fn(self.env)
         self.current_task_idx = 0
-        info["overall_mission"] = obs["mission"]
-        obs["mission"] = self.get_current_task().to_string()
+
+        if self.enable_mission:
+            info["overall_mission"] = obs["mission"]
+            obs["mission"] = self.get_current_task().to_string()
         return obs, info
 
     def step(self, action):
@@ -155,7 +163,8 @@ class OracleRewardWrapper(gym.Wrapper):
         if not self.has_tasks_remaining():
             return obs, reward, terminated, truncated, info
 
-        else:
+        # else
+        if self.enable_reward:
             # If subtask is completed
             task = self.get_current_task()
             task_success = task.check_success(self.env)
@@ -163,7 +172,8 @@ class OracleRewardWrapper(gym.Wrapper):
                 reward += 1
                 self.current_task_idx += 1
 
-        info["overall_mission"] = obs["mission"]
-        obs["mission"] = self.get_current_task().to_string()
+        if self.enable_mission:
+            info["overall_mission"] = obs["mission"]
+            obs["mission"] = self.get_current_task().to_string()
 
         return obs, reward, terminated, truncated, info

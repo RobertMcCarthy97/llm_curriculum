@@ -107,7 +107,7 @@ from llm_curriculum.envs.minimal_minigrid.envs.tasks import (
 )
 from llm_curriculum.envs.minimal_minigrid.envs.grid_utils import ObjectDescription
 
-make_is_next_to_tasks = lambda env: [
+make_is_next_to_tasks = lambda: [
     GoToObjectTask(ObjectDescription("ball", "red")),
     PickUpObjectTask(ObjectDescription("ball", "red")),
     GoToObjectTask(ObjectDescription("key", "green")),
@@ -126,7 +126,7 @@ register(
     ),
 )
 
-make_unlock_pickup_tasks = lambda env: [
+make_unlock_pickup_tasks = lambda: [
     GoToObjectTask(ObjectDescription("key", "any")),
     PickUpObjectTask(ObjectDescription("key", "any")),
     GoToObjectTask(ObjectDescription("door", "any")),
