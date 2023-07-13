@@ -132,9 +132,18 @@ def parse_agent(env) -> Dict[str, Any]:
         carrying = obj_to_str(carrying)
     else:
         carrying = "nothing"
+
+    assert isinstance(env, minigrid.minigrid_env.MiniGridEnv)
+    if isinstance(env, RoomGrid):
+        room = room_id_from_pos(env, *env.agent_pos)
+    else:
+        # Default to assuming single room
+        room = (0, 0)
+
     dict_obs = {
         "position": (int(env.agent_pos[0]), int(env.agent_pos[1])),
         "direction": int(env.agent_dir),
         "carrying": carrying,
+        "room": room,
     }
     return dict_obs

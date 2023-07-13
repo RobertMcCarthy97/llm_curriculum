@@ -91,7 +91,7 @@ class DecomposedRewardWrapper(gym.Wrapper):
         field_of_view = collections.defaultdict(make_object)
         field_of_view.update(parse_field_of_view(full_obs["image"]))
         return {
-            "agent_info": parse_agent(env),
+            "agent_info": parse_agent(env.unwrapped),
             "field_of_view": field_of_view,
         }
 

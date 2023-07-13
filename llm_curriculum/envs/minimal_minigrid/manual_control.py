@@ -34,7 +34,7 @@ class ManualControl:
                     self.key_handler(event)
 
     def step(self, action: Actions):
-        obs, reward, terminated, truncated, _ = self.env.step(action)
+        obs, reward, terminated, truncated, info = self.env.step(action)
         if hasattr(self.env, "get_reward_function_obs"):
             rew_fn_obs = self.env.get_reward_function_obs(self.env, obs)
             print("rew_fn_obs", rew_fn_obs)
@@ -49,6 +49,11 @@ class ManualControl:
             self.reset(self.seed)
         else:
             self.env.render()
+
+        if "episode" in info:
+            print(
+                f"episode reward: {info['episode']['r']:.2f}, length: {info['episode']['l']}"
+            )
 
     def reset(self, seed=None):
         self.env.reset(seed=seed)
@@ -132,8 +137,9 @@ if __name__ == "__main__":
         screen_size=args.screen_size,
     )
 
-    # from minigrid.wrappers import RGBImgPartialObsWrapper
-    # env = RGBImgPartialObsWrapper(env, args.agent_view_size)
+    from gym.wrappers.record_episode_statistics import RecordEpisodeStatistics
+
+    env = RecordEpisodeStatistics(env)
 
     # TODO: check if this can be removed
     if args.agent_view:
