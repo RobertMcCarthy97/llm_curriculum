@@ -76,3 +76,47 @@ MiniGrid-IsNextTo-6x6-OracleDecomposedReward-NoMission-NoReward-v0:
 MiniGrid-PutNear-6x6-N2-v0: 
   <<: *minigrid-defaults
   n_timesteps: !!float 3e5
+
+MiniGrid-UnlockRed-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockRed-DecomposedReward-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockPickupFixed-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockIsNextTo-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockIsNextTo-DecomposedReward-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockRed-6x6-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockRed-6x6-DecomposedReward-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockPickupFixed-6x6-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockPickupFixed-6x6-DecomposedReward-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockIsNextTo-6x6-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5
+
+MiniGrid-UnlockIsNextTo-6x6-DecomposedReward-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5

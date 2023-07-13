@@ -152,7 +152,7 @@ for enable_mission in [True, False]:
         def make_env_factory(enable_mission, enable_reward):
             def make_env(**kwargs):
                 return make_oracle_decomposed_reward_env(
-                    "MiniGrid-UnlockPickup-6x6-v0",
+                    "MiniGrid-UnlockPickup-v0",
                     unlock_pickup_tasks,
                     enable_mission=enable_mission,
                     enable_reward=enable_reward,
