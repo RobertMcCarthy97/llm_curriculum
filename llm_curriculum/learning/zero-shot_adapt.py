@@ -23,12 +23,12 @@ from stable_baselines3.common.logger import Video
 ############################
 
 # Choose run
-from llm_curriculum.learning.config.zero_shot_adapt.v3_2 import (
+from llm_curriculum.learning.config.zero_shot_adapt.open_then_in_drawer_then_close import (
     hparams,
     pretrained_models,
 )
 
-hparams["render_mode"] = "rgb_array"
+hparams["render_mode"] = "human"
 
 # W&B tracking
 do_wandb = False
@@ -192,7 +192,7 @@ for pretrained in pretrained_models:
     return_episode_rewards=True,
     warn=True,
     callback=None,
-    verbose=0,
+    verbose=1,
 )
 print("episode_rewards:", episode_rewards)
 print("episode_lengths: ", episode_lengths)

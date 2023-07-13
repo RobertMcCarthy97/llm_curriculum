@@ -50,6 +50,7 @@ def make_env(
             or task == "open_then_place_drawer_then_close"
             or task == "open_then_place_drawer_low"
             or task == "open_then_place_drawer_then_close_low"
+            or task == "open_drawer_then_cube_in_drawer_then_close_adapt"
         ):
             assert max_ep_len >= 80
         else:

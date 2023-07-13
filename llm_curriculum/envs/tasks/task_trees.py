@@ -409,6 +409,14 @@ open_drawer_then_cube_in_drawer_adapt = {
     }
 }
 
+open_drawer_then_cube_in_drawer_then_close_adapt = {
+    PlaceCubeClosedDrawerTask: {
+        OpenDrawerTask: None,
+        PlaceCubeDrawerTask: None,
+        CloseDrawerTask: None,
+    }
+}
+
 open_drawer_then_pick_cube_adapt = {
     PickUpCubeTask: {
         OpenDrawerTask: None,
@@ -484,6 +492,7 @@ TASK_TREES = {
     # Other
     "cube_in_closed_drawer_to_cube_at_target_adapt": cube_in_closed_drawer_to_cube_at_target_adapt,
     "open_drawer_then_cube_in_drawer_adapt": open_drawer_then_cube_in_drawer_adapt,
+    "open_drawer_then_cube_in_drawer_then_close_adapt": open_drawer_then_cube_in_drawer_then_close_adapt,
     "open_drawer_then_pick_cube_adapt": open_drawer_then_pick_cube_adapt,
 }
 
