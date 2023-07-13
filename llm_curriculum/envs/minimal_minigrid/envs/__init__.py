@@ -36,42 +36,15 @@ register(
 )
 
 register(
-    "MiniGrid-UnlockPickup-6x6-v0",
+    "MiniGrid-UnlockPickupFixed-6x6-v0",
     entry_point="llm_curriculum.envs.minimal_minigrid.envs.unlock_pickup:UnlockPickupEnv",
 )
 
 register(
-    "MiniGrid-UnlockPickup-12x12-v0",
+    "MiniGrid-UnlockPickupFixed-12x12-v0",
     entry_point="llm_curriculum.envs.minimal_minigrid.envs.unlock_pickup:UnlockPickupEnv",
     kwargs={"room_size": 12},
 )
-
-
-def make_decomposed_reward_env(
-    env_id,
-    objectives,
-    reward_functions,
-    enable_mission: bool,
-    enable_reward: bool,
-    **kwargs,
-):
-    env = gym.make(env_id, **kwargs)
-    env = FullyObsInfoWrapper(env)
-    env = DecomposedRewardWrapper(
-        env, objectives, reward_functions, enable_mission, enable_reward
-    )
-    return env
-
-
-root_dir = pathlib.Path(__file__).parent.parent.parent.parent.parent
-data_dir = root_dir / "llm_curriculum/envs/minimal_minigrid/prompting/data"
-
-env_ids = [
-    "MiniGrid-IsNextTo-6x6-v0",
-    "MiniGrid-IsNextTo-12x12-v0",
-    "MiniGrid-UnlockRed-6x6-v0",
-    "MiniGrid-UnlockRed-12x12-v0",
-]
 
 
 def camel_to_snake(camelcase_string):
@@ -185,6 +158,34 @@ for enable_mission in [True, False]:
             entry_point=make_env_factory(enable_mission, enable_reward),
         )
 
+
+def make_decomposed_reward_env(
+    env_id,
+    objectives,
+    reward_functions,
+    enable_mission: bool,
+    enable_reward: bool,
+    **kwargs,
+):
+    env = gym.make(env_id, **kwargs)
+    env = FullyObsInfoWrapper(env)
+    env = DecomposedRewardWrapper(
+        env, objectives, reward_functions, enable_mission, enable_reward
+    )
+    return env
+
+
+root_dir = pathlib.Path(__file__).parent.parent.parent.parent.parent
+data_dir = root_dir / "llm_curriculum/envs/minimal_minigrid/prompting/data"
+
+env_ids = [
+    "MiniGrid-IsNextTo-6x6-v0",
+    "MiniGrid-IsNextTo-12x12-v0",
+    "MiniGrid-UnlockRed-6x6-v0",
+    "MiniGrid-UnlockRed-12x12-v0",
+    "MiniGrid-UnlockPickupFixed-6x6-v0",
+    "MiniGrid-UnlockPickupFixed-12x12-v0",
+]
 
 # Register GPT-decomposed envs
 for orig_env_id in env_ids:

@@ -72,3 +72,7 @@ MiniGrid-IsNextTo-6x6-OracleDecomposedReward-NoReward-v0:
 MiniGrid-IsNextTo-6x6-OracleDecomposedReward-NoMission-NoReward-v0: 
   <<: *minigrid-defaults
   n_timesteps: !!float 3e5
+
+MiniGrid-PutNear-6x6-N2-v0: 
+  <<: *minigrid-defaults
+  n_timesteps: !!float 3e5

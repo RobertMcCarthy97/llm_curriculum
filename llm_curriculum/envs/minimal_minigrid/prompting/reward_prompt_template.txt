@@ -7,6 +7,7 @@ Here is an example of an observation:
         "position": [1, 3],
         "direction": 2,
         "carrying": "nothing",
+        "room": (0, 0)
     },
     "field_of_view": {
         "red_box": {
@@ -22,7 +23,7 @@ Here is an example of an observation:
     },
 }
 
-Write a function that takes in the observation and checks whether state '${state}' has been reached?
+Write a function that takes in the observation and checks whether state '${state}' has been reached.
 You should explain how the function works at a high-level, and any assumptions made, in a comment at the top of the function.
 
 Rules: 
@@ -30,6 +31,8 @@ Rules:
 2. The function must be callable with a single argument, which is the observation. 
 3. The function returns a boolean. 
 4. Always enclose your code in a Python code block, e.g. ```python {your code here} ```
+5. Your function should be specific to the state described above. 
+6. Do not change the function signature under any circumstances. 
 --------------------------------
 
 Here is an example for the state "agent is next to red box".

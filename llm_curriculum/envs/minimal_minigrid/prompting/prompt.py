@@ -73,11 +73,10 @@ def parse_function_name(reply: str):
 
 if __name__ == "__main__":
 
-    env = gym.make("MiniGrid-IsNextTo-6x6-N2-v0", render_mode="human")
-    env = FullyObsWrapper(env)
+    env = gym.make("MiniGrid-UnlockPickup-v0", render_mode="human")
     obs, _ = env.reset()
 
-    env_str = describe_env(env)
+    env_str = describe_env(env.unwrapped)
     mission_str = obs["mission"]
 
     print(" ****** DECOMPOSITION PROMPT ****** ")
@@ -91,7 +90,11 @@ if __name__ == "__main__":
     # Send the request
     print(" ****** DECOMPOSITION RESPONSE ****** ")
     messages = [
-        {"role": "system", "content": get_default_system_message()},
+        {
+            "role": "system",
+            "content": get_default_system_message()
+            + "\n You should follow the specified rules as closely as possible.",
+        },
         {"role": "user", "content": prompt},
     ]
     response = chat_completion_request(messages)
