@@ -47,3 +47,34 @@ def test_env(env_id):
 def test_env_image_shape(env_id):
     env = gym.make(env_id)
     assert env.observation_space["image"].shape == (7, 7, 3)
+
+
+@pytest.mark.parametrize(
+    "env_id",
+    [
+        "MiniGrid-UnlockPickup-OracleDecomposedReward-v0",
+        "MiniGrid-UnlockPickup-OracleDecomposedReward-NoMission-v0",
+        "MiniGrid-UnlockPickup-OracleDecomposedReward-NoReward-v0",
+        "MiniGrid-UnlockPickup-OracleDecomposedReward-NoMission-NoReward-v0",
+        "MiniGrid-IsNextTo-6x6-OracleDecomposedReward-v0",
+        "MiniGrid-IsNextTo-6x6-OracleDecomposedReward-NoMission-v0",
+        "MiniGrid-IsNextTo-6x6-OracleDecomposedReward-NoReward-v0",
+        "MiniGrid-IsNextTo-6x6-OracleDecomposedReward-NoMission-NoReward-v0",
+        "MiniGrid-IsNextTo-12x12-OracleDecomposedReward-v0",
+        "MiniGrid-IsNextTo-12x12-OracleDecomposedReward-NoMission-v0",
+        "MiniGrid-IsNextTo-12x12-OracleDecomposedReward-NoReward-v0",
+        "MiniGrid-IsNextTo-12x12-OracleDecomposedReward-NoMission-NoReward-v0",
+    ],
+)
+def test_enable_mission_reward(env_id):
+    env = gym.make(env_id)
+    oracle_wrapper = env.env.env
+    if "NoMission" in env_id:
+        assert not oracle_wrapper.enable_mission
+    else:
+        assert oracle_wrapper.enable_mission
+
+    if "NoReward" in env_id:
+        assert not oracle_wrapper.enable_reward
+    else:
+        assert oracle_wrapper.enable_reward

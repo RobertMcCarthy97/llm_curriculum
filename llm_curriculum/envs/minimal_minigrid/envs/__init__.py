@@ -118,32 +118,40 @@ for enable_mission in [True, False]:
         enable_mission_str = "" if enable_mission else "NoMission-"
         enable_reward_str = "" if enable_reward else "NoReward-"
         env_id = f"MiniGrid-IsNextTo-6x6-OracleDecomposedReward-{enable_mission_str}{enable_reward_str}v0"
-        register(
-            env_id,
-            entry_point=lambda **kwargs: make_oracle_decomposed_reward_env(
-                "MiniGrid-IsNextTo-6x6-v0",
-                unlock_pickup_tasks,
-                enable_mission=enable_mission,
-                enable_reward=enable_reward,
-                **kwargs,
-            ),
-        )
+
+        def make_env_factory(enable_mission, enable_reward):
+            def make_env(**kwargs):
+                return make_oracle_decomposed_reward_env(
+                    "MiniGrid-IsNextTo-6x6-v0",
+                    unlock_pickup_tasks,
+                    enable_mission=enable_mission,
+                    enable_reward=enable_reward,
+                    **kwargs,
+                )
+
+            return make_env
+
+        register(env_id, entry_point=make_env_factory(enable_mission, enable_reward))
 
 for enable_mission in [True, False]:
     for enable_reward in [True, False]:
         enable_mission_str = "" if enable_mission else "NoMission-"
         enable_reward_str = "" if enable_reward else "NoReward-"
         env_id = f"MiniGrid-IsNextTo-12x12-OracleDecomposedReward-{enable_mission_str}{enable_reward_str}v0"
-        register(
-            env_id,
-            entry_point=lambda **kwargs: make_oracle_decomposed_reward_env(
-                "MiniGrid-IsNextTo-12x12-v0",
-                unlock_pickup_tasks,
-                enable_mission=enable_mission,
-                enable_reward=enable_reward,
-                **kwargs,
-            ),
-        )
+
+        def make_env_factory(enable_mission, enable_reward):
+            def make_env(**kwargs):
+                return make_oracle_decomposed_reward_env(
+                    "MiniGrid-IsNextTo-12x12-v0",
+                    unlock_pickup_tasks,
+                    enable_mission=enable_mission,
+                    enable_reward=enable_reward,
+                    **kwargs,
+                )
+
+            return make_env
+
+        register(env_id, entry_point=make_env_factory(enable_mission, enable_reward))
 
 unlock_pickup_tasks = [
     GoToObjectTask(ObjectDescription("key", "any")),
@@ -156,18 +164,25 @@ unlock_pickup_tasks = [
 
 for enable_mission in [True, False]:
     for enable_reward in [True, False]:
+
+        def make_env_factory(enable_mission, enable_reward):
+            def make_env(**kwargs):
+                return make_oracle_decomposed_reward_env(
+                    "MiniGrid-UnlockPickup-6x6-v0",
+                    unlock_pickup_tasks,
+                    enable_mission=enable_mission,
+                    enable_reward=enable_reward,
+                    **kwargs,
+                )
+
+            return make_env
+
         enable_mission_str = "" if enable_mission else "NoMission-"
         enable_reward_str = "" if enable_reward else "NoReward-"
         env_id = f"MiniGrid-UnlockPickup-OracleDecomposedReward-{enable_mission_str}{enable_reward_str}v0"
         register(
             env_id,
-            entry_point=lambda **kwargs: make_oracle_decomposed_reward_env(
-                "MiniGrid-UnlockPickup-v0",
-                unlock_pickup_tasks,
-                enable_mission=enable_mission,
-                enable_reward=enable_reward,
-                **kwargs,
-            ),
+            entry_point=make_env_factory(enable_mission, enable_reward),
         )
 
 

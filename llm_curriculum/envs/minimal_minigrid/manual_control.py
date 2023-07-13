@@ -131,9 +131,7 @@ if __name__ == "__main__":
         agent_view_size=args.agent_view_size,
         screen_size=args.screen_size,
     )
-    from minigrid.wrappers import FullyObsWrapper
 
-    env = FullyObsWrapper(env)
     # from minigrid.wrappers import RGBImgPartialObsWrapper
     # env = RGBImgPartialObsWrapper(env, args.agent_view_size)
 
