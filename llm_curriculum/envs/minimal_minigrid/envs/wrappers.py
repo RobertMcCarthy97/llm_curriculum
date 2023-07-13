@@ -116,6 +116,8 @@ class DecomposedRewardWrapper(gym.Wrapper):
             except Exception as e:
                 print(e)
                 print("Failed to execute reward function. Skipping...")
+                info["reward_function_failure"] = self.current_objective_idx
+                # TODO: log failures in WandB during training
                 self.current_objective_idx += 1
 
         # Overwrite the mission with the current objective
