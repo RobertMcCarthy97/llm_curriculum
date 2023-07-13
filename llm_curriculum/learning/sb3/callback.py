@@ -44,11 +44,14 @@ class VideoRecorderCallback(BaseCallback):
         self.add_text = add_text
         self.sequenced_rollouts = sequenced_rollouts
 
+        self.n_calls = 0
+
     def _on_step(self) -> bool:
         if self.n_calls % self._render_freq == 0:
             sync_envs_normalization(self.training_env, self._eval_env)
             self._record_video(deterministic=True)
             self._record_video(deterministic=False)
+            self.n_calls += 1
         return True
 
     def _record_video(self, deterministic=True):
@@ -108,6 +111,7 @@ class VideoRecorderCallback(BaseCallback):
             Video(th.ByteTensor(np.array([screens])), fps=25),
             exclude=("stdout", "log", "json", "csv"),
         )
+        self.logger.record("misc/n_video_callbacks", self.n_calls)
 
 
 class SuccessCallback(BaseCallback):
