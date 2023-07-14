@@ -48,6 +48,8 @@ class Task:
         self.complete = False
         self.success_count = 0
 
+        self.not_complete_by_child_count = 0
+
     def set_state_parser_full_tree(self, env_type):
         assert env_type in ["core", "drawer"]
         if env_type == "core":
