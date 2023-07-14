@@ -103,6 +103,7 @@ class TD3(OffPolicyAlgorithm):
         # custom args:
         oracle_at_warmup=False,
         task_name=None,
+        max_grad_norm: float = 10,
     ):
         super().__init__(
             policy,
@@ -135,6 +136,7 @@ class TD3(OffPolicyAlgorithm):
         self.target_policy_noise = target_policy_noise
 
         self.task_name = task_name
+        self.max_grad_norm = max_grad_norm
 
         if _init_setup_model:
             self._setup_model()
@@ -208,6 +210,8 @@ class TD3(OffPolicyAlgorithm):
             # Optimize the critics
             self.critic.optimizer.zero_grad()
             critic_loss.backward()
+            # Clip gradient norm
+            th.nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
             self.critic.optimizer.step()
 
             # Delayed policy updates
@@ -221,6 +225,8 @@ class TD3(OffPolicyAlgorithm):
                 # Optimize the actor
                 self.actor.optimizer.zero_grad()
                 actor_loss.backward()
+                # Clip gradient norm
+                th.nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
                 self.actor.optimizer.step()
 
                 polyak_update(

@@ -199,6 +199,7 @@ def create_models(env, logger, hparams):
             action_noise=hparams["action_noise"],
             batch_size=hparams["batch_size"],
             task_name=task_name,
+            max_grad_norm=hparams["max_grad_norm"],
         )
         model.set_logger(logger)
         if hparams["replay_buffer_class"] is not None:
