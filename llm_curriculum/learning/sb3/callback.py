@@ -163,6 +163,8 @@ class SuccessCallbackSeperatePolicies(BaseCallback):
         do_save_models=False,
         save_dir=None,
         single_task_names=None,
+        do_early_stopping=False,
+        early_stop_success_threshold=0.95,
     ):
         super().__init__(verbose)
         self.log_freq = log_freq
@@ -173,6 +175,9 @@ class SuccessCallbackSeperatePolicies(BaseCallback):
             self.save_dir = save_dir
             # os.makedirs(self.save_dir, exist_ok=True)
             self.task_best_success = {task_name: 0.0 for task_name in single_task_names}
+
+        self.do_early_stopping = do_early_stopping
+        self.early_stop_success_threshold = early_stop_success_threshold
 
     def _on_step(self) -> bool:
         # Dump
@@ -243,6 +248,10 @@ class SuccessCallbackSeperatePolicies(BaseCallback):
             if self.do_save_models:
                 self.save_models(stats)
 
+            # Check for early stopping
+            if self.do_early_stopping:
+                self.check_early_stopping()
+
             # dump data
             self.logger.dump(
                 self.num_timesteps
@@ -293,6 +302,46 @@ class SuccessCallbackSeperatePolicies(BaseCallback):
         #     )
         #     artifact.add_file(save_path)
         #     run.log_artifact(artifact, aliases=["v0", "latest"])
+
+    def check_early_stopping(self):
+        """
+        Only applies if doing low-level only
+        """
+        agent_conductor = self.locals["env"].envs[0].agent_conductor
+        models_dict = self.locals["models_dict"]
+
+        assert agent_conductor.manual_decompose_p == 1.0
+        assert len(agent_conductor.high_level_task_list) == 1
+
+        # get sequence
+        high_level_task_name = agent_conductor.high_level_task_list[0]
+        high_level_task = agent_conductor.get_task_from_name(high_level_task_name)
+        low_level_sequence = high_level_task.subtask_sequence
+
+        prev_task_stopped = True
+        for i, task in enumerate(low_level_sequence):
+
+            assert len(task.subtask_sequence) == 0
+
+            # check task success
+            task_name = task.name
+            task_edma_success = agent_conductor.task_stats["success"].get_task_edma(
+                task_name
+            )
+
+            # check if prev stopped
+            if i > 0:
+                prev_task = low_level_sequence[i - 1]
+                prev_task_stopped = models_dict[prev_task.name].get_early_stopped()
+
+            if task_edma_success is not None:
+                if (
+                    prev_task_stopped
+                    and task_edma_success > self.early_stop_success_threshold
+                ):
+                    models_dict[task.name].set_early_stopped(True)
+
+        raise NotImplementedError("Not tested fully")
 
 
 class GradientCallback(BaseCallback):

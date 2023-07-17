@@ -137,6 +137,7 @@ class TD3(OffPolicyAlgorithm):
 
         self.task_name = task_name
         self.max_grad_norm = max_grad_norm
+        self.early_stopped = False
 
         if _init_setup_model:
             self._setup_model()
@@ -312,3 +313,9 @@ class TD3(OffPolicyAlgorithm):
             "epsilon": venv.epsilon,
             "clip_obs": venv.clip_obs,
         }
+
+    def get_early_stopped(self):
+        return self.early_stopped
+
+    def set_early_stopped(self, early_stopped):
+        self.early_stopped = early_stopped

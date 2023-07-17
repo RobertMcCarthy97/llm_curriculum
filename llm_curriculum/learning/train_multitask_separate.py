@@ -142,6 +142,8 @@ def setup_logging(hparams, train_env, base_freq=1000):
                 do_save_models=hparams["save_models"],
                 save_dir=os.path.join("./models", hparams.wandb.name),
                 single_task_names=single_task_names,
+                do_early_stopping=hparams["do_early_stopping"],
+                early_stop_success_threshold=hparams["early_stop_success_threshold"],
             )
         ]
     callback_list += [
@@ -276,8 +278,14 @@ def training_loop(models_dict, env, total_timesteps, log_interval=4, callback=No
         )
         # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
 
+        assert not model.get_early_stopped(), "early stopping not implemented"
+
         # Train
-        if model.num_timesteps > 0 and model.num_timesteps > model.learning_starts:
+        if (
+            model.num_timesteps > 0
+            and model.num_timesteps > model.learning_starts
+            and not model.get_early_stopped()
+        ):
             # If no `gradient_steps` is specified,
             # do as many gradients steps as steps performed during the rollout
             gradient_steps = (
@@ -322,6 +330,8 @@ def training_loop_sequential(
         # TODO: collect 2 rollouts each to reduce cost of the extra rollout reset?
         timesteps_count += rollout.episode_timesteps
         logger.record("time/train_loop_timesteps", timesteps_count)
+
+        assert not model.get_early_stopped(), "early stopping not implemented"
 
         # Train
         for model_name, model in models_dict.items():
