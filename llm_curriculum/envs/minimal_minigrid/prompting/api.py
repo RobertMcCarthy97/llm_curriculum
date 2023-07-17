@@ -10,7 +10,6 @@ GPT_MODEL = "gpt-4"
 
 dotenv_path = Path(__file__).parent.parent.absolute() / ".env"
 secrets = dotenv.dotenv_values(dotenv_path)
-openai.api_key = secrets["OPENAI_API_KEY"]
 
 
 def get_default_system_message() -> str:
@@ -21,6 +20,8 @@ def get_default_system_message() -> str:
 def chat_completion_request(
     messages, functions=None, function_call=None, model=GPT_MODEL
 ):
+    openai.api_key = secrets["OPENAI_API_KEY"]
+
     headers = {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + openai.api_key,
@@ -73,3 +74,13 @@ def pretty_print_conversation(messages):
                 ],
             )
         )
+
+
+if __name__ == "__main__":
+    # Test sending message to API
+    messages = [
+        {"role": "system", "content": get_default_system_message()},
+        {"role": "user", "content": "Hello!"},
+    ]
+    response = chat_completion_request(messages)
+    print(response.json())
