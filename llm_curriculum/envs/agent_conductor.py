@@ -306,10 +306,11 @@ class AgentConductor:
                 # ), f"Task {task.name} is not complete!"  # TODO: shouldn't assume that child sequence completes parent!
                 if not task.complete:
                     task.not_complete_by_child_count += 1
-                    self.logger.record(
-                        f"misc/{task.name}_not_complete_by_child_count",
-                        task.not_complete_by_child_count,
-                    )
+                    if self.logger is not None:
+                        self.logger.record(
+                            f"misc/{task.name}_not_complete_by_child_count",
+                            task.not_complete_by_child_count,
+                        )
                     return task  # If parent not complete by child in rare occasions, just return parent
 
                 if task.check_next_task_exists():
